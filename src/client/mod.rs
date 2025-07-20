@@ -105,7 +105,7 @@ where
         &self,
         to: TronAddress,
         amount: Trx,
-    ) -> builder::TransferBuilder<P, S> {
+    ) -> builder::TransferBuilder<'_, P, S> {
         builder::TransferBuilder {
             client: self,
             to,
@@ -113,7 +113,7 @@ where
             from: None,
         }
     }
-    pub fn trx_balance(&self) -> builder::TrxBalanceBuilder<P, S> {
+    pub fn trx_balance(&self) -> builder::TrxBalanceBuilder<'_, P, S> {
         builder::TrxBalanceBuilder {
             client: self,
             address: None,
@@ -122,7 +122,7 @@ where
     pub fn trc20_balance_of(
         &self,
         contract: TronAddress,
-    ) -> builder::Trc20BalanceOfBuilder<P, S> {
+    ) -> builder::Trc20BalanceOfBuilder<'_, P, S> {
         builder::Trc20BalanceOfBuilder {
             client: self,
             contract,
@@ -134,7 +134,7 @@ where
         to: TronAddress,
         contract_address: TronAddress,
         amount: u64,
-    ) -> builder::Trc20TransferBuilder<P, S> {
+    ) -> builder::Trc20TransferBuilder<'_, P, S> {
         builder::Trc20TransferBuilder {
             client: self,
             to,
