@@ -35,7 +35,9 @@ where
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
 
-        Ok(trx!(1 TRX))
+        let account = self.client.provider.get_account(address).await?;
+
+        Ok(account.balance.into())
     }
 }
 
@@ -133,7 +135,7 @@ where
         self
     }
 
-    pub async fn call(self) -> Result<PendingTransaction<'a, P, S>> {
+    pub async fn get(self) -> Result<u64> {
         let owner = self
             .owner
             .or_else(|| self.client.signer.address())
@@ -142,15 +144,22 @@ where
             })?;
 
         let call = contracts::trc20_balance_of(owner);
-        let extention = self
+        let mut extention = self
             .client
             .provider
-            .trigger_smart_contract(owner, self.contract, call)
+            .trigger_constant_contract(owner, self.contract, call)
             .await?;
+        let balance = if let Some(result) = extention.constant_result.pop() {
+            if result.len() == 32 {
+                let balance_bytes: [u8; 32] = result.try_into().unwrap(); // We sure in length
+                alloy_primitives::U256::from_be_bytes(balance_bytes)
+            } else {
+                return Err(anyhow!("unexpected constant result length").into());
+            }
+        } else {
+            return Err(anyhow::anyhow!("no constant result returned",).into());
+        };
 
-        Ok(PendingTransaction {
-            client: self.client,
-            txext: extention,
-        })
+        Ok(balance.to())
     }
 }
