@@ -1,0 +1,49 @@
+use std::fmt;
+
+pub struct Trx(i64);
+
+impl Trx {
+    pub fn from_sun(sat: i64) -> Self {
+        Self(sat)
+    }
+    pub fn to_sun(&self) -> i64 {
+        self.0
+    }
+}
+
+impl From<i64> for Trx {
+    fn from(value: i64) -> Self {
+        Trx(value)
+    }
+}
+
+impl fmt::Display for Trx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let trx = self.0 as f64 * 0.000_001; // 1 sun = 0.000001 TRX
+        let formatted = if trx.fract() == 0.0 {
+            // Integer value (e.g., 1.0 → "1 TRX")
+            format!("{} TRX", trx as i64)
+        } else {
+            // Trim trailing zeros (e.g., 0.000010 → "0.00001 TRX")
+            let mut s = format!("{trx:.6}");
+            while s.ends_with('0') {
+                s.pop(); // Remove trailing zeros
+            }
+            if s.ends_with('.') {
+                s.pop(); // Remove trailing decimal point (e.g., "1." → "1")
+            }
+            format!("{s} TRX")
+        };
+        f.write_str(&formatted)
+    }
+}
+
+#[macro_export]
+macro_rules! trx {
+    ($val:literal TRX) => {
+        $crate::domain::trx::Trx::from(($val as i64) * 1_000_000)
+    };
+    ($val:literal SUN) => {
+        $crate::domain::trx::Trx::from($val as i64)
+    };
+}
