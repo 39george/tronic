@@ -43,6 +43,12 @@ impl LocalSigner {
     }
 }
 
+impl From<SigningKey> for LocalSigner {
+    fn from(signing_key: SigningKey) -> Self {
+        Self { signing_key }
+    }
+}
+
 #[async_trait::async_trait]
 impl PrehashSigner for LocalSigner {
     type Error = k256::ecdsa::signature::Error;
