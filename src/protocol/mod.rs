@@ -144,8 +144,8 @@ impl From<TransactionExtention> for domain::transaction::TransactionExtention {
             transaction: txext.transaction.map(Into::into),
             txid: txext.txid.into(),
             constant_result: txext.constant_result,
-            energy_used: todo!(),
-            energy_penalty: todo!(),
+            energy_used: txext.energy_used,
+            energy_penalty: txext.energy_penalty,
         }
     }
 }
