@@ -2,6 +2,16 @@
 name = "tronic"
 version = "0.1.0"
 edition = "2024"
+description = "A modular, async-first Rust client for the Tron blockchain."
+authors = ["39george <39george.enjoy@gmail.com>"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/39george/tronic"
+homepage = "https://github.com/39george/tronic"
+documentation = "https://docs.rs/tronic"
+keywords = ["tron", "blockchain", "smart-contracts", "grpc", "rust"]
+categories = ["cryptography", "network-programming", "api-bindings", "asynchronous", "finance"]
+exclude = ["/.github", "/.gitignore", "/examples", "/target", "Makefile", "*.sh"]
 
 [dependencies]
 # Base dependencies
