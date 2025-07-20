@@ -13,6 +13,7 @@ use crate::protocol;
 use crate::protocol::wallet_client::WalletClient;
 use crate::providers::grpc::middleware::auth_channel;
 
+#[derive(Clone)]
 pub struct GrpcProvider {
     channel: middleware::AuthChannel,
 }
@@ -82,10 +83,10 @@ impl crate::client::TronProvider for GrpcProvider {
             .await?
             .into_inner();
         if txext.txid.is_empty() {
-            if let Some(ref r) = txext.result {
-                if r.message == b"Contract validate error : Validate TransferContract error, no OwnerAccount." {
-                    return Err(Error::NoAccount(owner))
-                }
+            if let Some(ref r) = txext.result
+                && r.message == b"Contract validate error : Validate TransferContract error, no OwnerAccount."
+            {
+                return Err(Error::NoAccount(owner))
             }
             Err(Error::Unexpected(anyhow!(
                 "txid is empty: {}",
