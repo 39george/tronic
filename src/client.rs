@@ -75,7 +75,7 @@ where
             .broadcast_transaction(transaction)
             .await?;
 
-        Ok(txid.clone().into())
+        Ok(txid.to_owned())
     }
 }
 
