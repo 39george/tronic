@@ -14,6 +14,8 @@ mod protocol;
 pub const TRON_PROTOCOL_FILE_DESCRIPTOR_SET: &[u8] =
     tonic::include_file_descriptor_set!("tron_protocol_descriptor");
 
+// ────────────────────────────── Transaction ─────────────────────────────── //
+
 impl From<transaction::Result> for domain::transaction::TransactionResult {
     fn from(r: transaction::Result) -> Self {
         domain::transaction::TransactionResult {
@@ -185,6 +187,337 @@ impl From<domain::contract::TriggerSmartContract> for TriggerSmartContract {
             data: t.data,
             call_token_value: t.call_token_value,
             token_id: t.token_id,
+        }
+    }
+}
+
+// ──────────────────────────────── Account ───────────────────────────────── //
+
+impl From<Key> for crate::domain::account::Key {
+    fn from(k: Key) -> Self {
+        Self {
+            address: TronAddress::try_from(&k.address)
+                .expect("invalid address"),
+            weight: k.weight,
+        }
+    }
+}
+
+impl From<crate::domain::account::Key> for Key {
+    fn from(k: crate::domain::account::Key) -> Self {
+        Self {
+            address: k.address.as_bytes().to_vec(),
+            weight: k.weight,
+        }
+    }
+}
+
+impl From<i32> for crate::domain::account::PermissionType {
+    fn from(i: i32) -> Self {
+        match i {
+            0 => Self::Owner,
+            1 => Self::Witness,
+            2 => Self::Active,
+            _ => Self::Active,
+        }
+    }
+}
+
+impl From<crate::domain::account::PermissionType> for i32 {
+    fn from(p: crate::domain::account::PermissionType) -> Self {
+        p as i32
+    }
+}
+
+impl From<Permission> for crate::domain::account::Permission {
+    fn from(p: Permission) -> Self {
+        Self {
+            permission_type: p.r#type.into(),
+            id: p.id,
+            permission_name: p.permission_name,
+            threshold: p.threshold,
+            parent_id: p.parent_id,
+            operations: p.operations,
+            keys: p.keys.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<crate::domain::account::Permission> for Permission {
+    fn from(p: crate::domain::account::Permission) -> Self {
+        Self {
+            r#type: p.permission_type.into(),
+            id: p.id,
+            permission_name: p.permission_name,
+            threshold: p.threshold,
+            parent_id: p.parent_id,
+            operations: p.operations,
+            keys: p.keys.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<account::Frozen> for crate::domain::account::Frozen {
+    fn from(f: account::Frozen) -> Self {
+        Self {
+            frozen_balance: domain::trx::Trx::from(f.frozen_balance),
+            expire_time: time::OffsetDateTime::from_unix_timestamp(
+                f.expire_time,
+            )
+            .inspect(|e| {
+                tracing::error!(
+                    "failed to create OffsetDateTime from unix_timestamp: {e}"
+                )
+            })
+            .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH),
+        }
+    }
+}
+
+impl From<crate::domain::account::Frozen> for account::Frozen {
+    fn from(f: crate::domain::account::Frozen) -> Self {
+        Self {
+            frozen_balance: f.frozen_balance.to_sun(),
+            expire_time: f.expire_time.unix_timestamp(),
+        }
+    }
+}
+
+impl From<account::FreezeV2> for crate::domain::account::FreezeV2 {
+    fn from(f: account::FreezeV2) -> Self {
+        Self {
+            freeze_type: f.r#type,
+            amount: f.amount.into(),
+        }
+    }
+}
+
+impl From<crate::domain::account::FreezeV2> for account::FreezeV2 {
+    fn from(f: crate::domain::account::FreezeV2) -> Self {
+        Self {
+            r#type: f.freeze_type,
+            amount: f.amount.to_sun(),
+        }
+    }
+}
+
+impl From<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
+    fn from(f: account::UnFreezeV2) -> Self {
+        Self {
+            unfreeze_type: f.r#type,
+            unfreeze_amount: f.unfreeze_amount.into(),
+            unfreeze_expire_time: time::OffsetDateTime::from_unix_timestamp(
+                f.unfreeze_expire_time,
+            )
+            .inspect(|e| {
+                tracing::error!(
+                    "failed to create OffsetDateTime from unix_timestamp: {e}"
+                )
+            })
+            .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH),
+        }
+    }
+}
+
+impl From<crate::domain::account::UnFreezeV2> for account::UnFreezeV2 {
+    fn from(f: crate::domain::account::UnFreezeV2) -> Self {
+        Self {
+            r#type: f.unfreeze_type,
+            unfreeze_amount: f.unfreeze_amount.to_sun(),
+            unfreeze_expire_time: f.unfreeze_expire_time.unix_timestamp(),
+        }
+    }
+}
+
+impl From<Vote> for crate::domain::account::Vote {
+    fn from(v: Vote) -> Self {
+        Self {
+            vote_address: TronAddress::try_from(&v.vote_address)
+                .expect("invalid vote address"),
+            vote_count: v.vote_count,
+        }
+    }
+}
+
+impl From<crate::domain::account::Vote> for Vote {
+    fn from(v: crate::domain::account::Vote) -> Self {
+        Self {
+            vote_address: v.vote_address.as_bytes().to_vec(),
+            vote_count: v.vote_count,
+        }
+    }
+}
+
+impl From<account::AccountResource> for domain::account::AccountResource {
+    fn from(r: account::AccountResource) -> Self {
+        Self {
+            energy_usage: r.energy_usage,
+            frozen_balance_for_energy: r
+                .frozen_balance_for_energy
+                .map(Into::into),
+            latest_consume_time_for_energy: r.latest_consume_time_for_energy,
+            acquired_delegated_frozen_balance_for_energy: r
+                .acquired_delegated_frozen_balance_for_energy,
+            delegated_frozen_balance_for_energy: r
+                .delegated_frozen_balance_for_energy,
+            storage_limit: r.storage_limit,
+            storage_usage: r.storage_usage,
+            latest_exchange_storage_time: r.latest_exchange_storage_time,
+            energy_window_size: r.energy_window_size,
+            delegated_frozen_v2_balance_for_energy: r
+                .delegated_frozen_v2_balance_for_energy,
+            acquired_delegated_frozen_v2_balance_for_energy: r
+                .acquired_delegated_frozen_v2_balance_for_energy,
+            energy_window_optimized: r.energy_window_optimized,
+        }
+    }
+}
+
+impl From<domain::account::AccountResource> for account::AccountResource {
+    fn from(r: domain::account::AccountResource) -> Self {
+        Self {
+            energy_usage: r.energy_usage,
+            frozen_balance_for_energy: r
+                .frozen_balance_for_energy
+                .map(Into::into),
+            latest_consume_time_for_energy: r.latest_consume_time_for_energy,
+            acquired_delegated_frozen_balance_for_energy: r
+                .acquired_delegated_frozen_balance_for_energy,
+            delegated_frozen_balance_for_energy: r
+                .delegated_frozen_balance_for_energy,
+            storage_limit: r.storage_limit,
+            storage_usage: r.storage_usage,
+            latest_exchange_storage_time: r.latest_exchange_storage_time,
+            energy_window_size: r.energy_window_size,
+            delegated_frozen_v2_balance_for_energy: r
+                .delegated_frozen_v2_balance_for_energy,
+            acquired_delegated_frozen_v2_balance_for_energy: r
+                .acquired_delegated_frozen_v2_balance_for_energy,
+            energy_window_optimized: r.energy_window_optimized,
+        }
+    }
+}
+
+impl From<Account> for domain::account::Account {
+    fn from(a: Account) -> Self {
+        Self {
+            account_name: a.account_name,
+            r#type: a.r#type,
+            address: a.address,
+            balance: a.balance,
+            votes: a.votes.into_iter().map(Into::into).collect(),
+            asset: a.asset,
+            asset_v2: a.asset_v2,
+            frozen: a.frozen.into_iter().map(Into::into).collect(),
+            net_usage: a.net_usage,
+            acquired_delegated_frozen_balance_for_bandwidth: a
+                .acquired_delegated_frozen_balance_for_bandwidth,
+            delegated_frozen_balance_for_bandwidth: a
+                .delegated_frozen_balance_for_bandwidth,
+            old_tron_power: a.old_tron_power,
+            tron_power: a.tron_power.map(Into::into),
+            asset_optimized: a.asset_optimized,
+            create_time: a.create_time,
+            latest_opration_time: a.latest_opration_time,
+            allowance: a.allowance,
+            latest_withdraw_time: a.latest_withdraw_time,
+            code: a.code,
+            is_witness: a.is_witness,
+            is_committee: a.is_committee,
+            frozen_supply: a
+                .frozen_supply
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            asset_issued_name: a.asset_issued_name,
+            asset_issued_id: a.asset_issued_id,
+            latest_asset_operation_time: a.latest_asset_operation_time,
+            latest_asset_operation_time_v2: a.latest_asset_operation_time_v2,
+            free_net_usage: a.free_net_usage,
+            free_asset_net_usage: a.free_asset_net_usage,
+            free_asset_net_usage_v2: a.free_asset_net_usage_v2,
+            latest_consume_time: a.latest_consume_time,
+            latest_consume_free_time: a.latest_consume_free_time,
+            account_id: a.account_id,
+            net_window_size: a.net_window_size,
+            net_window_optimized: a.net_window_optimized,
+            account_resource: a.account_resource.map(Into::into),
+            code_hash: a.code_hash,
+            owner_permission: a.owner_permission.map(Into::into),
+            witness_permission: a.witness_permission.map(Into::into),
+            active_permission: a
+                .active_permission
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            frozen_v2: a.frozen_v2.into_iter().map(Into::into).collect(),
+            unfrozen_v2: a.unfrozen_v2.into_iter().map(Into::into).collect(),
+            delegated_frozen_v2_balance_for_bandwidth: a
+                .delegated_frozen_v2_balance_for_bandwidth,
+            acquired_delegated_frozen_v2_balance_for_bandwidth: a
+                .acquired_delegated_frozen_v2_balance_for_bandwidth,
+        }
+    }
+}
+
+impl From<domain::account::Account> for Account {
+    fn from(a: domain::account::Account) -> Self {
+        Self {
+            account_name: a.account_name,
+            r#type: a.r#type,
+            address: a.address,
+            balance: a.balance,
+            votes: a.votes.into_iter().map(Into::into).collect(),
+            asset: a.asset,
+            asset_v2: a.asset_v2,
+            frozen: a.frozen.into_iter().map(Into::into).collect(),
+            net_usage: a.net_usage,
+            acquired_delegated_frozen_balance_for_bandwidth: a
+                .acquired_delegated_frozen_balance_for_bandwidth,
+            delegated_frozen_balance_for_bandwidth: a
+                .delegated_frozen_balance_for_bandwidth,
+            old_tron_power: a.old_tron_power,
+            tron_power: a.tron_power.map(Into::into),
+            asset_optimized: a.asset_optimized,
+            create_time: a.create_time,
+            latest_opration_time: a.latest_opration_time,
+            allowance: a.allowance,
+            latest_withdraw_time: a.latest_withdraw_time,
+            code: a.code,
+            is_witness: a.is_witness,
+            is_committee: a.is_committee,
+            frozen_supply: a
+                .frozen_supply
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            asset_issued_name: a.asset_issued_name,
+            asset_issued_id: a.asset_issued_id,
+            latest_asset_operation_time: a.latest_asset_operation_time,
+            latest_asset_operation_time_v2: a.latest_asset_operation_time_v2,
+            free_net_usage: a.free_net_usage,
+            free_asset_net_usage: a.free_asset_net_usage,
+            free_asset_net_usage_v2: a.free_asset_net_usage_v2,
+            latest_consume_time: a.latest_consume_time,
+            latest_consume_free_time: a.latest_consume_free_time,
+            account_id: a.account_id,
+            net_window_size: a.net_window_size,
+            net_window_optimized: a.net_window_optimized,
+            account_resource: a.account_resource.map(Into::into),
+            code_hash: a.code_hash,
+            owner_permission: a.owner_permission.map(Into::into),
+            witness_permission: a.witness_permission.map(Into::into),
+            active_permission: a
+                .active_permission
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            frozen_v2: a.frozen_v2.into_iter().map(Into::into).collect(),
+            unfrozen_v2: a.unfrozen_v2.into_iter().map(Into::into).collect(),
+            delegated_frozen_v2_balance_for_bandwidth: a
+                .delegated_frozen_v2_balance_for_bandwidth,
+            acquired_delegated_frozen_v2_balance_for_bandwidth: a
+                .acquired_delegated_frozen_v2_balance_for_bandwidth,
         }
     }
 }

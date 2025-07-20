@@ -22,6 +22,10 @@ pub struct TronAddress([u8; 21]);
 
 // TODO: refine error handling
 impl TronAddress {
+    pub const ZERO: TronAddress = TronAddress([
+        0x41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+
     /// Construct new address from bytes (expected with 0x41 prefix)
     pub fn new(bytes: [u8; 21]) -> Result<Self, anyhow::Error> {
         if bytes[0] == 0x41 {
@@ -64,6 +68,12 @@ impl TronAddress {
     /// Get raw address bytes (including 0x41 prefix)
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
+    }
+}
+
+impl Default for TronAddress {
+    fn default() -> Self {
+        TronAddress::ZERO
     }
 }
 

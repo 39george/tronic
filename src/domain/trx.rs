@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
 pub struct Trx(i64);
 
 impl Trx {

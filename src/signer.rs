@@ -16,6 +16,9 @@ pub trait PrehashSigner {
         txid: &TxId,
         signature: &Signature,
     ) -> Result<RecoveryId, Self::Error>;
+    fn address(&self) -> Option<TronAddress> {
+        None
+    }
 }
 
 #[derive(Clone)]
@@ -73,5 +76,8 @@ impl PrehashSigner for LocalSigner {
             signature,
         )?;
         Ok(recovery_id)
+    }
+    fn address(&self) -> Option<TronAddress> {
+        Some(self.tron_address())
     }
 }

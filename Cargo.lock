@@ -2367,6 +2367,7 @@ dependencies = [
  "async-trait",
  "bon",
  "bs58",
+ "derivative",
  "futures",
  "hex",
  "http",

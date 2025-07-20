@@ -14,6 +14,8 @@ use crate::error::Error;
 use crate::signer::PrehashSigner;
 use crate::trx;
 
+pub mod builder;
+
 pub enum Auth {
     Bearer { name: String, secret: SecretString },
     None,
@@ -43,6 +45,13 @@ pub trait TronProvider {
     ) -> Result<i64>;
     async fn energy_price(&self) -> Result<domain::trx::Trx>;
     async fn bandwidth_price(&self) -> Result<domain::trx::Trx>;
+    async fn get_account(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::account::Account>;
+    async fn trigger_constant_contract(
+        &self,
+    ) -> Result<domain::transaction::TransactionExtention>;
 }
 
 pub struct PendingTransaction<'a, P, S> {
@@ -93,49 +102,44 @@ where
 {
     pub async fn send_trx(
         &self,
-        from: TronAddress,
         to: TronAddress,
         amount: Trx,
-    ) -> Result<PendingTransaction<P, S>> {
-        let extention =
-            self.provider.trasnfer_contract(from, to, amount).await?;
-        Ok(PendingTransaction {
+    ) -> builder::TransferBuilder<P, S> {
+        builder::TransferBuilder {
             client: self,
-            txext: extention,
-        })
+            to,
+            amount,
+            from: None,
+        }
     }
-    pub async fn trx_balance(&self, _address: TronAddress) -> Result<Trx> {
-        Ok(trx! {1 TRX})
+    pub fn trx_balance(&self) -> builder::TrxBalanceBuilder<P, S> {
+        builder::TrxBalanceBuilder {
+            client: self,
+            address: None,
+        }
     }
-    pub async fn trc20_balance_of(
+    pub fn trc20_balance_of(
         &self,
-        address: TronAddress,
-        contract_address: TronAddress,
-    ) -> Result<PendingTransaction<P, S>> {
-        let call = contracts::trc20_balance_of(address);
-        let extention = self
-            .provider
-            .trigger_smart_contract(address, contract_address, call)
-            .await?;
-        Ok(PendingTransaction {
+        contract: TronAddress,
+    ) -> builder::Trc20BalanceOfBuilder<P, S> {
+        builder::Trc20BalanceOfBuilder {
             client: self,
-            txext: extention,
-        })
+            contract,
+            owner: None,
+        }
     }
     pub async fn trc20_transfer(
         &self,
-        address: TronAddress,
+        to: TronAddress,
         contract_address: TronAddress,
         amount: u64,
-    ) -> Result<PendingTransaction<P, S>> {
-        let call = contracts::trc20_transfer(address, amount);
-        let extention = self
-            .provider
-            .trigger_smart_contract(address, contract_address, call)
-            .await?;
-        Ok(PendingTransaction {
+    ) -> builder::Trc20TransferBuilder<P, S> {
+        builder::Trc20TransferBuilder {
             client: self,
-            txext: extention,
-        })
+            to,
+            amount,
+            from: None,
+            contract: contract_address,
+        }
     }
 }

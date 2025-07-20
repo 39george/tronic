@@ -153,6 +153,24 @@ impl crate::client::TronProvider for GrpcProvider {
             .ok_or(anyhow!("not found getTransactionFee"))?;
         Ok((*bandwidth_unit_price).into())
     }
+    async fn get_account(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::account::Account> {
+        let mut node = self.wallet_client();
+        let account = protocol::Account {
+            address: address.as_bytes().to_vec(),
+            ..Default::default()
+        };
+        let account: domain::account::Account =
+            node.get_account(account).await?.into_inner().into();
+        Ok(account)
+    }
+    async fn trigger_constant_contract(
+        &self,
+    ) -> Result<domain::transaction::TransactionExtention> {
+        todo!()
+    }
 }
 
 pub mod middleware {
