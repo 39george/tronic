@@ -6,7 +6,6 @@ use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::error::Error;
 use crate::signer::PrehashSigner;
-use crate::trx;
 
 use super::Client;
 use super::PendingTransaction;

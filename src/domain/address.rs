@@ -2,11 +2,9 @@ use core::fmt::{Debug, Display};
 use core::str::FromStr;
 
 use anyhow::anyhow;
-use rand::CryptoRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
-// TODO: implement to tonic::Status convertation
 #[derive(thiserror::Error)]
 pub enum Error {
     #[error("coordinate not found")]
@@ -151,6 +149,7 @@ impl Display for TronAddress {
     }
 }
 
+// TODO: make serde feature?
 impl Serialize for TronAddress {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

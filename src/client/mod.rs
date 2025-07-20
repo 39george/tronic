@@ -89,7 +89,7 @@ where
     }
 }
 
-#[derive(Builder)]
+#[derive(Builder, Clone)]
 pub struct Client<P, S> {
     provider: P,
     signer: S,
@@ -97,7 +97,7 @@ pub struct Client<P, S> {
 
 impl<P, S> Client<P, S>
 where
-    P: TronProvider,
+    P: TronProvider + Clone,
     S: PrehashSigner + Clone,
     S::Error: std::fmt::Debug,
 {
