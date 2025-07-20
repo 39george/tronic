@@ -166,10 +166,26 @@ impl crate::client::TronProvider for GrpcProvider {
             node.get_account(account).await?.into_inner().into();
         Ok(account)
     }
-    async fn trigger_constant_contract(
+    async fn trigger_constant_contract<C: alloy_sol_types::SolCall + Send>(
         &self,
+        owner: TronAddress,
+        contract: TronAddress,
+        call: C,
     ) -> Result<domain::transaction::TransactionExtention> {
-        todo!()
+        let contract = protocol::TriggerSmartContract {
+            owner_address: owner.as_bytes().to_vec(),
+            contract_address: contract.as_bytes().to_vec(),
+            data: call.abi_encode(),
+            ..Default::default()
+        };
+
+        let mut node = self.wallet_client();
+        let reply = node
+            .trigger_constant_contract(contract)
+            .await
+            .map(|r| r.into_inner())?;
+        Self::return_to_result(reply.result.clone())?;
+        Ok(reply.into())
     }
 }
 

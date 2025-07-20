@@ -3,7 +3,6 @@ use bon::Builder;
 use secrecy::SecretString;
 
 use crate::Result;
-use crate::contracts;
 use crate::domain;
 use crate::domain::address::TronAddress;
 use crate::domain::transaction::TransactionExtention;
@@ -12,7 +11,6 @@ use crate::domain::trx::Trx;
 use crate::error;
 use crate::error::Error;
 use crate::signer::PrehashSigner;
-use crate::trx;
 
 pub mod builder;
 
@@ -49,8 +47,11 @@ pub trait TronProvider {
         &self,
         address: TronAddress,
     ) -> Result<domain::account::Account>;
-    async fn trigger_constant_contract(
+    async fn trigger_constant_contract<C: alloy_sol_types::SolCall + Send>(
         &self,
+        owner: TronAddress,
+        contract: TronAddress,
+        call: C,
     ) -> Result<domain::transaction::TransactionExtention>;
 }
 
