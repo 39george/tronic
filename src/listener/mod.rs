@@ -14,10 +14,6 @@ pub enum Message {
     Block(BlockExtention),
 }
 
-pub struct ListenerHandle {
-    rx: tokio::sync::mpsc::Receiver<Message>,
-}
-
 pub struct Listener<P, S> {
     client: Client<P, S>,
     last_block_number: i64,
@@ -41,6 +37,7 @@ where
         ListenerStream {
             listener: self,
             delay: Box::pin(sleep(Duration::from_secs(0))),
+            fut: None,
         }
     }
 }
@@ -48,6 +45,7 @@ where
 struct ListenerStream<P, S> {
     listener: Listener<P, S>,
     delay: Pin<Box<tokio::time::Sleep>>,
+    fut: Option<Pin<Box<dyn Future<Output = Option<(i64, Message)>> + Send>>>,
 }
 
 impl<P, S> Unpin for ListenerStream<P, S> {}
@@ -68,43 +66,46 @@ where
             return Poll::Pending;
         }
 
-        let client = self.listener.client.clone();
+        // If we don't already have a future, build one
+        if self.fut.is_none() {
+            let client = self.listener.client.clone();
+            let last_block = self.listener.last_block_number;
+
+            self.fut = Some(Box::pin(async move {
+                let block = client.provider.get_now_block().await.ok();
+                block.and_then(|b| {
+                    let number = b
+                        .block_header
+                        .as_ref()
+                        .and_then(|h| h.raw_data.as_ref())
+                        .map(|rd| rd.number)?;
+
+                    if number <= last_block {
+                        return None;
+                    }
+
+                    Some((number, Message::Block(b)))
+                })
+            }));
+        }
+
         let interval = self.listener.interval;
-        let last_block = self.listener.last_block_number;
 
-        // Start polling future
-        let fut = async move {
-            let block = client.provider.get_now_block().await.ok();
-            block.and_then(|b| {
-                let number = b
-                    .block_header
-                    .as_ref()
-                    .and_then(|h| h.raw_data.as_ref())
-                    .map(|rd| rd.number)?;
-
-                if number <= last_block {
-                    return None;
-                }
-
-                Some((number, Message::Block(b)))
-            })
-        };
-
-        // Box and pin the future to poll it immediately
-        let mut boxed_fut = Box::pin(fut);
-
-        match boxed_fut.as_mut().poll(cx) {
+        let fut = self.fut.as_mut().unwrap();
+        match fut.as_mut().poll(cx) {
             Poll::Ready(Some((new_number, msg))) => {
                 self.listener.last_block_number = new_number;
                 self.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
+                self.fut = None;
                 Poll::Ready(Some(msg))
             }
             Poll::Ready(None) => {
                 self.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
+                self.fut = None;
                 Poll::Pending
             }
             Poll::Pending => Poll::Pending,

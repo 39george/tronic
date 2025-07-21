@@ -1,8 +1,13 @@
 use std::{collections::HashMap, mem};
 
-use super::IdHash;
-use super::RecoverableSignature;
+use time::OffsetDateTime;
 
+use crate::domain::trx::Trx;
+
+use super::Hash32;
+use super::RecoverableSignature;
+use super::RefBlockBytes;
+use super::RefBlockHash;
 use super::contract::Contract;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,15 +34,15 @@ pub struct TransactionResult {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RawTransaction {
-    pub ref_block_bytes: Vec<u8>,
+    pub ref_block_bytes: RefBlockBytes,
     pub ref_block_num: i64,
-    pub ref_block_hash: Vec<u8>,
-    pub expiration: i64,
+    pub ref_block_hash: RefBlockHash,
+    pub expiration: OffsetDateTime,
     pub data: Vec<u8>,
     pub contract: Option<Contract>,
     pub scripts: Vec<u8>,
-    pub timestamp: i64,
-    pub fee_limit: i64,
+    pub timestamp: OffsetDateTime,
+    pub fee_limit: Trx,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,7 +55,7 @@ pub struct Transaction {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransactionExtention {
     pub transaction: Option<Transaction>,
-    pub txid: IdHash,
+    pub txid: Hash32,
     pub constant_result: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     pub energy_used: i64,
     pub energy_penalty: i64,
@@ -64,11 +69,11 @@ impl Transaction {
             mem::size_of_val(&raw.ref_block_bytes)
                 + mem::size_of_val(&raw.ref_block_num)
                 + mem::size_of_val(&raw.ref_block_hash)
-                + mem::size_of_val(&raw.expiration)
+                + mem::size_of_val(&raw.expiration.unix_timestamp())
                 + mem::size_of_val(&raw.data)
                 + mem::size_of_val(&raw.scripts)
-                + mem::size_of_val(&raw.timestamp)
-                + mem::size_of_val(&raw.fee_limit)
+                + mem::size_of_val(&raw.timestamp.unix_timestamp())
+                + mem::size_of_val(&i64::from(raw.fee_limit))
         } else {
             0
         };

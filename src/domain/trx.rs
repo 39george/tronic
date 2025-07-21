@@ -18,6 +18,12 @@ impl From<i64> for Trx {
     }
 }
 
+impl From<Trx> for i64 {
+    fn from(value: Trx) -> Self {
+        value.0
+    }
+}
+
 impl fmt::Display for Trx {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let trx = self.0 as f64 * 0.000_001; // 1 sun = 0.000001 TRX

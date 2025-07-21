@@ -1,6 +1,6 @@
 use k256::ecdsa::{RecoveryId, Signature, SigningKey, signature::Signer};
 
-use crate::domain::{IdHash, address::TronAddress};
+use crate::domain::{Hash32, address::TronAddress};
 
 #[async_trait::async_trait]
 pub trait PrehashSigner {
@@ -8,12 +8,12 @@ pub trait PrehashSigner {
     type Error;
     async fn sign(
         &self,
-        txid: &IdHash,
+        txid: &Hash32,
         ctx: &Self::Ctx,
     ) -> Result<Signature, Self::Error>;
     fn recovery_id(
         &self,
-        txid: &IdHash,
+        txid: &Hash32,
         signature: &Signature,
     ) -> Result<RecoveryId, Self::Error>;
     fn address(&self) -> Option<TronAddress> {
@@ -58,21 +58,21 @@ impl PrehashSigner for LocalSigner {
     type Ctx = ();
     async fn sign(
         &self,
-        txid: &IdHash,
+        txid: &Hash32,
         _: &Self::Ctx,
     ) -> Result<Signature, Self::Error> {
-        let s = self.signing_key.sign(&txid.0);
+        let s = self.signing_key.sign(&Vec::<u8>::from(*txid));
         Ok(s)
     }
     fn recovery_id(
         &self,
-        txid: &IdHash,
+        txid: &Hash32,
         signature: &Signature,
     ) -> Result<RecoveryId, Self::Error> {
         let verifying_key = self.signing_key.verifying_key();
         let recovery_id = k256::ecdsa::RecoveryId::trial_recovery_from_prehash(
             verifying_key,
-            &txid.0,
+            &Vec::<u8>::from(*txid),
             signature,
         )?;
         Ok(recovery_id)

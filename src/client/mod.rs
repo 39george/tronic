@@ -4,7 +4,7 @@ use secrecy::SecretString;
 
 use crate::Result;
 use crate::domain;
-use crate::domain::IdHash;
+use crate::domain::Hash32;
 use crate::domain::address::TronAddress;
 use crate::domain::transaction::TransactionExtention;
 use crate::domain::trx::Trx;
@@ -67,7 +67,7 @@ where
     S: PrehashSigner + Clone,
     error::Error: From<S::Error>,
 {
-    pub async fn broadcast(self, ctx: S::Ctx) -> Result<IdHash> {
+    pub async fn broadcast(self, ctx: S::Ctx) -> Result<Hash32> {
         let txid = &self.txext.txid;
 
         let signature = self.client.signer.sign(txid, &ctx).await?;

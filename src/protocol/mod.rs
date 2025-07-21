@@ -81,15 +81,15 @@ impl From<domain::contract::Contract> for transaction::Contract {
 impl From<transaction::Raw> for domain::transaction::RawTransaction {
     fn from(mut r: transaction::Raw) -> Self {
         domain::transaction::RawTransaction {
-            ref_block_bytes: r.ref_block_bytes,
+            ref_block_bytes: r.ref_block_bytes.try_into().unwrap(),
             ref_block_num: r.ref_block_num,
-            ref_block_hash: r.ref_block_hash,
-            expiration: r.expiration,
+            ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
+            expiration: time_unix_millis(r.expiration),
             data: r.data,
             contract: r.contract.pop().map(Into::into),
             scripts: r.scripts,
-            timestamp: r.timestamp,
-            fee_limit: r.fee_limit,
+            timestamp: time_unix_millis(r.timestamp),
+            fee_limit: r.fee_limit.into(),
         }
     }
 }
@@ -97,15 +97,15 @@ impl From<transaction::Raw> for domain::transaction::RawTransaction {
 impl From<domain::transaction::RawTransaction> for transaction::Raw {
     fn from(r: domain::transaction::RawTransaction) -> Self {
         transaction::Raw {
-            ref_block_bytes: r.ref_block_bytes,
+            ref_block_bytes: r.ref_block_bytes.into(),
             ref_block_num: r.ref_block_num,
-            ref_block_hash: r.ref_block_hash,
-            expiration: r.expiration,
+            ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
+            expiration: r.expiration.unix_timestamp(),
             data: r.data,
             contract: r.contract.map(|c| vec![c.into()]).unwrap_or_default(),
             scripts: r.scripts,
-            timestamp: r.timestamp,
-            fee_limit: r.fee_limit,
+            timestamp: r.timestamp.unix_timestamp(),
+            fee_limit: r.fee_limit.into(),
             auths: Default::default(),
         }
     }
@@ -142,7 +142,7 @@ impl From<TransactionExtention> for domain::transaction::TransactionExtention {
     fn from(txext: TransactionExtention) -> Self {
         domain::transaction::TransactionExtention {
             transaction: txext.transaction.map(Into::into),
-            txid: txext.txid.into(),
+            txid: txext.txid.try_into().unwrap_or_default(),
             constant_result: txext.constant_result,
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
@@ -154,7 +154,7 @@ impl From<domain::transaction::TransactionExtention> for TransactionExtention {
     fn from(txext: domain::transaction::TransactionExtention) -> Self {
         TransactionExtention {
             transaction: txext.transaction.map(Into::into),
-            txid: txext.txid.0,
+            txid: txext.txid.into(),
             constant_result: txext.constant_result,
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
@@ -261,15 +261,7 @@ impl From<account::Frozen> for crate::domain::account::Frozen {
     fn from(f: account::Frozen) -> Self {
         Self {
             frozen_balance: domain::trx::Trx::from(f.frozen_balance),
-            expire_time: time::OffsetDateTime::from_unix_timestamp(
-                f.expire_time,
-            )
-            .inspect(|e| {
-                tracing::error!(
-                    "failed to create OffsetDateTime from unix_timestamp: {e}"
-                )
-            })
-            .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH),
+            expire_time: time_unix_millis(f.expire_time),
         }
     }
 }
@@ -306,15 +298,7 @@ impl From<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
         Self {
             unfreeze_type: f.r#type,
             unfreeze_amount: f.unfreeze_amount.into(),
-            unfreeze_expire_time: time::OffsetDateTime::from_unix_timestamp(
-                f.unfreeze_expire_time,
-            )
-            .inspect(|e| {
-                tracing::error!(
-                    "failed to create OffsetDateTime from unix_timestamp: {e}"
-                )
-            })
-            .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH),
+            unfreeze_expire_time: time_unix_millis(f.unfreeze_expire_time),
         }
     }
 }
@@ -527,23 +511,18 @@ impl From<domain::account::Account> for Account {
 impl From<block_header::Raw> for domain::block::RawBlockHeader {
     fn from(p: block_header::Raw) -> Self {
         Self {
-            timestamp: 
-             time::OffsetDateTime::from_unix_timestamp(
-                p.timestamp,
-            )
-            .inspect(|e| {
-                tracing::error!(
-                    "failed to create OffsetDateTime from unix_timestamp: {e}"
-                )
-            })
-            .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH),
-            tx_trie_root: p.tx_trie_root,
-            parent_hash: p.parent_hash,
+            timestamp: time_unix_millis(p.timestamp),
+            tx_trie_root: p.tx_trie_root.try_into().unwrap_or_default(),
+            parent_hash: p.parent_hash.try_into().unwrap_or_default(),
             number: p.number,
             witness_id: p.witness_id,
-            witness_address: TronAddress::try_from(&p.witness_address).expect("invalid witness address"),
+            witness_address: TronAddress::try_from(&p.witness_address)
+                .expect("invalid witness address"),
             version: p.version,
-            account_state_root: p.account_state_root,
+            account_state_root: p
+                .account_state_root
+                .try_into()
+                .unwrap_or_default(),
         }
     }
 }
@@ -552,13 +531,13 @@ impl From<domain::block::RawBlockHeader> for block_header::Raw {
     fn from(r: domain::block::RawBlockHeader) -> Self {
         Self {
             timestamp: r.timestamp.unix_timestamp(),
-            tx_trie_root: r.tx_trie_root,
-            parent_hash: r.parent_hash,
+            tx_trie_root: r.tx_trie_root.into(),
+            parent_hash: r.parent_hash.into(),
             number: r.number,
             witness_id: r.witness_id,
             witness_address: r.witness_address.as_bytes().to_vec(),
             version: r.version,
-            account_state_root: r.account_state_root,
+            account_state_root: r.account_state_root.into(),
         }
     }
 }
@@ -567,7 +546,11 @@ impl From<BlockHeader> for domain::block::BlockHeader {
     fn from(p: BlockHeader) -> Self {
         Self {
             raw_data: p.raw_data.map(Into::into),
-            witness_signature: p.witness_signature.as_slice().try_into().expect("failed to build recoverable signature from bytes"),
+            witness_signature: p
+                .witness_signature
+                .as_slice()
+                .try_into()
+                .expect("failed to build recoverable signature from bytes"),
         }
     }
 }
@@ -604,7 +587,7 @@ impl From<BlockExtention> for domain::block::BlockExtention {
         Self {
             transactions: p.transactions.into_iter().map(Into::into).collect(),
             block_header: p.block_header.map(Into::into),
-            blockid: p.blockid.into(),
+            blockid: p.blockid.try_into().unwrap_or_default(),
         }
     }
 }
@@ -614,7 +597,19 @@ impl From<domain::block::BlockExtention> for BlockExtention {
         Self {
             transactions: p.transactions.into_iter().map(Into::into).collect(),
             block_header: p.block_header.map(Into::into),
-            blockid: p.blockid.0,
+            blockid: p.blockid.into(),
         }
     }
+}
+
+// ──────────────────────────────── Helpers ───────────────────────────────── //
+
+fn time_unix_millis(time: i64) -> time::OffsetDateTime {
+    time::OffsetDateTime::from_unix_timestamp_nanos(time as i128 * 1_000_000)
+        .inspect_err(|e| {
+            tracing::error!(
+                "failed to create OffsetDateTime from unix_timestamp: {e}"
+            )
+        })
+        .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH)
 }

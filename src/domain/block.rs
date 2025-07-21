@@ -1,7 +1,7 @@
 use time::OffsetDateTime;
 
 use crate::domain::{
-    IdHash, RecoverableSignature, address::TronAddress,
+    Hash32, RecoverableSignature, address::TronAddress,
     transaction::Transaction,
 };
 
@@ -10,15 +10,15 @@ use super::transaction::TransactionExtention;
 #[derive(Debug, Clone, PartialEq)]
 pub struct RawBlockHeader {
     pub timestamp: OffsetDateTime,
-    pub tx_trie_root: Vec<u8>,
-    pub parent_hash: Vec<u8>,
+    pub tx_trie_root: Hash32,
+    pub parent_hash: Hash32,
     /// bytes nonce = 5;
     /// bytes difficulty = 6;
     pub number: i64,
     pub witness_id: i64,
     pub witness_address: TronAddress,
     pub version: i32,
-    pub account_state_root: Vec<u8>,
+    pub account_state_root: Hash32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,7 +31,7 @@ pub struct BlockHeader {
 pub struct BlockExtention {
     pub transactions: Vec<TransactionExtention>,
     pub block_header: Option<BlockHeader>,
-    pub blockid: IdHash,
+    pub blockid: Hash32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
