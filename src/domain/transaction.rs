@@ -1,20 +1,12 @@
 use std::{collections::HashMap, mem};
 
-use crate::domain;
+use super::IdHash;
+use super::RecoverableSignature;
 
 use super::contract::Contract;
 
 #[derive(Clone, PartialEq)]
 pub struct UnknownType;
-
-#[derive(Clone, PartialEq)]
-pub struct TxId(pub Vec<u8>);
-
-impl From<Vec<u8>> for TxId {
-    fn from(buf: Vec<u8>) -> Self {
-        Self(buf)
-    }
-}
 
 #[derive(Clone, PartialEq)]
 pub struct TransactionResult {
@@ -51,13 +43,14 @@ pub struct RawTransaction {
 #[derive(Clone, PartialEq)]
 pub struct Transaction {
     pub raw: Option<RawTransaction>,
-    pub signature: Vec<domain::RecoverableSignature>,
+    pub signature: Vec<RecoverableSignature>,
     pub result: Vec<TransactionResult>,
 }
 
+#[derive(Clone, PartialEq)]
 pub struct TransactionExtention {
     pub transaction: Option<Transaction>,
-    pub txid: TxId,
+    pub txid: IdHash,
     pub constant_result: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     pub energy_used: i64,
     pub energy_penalty: i64,

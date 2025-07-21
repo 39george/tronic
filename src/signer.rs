@@ -1,6 +1,6 @@
 use k256::ecdsa::{RecoveryId, Signature, SigningKey, signature::Signer};
 
-use crate::domain::{address::TronAddress, transaction::TxId};
+use crate::domain::{IdHash, address::TronAddress};
 
 #[async_trait::async_trait]
 pub trait PrehashSigner {
@@ -8,12 +8,12 @@ pub trait PrehashSigner {
     type Error;
     async fn sign(
         &self,
-        txid: &TxId,
+        txid: &IdHash,
         ctx: &Self::Ctx,
     ) -> Result<Signature, Self::Error>;
     fn recovery_id(
         &self,
-        txid: &TxId,
+        txid: &IdHash,
         signature: &Signature,
     ) -> Result<RecoveryId, Self::Error>;
     fn address(&self) -> Option<TronAddress> {
@@ -58,7 +58,7 @@ impl PrehashSigner for LocalSigner {
     type Ctx = ();
     async fn sign(
         &self,
-        txid: &TxId,
+        txid: &IdHash,
         _: &Self::Ctx,
     ) -> Result<Signature, Self::Error> {
         let s = self.signing_key.sign(&txid.0);
@@ -66,7 +66,7 @@ impl PrehashSigner for LocalSigner {
     }
     fn recovery_id(
         &self,
-        txid: &TxId,
+        txid: &IdHash,
         signature: &Signature,
     ) -> Result<RecoveryId, Self::Error> {
         let verifying_key = self.signing_key.verifying_key();

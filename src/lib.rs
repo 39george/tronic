@@ -8,6 +8,7 @@ pub mod client;
 pub mod contracts;
 pub mod domain;
 pub mod error;
+pub mod listener;
 pub mod providers;
 pub mod signer;
 

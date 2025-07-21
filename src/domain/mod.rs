@@ -3,9 +3,19 @@ use k256::ecdsa::{RecoveryId, Signature};
 
 pub mod account;
 pub mod address;
+pub mod block;
 pub mod contract;
 pub mod transaction;
 pub mod trx;
+
+#[derive(Clone, PartialEq)]
+pub struct IdHash(pub Vec<u8>);
+
+impl From<Vec<u8>> for IdHash {
+    fn from(buf: Vec<u8>) -> Self {
+        Self(buf)
+    }
+}
 
 #[derive(Clone, PartialEq)]
 pub struct RecoverableSignature {

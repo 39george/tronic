@@ -188,6 +188,14 @@ impl crate::client::TronProvider for GrpcProvider {
         Self::return_to_result(reply.result.clone())?;
         Ok(reply.into())
     }
+    async fn get_now_block(&self) -> Result<domain::block::BlockExtention> {
+        let mut node = self.wallet_client();
+        let now_block = node
+            .get_now_block2(protocol::EmptyMessage::default())
+            .await?
+            .into_inner();
+        Ok(now_block.into())
+    }
 }
 
 pub mod middleware {

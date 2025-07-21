@@ -521,3 +521,100 @@ impl From<domain::account::Account> for Account {
         }
     }
 }
+
+// ───────────────────────────────── Block ────────────────────────────────── //
+
+impl From<block_header::Raw> for domain::block::RawBlockHeader {
+    fn from(p: block_header::Raw) -> Self {
+        Self {
+            timestamp: 
+             time::OffsetDateTime::from_unix_timestamp(
+                p.timestamp,
+            )
+            .inspect(|e| {
+                tracing::error!(
+                    "failed to create OffsetDateTime from unix_timestamp: {e}"
+                )
+            })
+            .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH),
+            tx_trie_root: p.tx_trie_root,
+            parent_hash: p.parent_hash,
+            number: p.number,
+            witness_id: p.witness_id,
+            witness_address: TronAddress::try_from(&p.witness_address).expect("invalid witness address"),
+            version: p.version,
+            account_state_root: p.account_state_root,
+        }
+    }
+}
+
+impl From<domain::block::RawBlockHeader> for block_header::Raw {
+    fn from(r: domain::block::RawBlockHeader) -> Self {
+        Self {
+            timestamp: r.timestamp.unix_timestamp(),
+            tx_trie_root: r.tx_trie_root,
+            parent_hash: r.parent_hash,
+            number: r.number,
+            witness_id: r.witness_id,
+            witness_address: r.witness_address.as_bytes().to_vec(),
+            version: r.version,
+            account_state_root: r.account_state_root,
+        }
+    }
+}
+
+impl From<BlockHeader> for domain::block::BlockHeader {
+    fn from(p: BlockHeader) -> Self {
+        Self {
+            raw_data: p.raw_data.map(Into::into),
+            witness_signature: p.witness_signature.as_slice().try_into().expect("failed to build recoverable signature from bytes"),
+        }
+    }
+}
+
+impl From<domain::block::BlockHeader> for BlockHeader {
+    fn from(d: domain::block::BlockHeader) -> Self {
+        Self {
+            raw_data: d.raw_data.map(Into::into),
+            witness_signature: d.witness_signature.into(),
+        }
+    }
+}
+
+impl From<Block> for domain::block::Block {
+    fn from(p: Block) -> Self {
+        Self {
+            transactions: p.transactions.into_iter().map(Into::into).collect(),
+            block_header: p.block_header.map(Into::into),
+        }
+    }
+}
+
+impl From<domain::block::Block> for Block {
+    fn from(b: domain::block::Block) -> Self {
+        Self {
+            transactions: b.transactions.into_iter().map(Into::into).collect(),
+            block_header: b.block_header.map(Into::into),
+        }
+    }
+}
+
+impl From<BlockExtention> for domain::block::BlockExtention {
+    fn from(p: BlockExtention) -> Self {
+        Self {
+            transactions: p.transactions.into_iter().map(Into::into).collect(),
+            block_header: p.block_header.map(Into::into),
+            blockid: p.blockid.into(),
+        }
+    }
+}
+
+impl From<domain::block::BlockExtention> for BlockExtention {
+    fn from(p: domain::block::BlockExtention) -> Self {
+        Self {
+            transactions: p.transactions.into_iter().map(Into::into).collect(),
+            block_header: p.block_header.map(Into::into),
+            blockid: p.blockid.0,
+        }
+    }
+}

@@ -4,9 +4,9 @@ use secrecy::SecretString;
 
 use crate::Result;
 use crate::domain;
+use crate::domain::IdHash;
 use crate::domain::address::TronAddress;
 use crate::domain::transaction::TransactionExtention;
-use crate::domain::transaction::TxId;
 use crate::domain::trx::Trx;
 use crate::error;
 use crate::error::Error;
@@ -53,6 +53,7 @@ pub trait TronProvider {
         contract: TronAddress,
         call: C,
     ) -> Result<domain::transaction::TransactionExtention>;
+    async fn get_now_block(&self) -> Result<domain::block::BlockExtention>;
 }
 
 pub struct PendingTransaction<'a, P, S> {
@@ -66,7 +67,7 @@ where
     S: PrehashSigner + Clone,
     error::Error: From<S::Error>,
 {
-    pub async fn broadcast(self, ctx: S::Ctx) -> Result<TxId> {
+    pub async fn broadcast(self, ctx: S::Ctx) -> Result<IdHash> {
         let txid = &self.txext.txid;
 
         let signature = self.client.signer.sign(txid, &ctx).await?;
@@ -91,14 +92,14 @@ where
 
 #[derive(Builder, Clone)]
 pub struct Client<P, S> {
-    provider: P,
+    pub(crate) provider: P,
     signer: S,
 }
 
 impl<P, S> Client<P, S>
 where
-    P: TronProvider + Clone,
-    S: PrehashSigner + Clone,
+    P: TronProvider + Clone + Send + Sync + 'static,
+    S: PrehashSigner + Clone + Send + Sync + 'static,
     S::Error: std::fmt::Debug,
 {
     pub async fn send_trx(
@@ -142,5 +143,11 @@ where
             from: None,
             contract: contract_address,
         }
+    }
+    pub async fn listener(
+        &self,
+    ) -> impl futures::Stream<Item = crate::listener::Message> {
+        let listener = crate::listener::Listener::new(self.to_owned());
+        listener.into_stream()
     }
 }
