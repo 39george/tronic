@@ -17,7 +17,13 @@ impl From<Vec<u8>> for IdHash {
     }
 }
 
-#[derive(Clone, PartialEq)]
+impl std::fmt::Debug for IdHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&hex::encode(&self.0))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct RecoverableSignature {
     signature: k256::ecdsa::Signature,
     recovery_id: k256::ecdsa::RecoveryId,

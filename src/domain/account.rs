@@ -5,13 +5,13 @@ use time::OffsetDateTime;
 
 use crate::domain::{address::TronAddress, trx::Trx};
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Key {
     pub address: TronAddress,
     pub weight: i64,
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum PermissionType {
     #[default]
     Owner = 0,
@@ -19,7 +19,7 @@ pub enum PermissionType {
     Active = 2,
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Permission {
     pub permission_type: PermissionType,
     /// Owner id=0, Witness id=1, Active id start by 2
@@ -32,7 +32,7 @@ pub struct Permission {
     pub keys: Vec<Key>,
 }
 
-#[derive(Derivative, Clone, PartialEq)]
+#[derive(Debug, Derivative, Clone, PartialEq)]
 #[derivative(Default)]
 pub struct Frozen {
     /// the frozen trx balance
@@ -42,7 +42,7 @@ pub struct Frozen {
     pub expire_time: OffsetDateTime,
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Vote {
     /// the super rep address
     pub vote_address: TronAddress,
@@ -50,7 +50,7 @@ pub struct Vote {
     pub vote_count: i64,
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct AccountResource {
     /// energy resource, get from frozen
     pub energy_usage: i64,
@@ -71,13 +71,13 @@ pub struct AccountResource {
     pub energy_window_optimized: bool,
 }
 
-#[derive(Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct FreezeV2 {
     pub freeze_type: i32,
     pub amount: Trx,
 }
 
-#[derive(Derivative, Clone, Copy, PartialEq)]
+#[derive(Debug, Derivative, Clone, Copy, PartialEq)]
 #[derivative(Default)]
 pub struct UnFreezeV2 {
     pub unfreeze_type: i32,
@@ -86,7 +86,7 @@ pub struct UnFreezeV2 {
     pub unfreeze_expire_time: OffsetDateTime,
 }
 
-#[derive(Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Account {
     /// account nick name
     pub account_name: ::prost::alloc::vec::Vec<u8>,

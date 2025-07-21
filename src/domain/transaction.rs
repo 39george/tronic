@@ -5,10 +5,10 @@ use super::RecoverableSignature;
 
 use super::contract::Contract;
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct UnknownType;
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransactionResult {
     pub fee: i64,
     pub ret: i32,
@@ -27,7 +27,7 @@ pub struct TransactionResult {
     pub cancel_unfreeze_v2_amount: HashMap<String, i64>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RawTransaction {
     pub ref_block_bytes: Vec<u8>,
     pub ref_block_num: i64,
@@ -40,14 +40,14 @@ pub struct RawTransaction {
     pub fee_limit: i64,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Transaction {
     pub raw: Option<RawTransaction>,
     pub signature: Vec<RecoverableSignature>,
     pub result: Vec<TransactionResult>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransactionExtention {
     pub transaction: Option<Transaction>,
     pub txid: IdHash,

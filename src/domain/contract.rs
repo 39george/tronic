@@ -1,6 +1,6 @@
 use crate::domain::address::TronAddress;
 
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Contract {}
 
 pub struct TriggerSmartContract {

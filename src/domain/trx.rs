@@ -39,6 +39,12 @@ impl fmt::Display for Trx {
     }
 }
 
+impl fmt::Debug for Trx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        <Self as fmt::Display>::fmt(self, f)
+    }
+}
+
 #[macro_export]
 macro_rules! trx {
     ($val:literal TRX) => {
