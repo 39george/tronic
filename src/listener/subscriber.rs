@@ -45,15 +45,15 @@ where
 #[async_trait::async_trait]
 impl<P, S, F, H, Fut, FutH> BlockSubscriber for TxSubscriber<P, S, F, H>
 where
-    F: Fn() -> Fut + Sync,
+    F: FnOnce() -> Fut + Sync + Clone,
     Fut: Future<Output = HashSet<TronAddress>> + Send,
-    H: Fn(Transaction) -> FutH + Sync,
+    H: FnOnce(Transaction) -> FutH + Sync + Clone,
     FutH: Future<Output = ()> + Send,
     P: TronProvider + Sync,
     S: Sync,
 {
     async fn handle(&self, msg: BlockExtention) {
-        let addrs = (self.addresses)().await;
+        let addrs = (self.addresses.clone())().await;
         let like_tx_info = self.client.provider.get_now_block().await.unwrap();
         // Like building txinfo
         let t = Transaction {
@@ -61,6 +61,6 @@ where
             signature: Default::default(),
             result: Default::default(),
         };
-        (self.handler)(t).await;
+        (self.handler.clone())(t).await;
     }
 }
