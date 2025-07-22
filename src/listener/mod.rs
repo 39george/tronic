@@ -12,14 +12,9 @@ use tokio::time::{Duration, sleep};
 
 pub mod subscriber;
 
-#[derive(Clone, Debug)]
-pub enum Message {
-    Block(BlockExtention),
-}
-
 pub struct ListenerHandle {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
-    rx: tokio::sync::broadcast::Receiver<Message>,
+    rx: tokio::sync::broadcast::Receiver<BlockExtention>,
 }
 
 impl ListenerHandle {
@@ -86,7 +81,7 @@ where
             rx,
         }
     }
-    fn block_stream(self) -> impl Stream<Item = Message> {
+    fn block_stream(self) -> impl Stream<Item = BlockExtention> {
         BlockStream {
             listener: self,
             delay: Box::pin(sleep(Duration::from_secs(0))),
@@ -98,7 +93,9 @@ where
 struct BlockStream<P, S> {
     listener: Listener<P, S>,
     delay: Pin<Box<tokio::time::Sleep>>,
-    fut: Option<Pin<Box<dyn Future<Output = Option<(i64, Message)>> + Send>>>,
+    fut: Option<
+        Pin<Box<dyn Future<Output = Option<(i64, BlockExtention)>> + Send>>,
+    >,
 }
 
 impl<P, S> Unpin for BlockStream<P, S> {}
@@ -109,7 +106,7 @@ where
     S: PrehashSigner + Clone + Send + Sync + 'static,
     S::Error: std::fmt::Debug,
 {
-    type Item = Message;
+    type Item = BlockExtention;
 
     fn poll_next(
         mut self: Pin<&mut Self>,
@@ -137,7 +134,7 @@ where
                         return None;
                     }
 
-                    Some((number, Message::Block(b)))
+                    Some((number, b))
                 })
             }));
         }
