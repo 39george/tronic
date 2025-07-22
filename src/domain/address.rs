@@ -137,6 +137,19 @@ impl From<TronAddress> for alloy_primitives::Address {
     }
 }
 
+impl From<alloy_primitives::Address> for TronAddress {
+    fn from(eth_address: alloy_primitives::Address) -> Self {
+        // Ethereum address (20 bytes) + 0x41 prefix for Tron address
+        let mut tron_address = Vec::with_capacity(21);
+        tron_address.push(0x41); // Prefix for Tron addresses
+        tron_address.extend_from_slice(eth_address.as_slice()); // Append the 20-byte Ethereum address
+        tron_address
+            .as_slice()
+            .try_into()
+            .expect("invalid tron address length")
+    }
+}
+
 impl Debug for TronAddress {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.as_base58())

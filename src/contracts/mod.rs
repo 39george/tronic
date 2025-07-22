@@ -1,5 +1,8 @@
+use std::str::FromStr;
+
 use alloy_primitives::U256;
 use alloy_sol_macro::sol;
+use alloy_sol_types::SolCall;
 
 use crate::domain::address::TronAddress;
 
@@ -25,4 +28,24 @@ pub fn trc20_transfer(
 pub fn trc20_balance_of(address: TronAddress) -> Trc20::balanceOfCall {
     let address: alloy_primitives::Address = address.into();
     Trc20::balanceOfCall { account: address }
+}
+
+// Decode a transfer function call from raw bytes
+pub fn decode_transfer_call(
+    data: &[u8],
+) -> Result<Trc20::transferCall, anyhow::Error> {
+    // Decode the data bytes into the transfer call
+    let transfer_call = Trc20::transferCall::abi_decode(data)?;
+
+    Ok(transfer_call)
+}
+
+// Decode a balanceOf function call from raw bytes
+pub fn decode_balance_of_call(
+    data: &[u8],
+) -> Result<Trc20::balanceOfCall, anyhow::Error> {
+    // Decode the data bytes into the balanceOf call
+    let balance_of_call = Trc20::balanceOfCall::abi_decode(data)?;
+
+    Ok(balance_of_call)
 }

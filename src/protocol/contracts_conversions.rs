@@ -164,9 +164,28 @@ impl From<transaction::Contract> for domain::contract::Contract {
                         &c.parameter.unwrap_or_default().value[..],
                     )
                     .unwrap_or_default();
-                domain::contract::ContractType::TriggerSmartContract(
+                if let Ok(d) = crate::contracts::decode_transfer_call(
+                    &trigger_smart_contract.data,
+                ) {
+                    println!(
+                        "FOUND transfer: {:?}, trona: {}",
+                        d,
+                        TronAddress::from(d.recipient)
+                    );
+                }
+                if let Ok(d) = crate::contracts::decode_balance_of_call(
+                    &trigger_smart_contract.data,
+                ) {
+                    println!(
+                        "FOUND balance: {:?}, trona: {}",
+                        d,
+                        TronAddress::from(d.account)
+                    );
+                }
+                let tsc = domain::contract::ContractType::TriggerSmartContract(
                     trigger_smart_contract.into(),
-                )
+                );
+                tsc
             }
             transaction::contract::ContractType::DelegateResourceContract => {
                 // Decode TransferContract parameter
