@@ -56,7 +56,7 @@ pub struct Transaction {
 pub struct TransactionExtention {
     pub transaction: Option<Transaction>,
     pub txid: Hash32,
-    pub constant_result: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
+    pub constant_result: Vec<Vec<u8>>,
     pub energy_used: i64,
     pub energy_penalty: i64,
 }

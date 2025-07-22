@@ -11,6 +11,8 @@ use crate::domain::{self, RecoverableSignature, address::TronAddress};
 // mod google_api;
 mod protocol;
 
+pub mod contracts_conversions;
+
 pub const TRON_PROTOCOL_FILE_DESCRIPTOR_SET: &[u8] =
     tonic::include_file_descriptor_set!("tron_protocol_descriptor");
 
@@ -61,13 +63,6 @@ impl From<domain::transaction::TransactionResult> for transaction::Result {
             withdraw_expire_amount: r.withdraw_expire_amount,
             cancel_unfreeze_v2_amount: r.cancel_unfreeze_v2_amount,
         }
-    }
-}
-
-impl From<transaction::Contract> for domain::contract::Contract {
-    fn from(c: transaction::Contract) -> Self {
-        // TODO: implement
-        domain::contract::Contract {}
     }
 }
 
@@ -159,34 +154,6 @@ impl From<domain::transaction::TransactionExtention> for TransactionExtention {
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
             ..Default::default()
-        }
-    }
-}
-
-impl From<TriggerSmartContract> for domain::contract::TriggerSmartContract {
-    fn from(t: TriggerSmartContract) -> Self {
-        domain::contract::TriggerSmartContract {
-            owner_address: TronAddress::try_from(&t.owner_address)
-                .expect("Invalid owner address"),
-            contract_address: TronAddress::try_from(&t.contract_address)
-                .expect("Invalid contract address"),
-            call_value: t.call_value,
-            data: t.data,
-            call_token_value: t.call_token_value,
-            token_id: t.token_id,
-        }
-    }
-}
-
-impl From<domain::contract::TriggerSmartContract> for TriggerSmartContract {
-    fn from(t: domain::contract::TriggerSmartContract) -> Self {
-        TriggerSmartContract {
-            owner_address: t.owner_address.as_bytes().to_vec(),
-            contract_address: t.contract_address.as_bytes().to_vec(),
-            call_value: t.call_value,
-            data: t.data,
-            call_token_value: t.call_token_value,
-            token_id: t.token_id,
         }
     }
 }

@@ -54,13 +54,17 @@ where
 {
     async fn handle(&self, msg: BlockExtention) {
         let addrs = (self.addresses.clone())().await;
-        let like_tx_info = self.client.provider.get_now_block().await.unwrap();
-        // Like building txinfo
-        let t = Transaction {
-            raw: None,
-            signature: Default::default(),
-            result: Default::default(),
-        };
-        (self.handler.clone())(t).await;
+        for txext in msg.transactions {
+            if let Some(contract) = txext
+                .transaction
+                .clone()
+                .and_then(|t| t.raw)
+                .as_ref()
+                .and_then(|raw_tx| raw_tx.contract.as_ref())
+            {
+                println!("Found contract: {:?}", contract);
+            }
+        }
+        // (self.handler.clone())(t).await;
     }
 }

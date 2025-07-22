@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use anyhow::{Context, anyhow};
 use k256::ecdsa::{RecoveryId, Signature};
 
@@ -63,6 +65,38 @@ define_fixed_hash!(TxTrieRoot, 32, "32-byte transaction trie root");
 define_fixed_hash!(ParentHash, 32, "32-byte parent block hash");
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct HexMessage(String);
+
+impl From<Vec<u8>> for HexMessage {
+    fn from(value: Vec<u8>) -> Self {
+        HexMessage(hex::encode(value))
+    }
+}
+
+impl Deref for HexMessage {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Message(String);
+
+impl From<Vec<u8>> for Message {
+    fn from(value: Vec<u8>) -> Self {
+        Message(String::from_utf8_lossy(&value).into())
+    }
+}
+
+impl Deref for Message {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct RecoverableSignature {
     signature: k256::ecdsa::Signature,
     recovery_id: k256::ecdsa::RecoveryId,
@@ -93,12 +127,22 @@ impl From<RecoverableSignature> for Vec<u8> {
 impl TryFrom<&[u8]> for RecoverableSignature {
     type Error = anyhow::Error;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() != 65 {
+        // if value.len() != 65 {
+        //     return Err(anyhow!(
+        //         "bad signature length: {}, should be 65",
+        //         value.len()
+        //     ));
+        // }
+        let value = if value.len() == 68 {
+            &value[..65]
+        } else if value.len() == 65 {
+            value
+        } else {
             return Err(anyhow!(
-                "bad signature length: {}, should be 65",
+                "Bad signature length: {}, should be 65 or 68",
                 value.len()
             ));
-        }
+        };
         let recovery_byte = *value.last().unwrap();
 
         let recovery_byte_normalized = match recovery_byte {
