@@ -1,17 +1,45 @@
 use crate::{
     client::{Client, TronProvider},
     domain::block::BlockExtention,
+    listener::subscriber::BlockSubscriber,
     signer::PrehashSigner,
 };
-use futures::Stream;
+use futures::{Stream, StreamExt};
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::time::{Duration, sleep};
 
-#[derive(Clone)]
+pub mod subscriber;
+
+#[derive(Clone, Debug)]
 pub enum Message {
     Block(BlockExtention),
+}
+
+pub struct ListenerHandle {
+    shutdown: Option<tokio::sync::oneshot::Sender<()>>,
+    rx: tokio::sync::broadcast::Receiver<Message>,
+}
+
+impl ListenerHandle {
+    pub fn subscribe<S: BlockSubscriber + Send + Sync + 'static>(
+        &self,
+        subscriber: S,
+    ) {
+        let mut rx = self.rx.resubscribe();
+        tokio::spawn(async move {
+            while let Ok(msg) = rx.recv().await {
+                subscriber.handle(msg).await;
+            }
+        });
+    }
+}
+
+impl Drop for ListenerHandle {
+    fn drop(&mut self) {
+        let _ = self.shutdown.take().unwrap().send(());
+    }
 }
 
 pub struct Listener<P, S> {
@@ -33,8 +61,33 @@ where
             interval: Duration::from_secs(3),
         }
     }
-    pub fn into_stream(self) -> impl Stream<Item = Message> {
-        ListenerStream {
+    pub async fn run(self) -> ListenerHandle {
+        let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel();
+        let (tx, rx) = tokio::sync::broadcast::channel(128);
+        let mut block_stream = self.block_stream();
+        tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    Some(msg) = block_stream.next() => {
+                        if let Err(e) = tx.send(msg.clone()) {
+                            tracing::error!("failed to send block msg: {e}");
+                        }
+                    }
+                    //  WARN: attempting to .await it after it has already completed will panic
+                    _ = &mut shutdown_rx => {
+                        tracing::info!("exiting from listener");
+                        break;
+                    }
+                }
+            }
+        });
+        ListenerHandle {
+            shutdown: Some(shutdown_tx),
+            rx,
+        }
+    }
+    fn block_stream(self) -> impl Stream<Item = Message> {
+        BlockStream {
             listener: self,
             delay: Box::pin(sleep(Duration::from_secs(0))),
             fut: None,
@@ -42,15 +95,15 @@ where
     }
 }
 
-struct ListenerStream<P, S> {
+struct BlockStream<P, S> {
     listener: Listener<P, S>,
     delay: Pin<Box<tokio::time::Sleep>>,
     fut: Option<Pin<Box<dyn Future<Output = Option<(i64, Message)>> + Send>>>,
 }
 
-impl<P, S> Unpin for ListenerStream<P, S> {}
+impl<P, S> Unpin for BlockStream<P, S> {}
 
-impl<P, S> Stream for ListenerStream<P, S>
+impl<P, S> Stream for BlockStream<P, S>
 where
     P: TronProvider + Clone + Send + Sync + 'static,
     S: PrehashSigner + Clone + Send + Sync + 'static,

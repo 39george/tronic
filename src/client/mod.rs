@@ -10,6 +10,7 @@ use crate::domain::transaction::TransactionExtention;
 use crate::domain::trx::Trx;
 use crate::error;
 use crate::error::Error;
+use crate::listener::ListenerHandle;
 use crate::signer::PrehashSigner;
 
 pub mod builder;
@@ -144,10 +145,8 @@ where
             contract: contract_address,
         }
     }
-    pub async fn listener(
-        &self,
-    ) -> impl futures::Stream<Item = crate::listener::Message> {
+    pub async fn listener(&self) -> ListenerHandle {
         let listener = crate::listener::Listener::new(self.to_owned());
-        listener.into_stream()
+        listener.run().await
     }
 }
