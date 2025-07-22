@@ -1,6 +1,11 @@
-use std::future::Future;
+use std::{collections::HashSet, future::Future};
 
-use crate::domain::block::BlockExtention;
+use crate::{
+    client::{Client, TronProvider},
+    domain::{
+        address::TronAddress, block::BlockExtention, transaction::Transaction,
+    },
+};
 
 #[async_trait::async_trait]
 pub trait BlockSubscriber {
@@ -15,5 +20,47 @@ where
 {
     async fn handle(&self, msg: BlockExtention) {
         self(msg).await
+    }
+}
+
+pub struct TxSubscriber<P, S, F, H> {
+    client: Client<P, S>,
+    addresses: F,
+    handler: H,
+}
+
+impl<P, S, F, H> TxSubscriber<P, S, F, H>
+where
+    Client<P, S>: Clone,
+{
+    pub fn new(client: &Client<P, S>, addresses: F, handler: H) -> Self {
+        Self {
+            client: client.to_owned(),
+            addresses,
+            handler,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<P, S, F, H, Fut, FutH> BlockSubscriber for TxSubscriber<P, S, F, H>
+where
+    F: Fn() -> Fut + Sync,
+    Fut: Future<Output = HashSet<TronAddress>> + Send,
+    H: Fn(Transaction) -> FutH + Sync,
+    FutH: Future<Output = ()> + Send,
+    P: TronProvider + Sync,
+    S: Sync,
+{
+    async fn handle(&self, msg: BlockExtention) {
+        let addrs = (self.addresses)().await;
+        let like_tx_info = self.client.provider.get_now_block().await.unwrap();
+        // Like building txinfo
+        let t = Transaction {
+            raw: None,
+            signature: Default::default(),
+            result: Default::default(),
+        };
+        (self.handler)(t).await;
     }
 }
