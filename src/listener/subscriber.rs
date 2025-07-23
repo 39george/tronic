@@ -1,9 +1,10 @@
-use std::{collections::HashSet, future::Future};
+use std::future::Future;
 
 use crate::{
     client::{Client, TronProvider},
     domain::{
-        address::TronAddress, block::BlockExtention, transaction::Transaction,
+        block::BlockExtention,
+        transaction::{Transaction, TransactionExtention},
     },
 };
 
@@ -25,19 +26,57 @@ where
 
 pub struct TxSubscriber<P, S, F, H> {
     client: Client<P, S>,
-    addresses: F,
+    filter: F,
     handler: H,
 }
 
-impl<P, S, F, H> TxSubscriber<P, S, F, H>
+// Default filter type that always returns true
+#[derive(Clone)]
+pub struct DefaultFilter;
+
+impl<P, S, H> TxSubscriber<P, S, DefaultFilter, H>
 where
     Client<P, S>: Clone,
 {
-    pub fn new(client: &Client<P, S>, addresses: F, handler: H) -> Self {
+    pub fn new(client: &Client<P, S>, handler: H) -> Self {
         Self {
             client: client.to_owned(),
-            addresses,
             handler,
+            filter: DefaultFilter,
+        }
+    }
+}
+
+impl<P, S, F, H> TxSubscriber<P, S, F, H> {
+    pub fn with_filter<NewF, NewFut>(
+        self,
+        filter: NewF,
+    ) -> TxSubscriber<P, S, NewF, H>
+    where
+        NewF: FnOnce(TransactionExtention) -> NewFut + Sync + Clone,
+        NewFut: Future<Output = bool> + Send,
+    {
+        TxSubscriber {
+            client: self.client,
+            filter,
+            handler: self.handler,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<P, S, H, Fut> BlockSubscriber for TxSubscriber<P, S, DefaultFilter, H>
+where
+    H: FnOnce(Transaction) -> Fut + Send + Sync + Clone,
+    Fut: Future<Output = ()> + Send,
+    P: TronProvider + Sync,
+    S: Sync,
+{
+    async fn handle(&self, msg: BlockExtention) {
+        for txext in msg.transactions {
+            if let Some(tx) = txext.transaction {
+                (self.handler.clone())(tx).await;
+            }
         }
     }
 }
@@ -45,26 +84,20 @@ where
 #[async_trait::async_trait]
 impl<P, S, F, H, Fut, FutH> BlockSubscriber for TxSubscriber<P, S, F, H>
 where
-    F: FnOnce() -> Fut + Sync + Clone,
-    Fut: Future<Output = HashSet<TronAddress>> + Send,
-    H: FnOnce(Transaction) -> FutH + Sync + Clone,
+    F: FnOnce(TransactionExtention) -> Fut + Send + Sync + Clone,
+    Fut: Future<Output = bool> + Send,
+    H: FnOnce(Transaction) -> FutH + Send + Sync + Clone,
     FutH: Future<Output = ()> + Send,
     P: TronProvider + Sync,
     S: Sync,
 {
     async fn handle(&self, msg: BlockExtention) {
-        let addrs = (self.addresses.clone())().await;
         for txext in msg.transactions {
-            if let Some(contract) = txext
-                .transaction
-                .clone()
-                .and_then(|t| t.raw)
-                .as_ref()
-                .and_then(|raw_tx| raw_tx.contract.as_ref())
+            if (self.filter.clone())(txext.clone()).await
+                && let Some(tx) = txext.transaction
             {
-                println!("Found contract: {:?}", contract);
+                (self.handler.clone())(tx).await;
             }
         }
-        // (self.handler.clone())(t).await;
     }
 }
