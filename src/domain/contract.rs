@@ -447,7 +447,7 @@ pub struct Entry {
     pub outputs: Vec<Param>,
     pub entry_type: EntryType,
     pub payable: bool,
-    pub state_mutability: i32,
+    pub state_mutability: StateMutabilityType,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -455,7 +455,7 @@ pub struct Param {
     pub indexed: bool,
     pub name: String,
     /// SolidityType type = 3;
-    pub r#type: String,
+    pub param_type: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]

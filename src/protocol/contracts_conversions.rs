@@ -567,6 +567,223 @@ impl From<MarketCancelOrderContract>
     }
 }
 
+impl From<SmartContract> for domain::contract::SmartContract {
+    fn from(value: SmartContract) -> Self {
+        domain::contract::SmartContract {
+            origin_address: value.origin_address.as_slice().try_into().unwrap(),
+            contract_address: value
+                .contract_address
+                .as_slice()
+                .try_into()
+                .unwrap(),
+            abi: value.abi.unwrap_or_default().into(),
+            bytecode: value.bytecode,
+            call_value: value.call_value.into(),
+            consume_user_resource_percent: value.consume_user_resource_percent,
+            name: value.name,
+            origin_energy_limit: value.origin_energy_limit,
+            code_hash: value.code_hash.into(),
+            trx_hash: value.trx_hash.into(),
+            version: value.version,
+        }
+    }
+}
+
+impl From<smart_contract::Abi> for domain::contract::Abi {
+    fn from(value: smart_contract::Abi) -> Self {
+        domain::contract::Abi {
+            entrys: value.entrys.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<smart_contract::abi::Entry> for domain::contract::Entry {
+    fn from(value: smart_contract::abi::Entry) -> Self {
+        domain::contract::Entry {
+            anonymous: value.anonymous,
+            constant: value.constant,
+            entry_type: value.r#type().into(),
+            state_mutability: value.state_mutability().into(),
+            name: value.name,
+            inputs: value.inputs.into_iter().map(Into::into).collect(),
+            outputs: value.outputs.into_iter().map(Into::into).collect(),
+            payable: value.payable,
+        }
+    }
+}
+
+impl From<smart_contract::abi::entry::Param> for domain::contract::Param {
+    fn from(value: smart_contract::abi::entry::Param) -> Self {
+        domain::contract::Param {
+            indexed: value.indexed,
+            name: value.name,
+            param_type: value.r#type,
+        }
+    }
+}
+
+impl From<smart_contract::abi::entry::EntryType>
+    for domain::contract::EntryType
+{
+    fn from(value: smart_contract::abi::entry::EntryType) -> Self {
+        match value {
+            smart_contract::abi::entry::EntryType::UnknownEntryType => {
+                domain::contract::EntryType::UnknownEntryType
+            }
+            smart_contract::abi::entry::EntryType::Constructor => {
+                domain::contract::EntryType::Constructor
+            }
+            smart_contract::abi::entry::EntryType::Function => {
+                domain::contract::EntryType::Function
+            }
+            smart_contract::abi::entry::EntryType::Event => {
+                domain::contract::EntryType::Event
+            }
+            smart_contract::abi::entry::EntryType::Fallback => {
+                domain::contract::EntryType::Fallback
+            }
+            smart_contract::abi::entry::EntryType::Receive => {
+                domain::contract::EntryType::Receive
+            }
+            smart_contract::abi::entry::EntryType::Error => {
+                domain::contract::EntryType::Error
+            }
+        }
+    }
+}
+
+impl From<smart_contract::abi::entry::StateMutabilityType>
+    for domain::contract::StateMutabilityType
+{
+    fn from(value: smart_contract::abi::entry::StateMutabilityType) -> Self {
+        match value {
+            smart_contract::abi::entry::StateMutabilityType::UnknownMutabilityType => domain::contract::StateMutabilityType::UnknownMutabilityType,
+            smart_contract::abi::entry::StateMutabilityType::Pure => domain::contract::StateMutabilityType::Pure,
+            smart_contract::abi::entry::StateMutabilityType::View => domain::contract::StateMutabilityType::View,
+            smart_contract::abi::entry::StateMutabilityType::Nonpayable => domain::contract::StateMutabilityType::Nonpayable,
+            smart_contract::abi::entry::StateMutabilityType::Payable => domain::contract::StateMutabilityType::Payable,
+        }
+    }
+}
+
+impl From<ContractState> for domain::contract::ContractState {
+    fn from(value: ContractState) -> Self {
+        domain::contract::ContractState {
+            energy_usage: value.energy_usage,
+            energy_factor: value.energy_factor,
+            update_cycle: value.update_cycle,
+        }
+    }
+}
+
+impl From<CreateSmartContract> for domain::contract::CreateSmartContract {
+    fn from(value: CreateSmartContract) -> Self {
+        domain::contract::CreateSmartContract {
+            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+            new_contract: value.new_contract.unwrap_or_default().into(),
+            call_token_value: value.call_token_value.into(),
+            token_id: value.token_id,
+        }
+    }
+}
+
+impl From<ClearAbiContract> for domain::contract::ClearAbiContract {
+    fn from(value: ClearAbiContract) -> Self {
+        domain::contract::ClearAbiContract {
+            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+            contract_address: value
+                .contract_address
+                .as_slice()
+                .try_into()
+                .unwrap(),
+        }
+    }
+}
+
+impl From<UpdateSettingContract> for domain::contract::UpdateSettingContract {
+    fn from(value: UpdateSettingContract) -> Self {
+        domain::contract::UpdateSettingContract {
+            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+            contract_address: value
+                .contract_address
+                .as_slice()
+                .try_into()
+                .unwrap(),
+            consume_user_resource_percent: value.consume_user_resource_percent,
+        }
+    }
+}
+
+impl From<UpdateEnergyLimitContract>
+    for domain::contract::UpdateEnergyLimitContract
+{
+    fn from(value: UpdateEnergyLimitContract) -> Self {
+        domain::contract::UpdateEnergyLimitContract {
+            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+            contract_address: value
+                .contract_address
+                .as_slice()
+                .try_into()
+                .unwrap(),
+            origin_energy_limit: value.origin_energy_limit,
+        }
+    }
+}
+
+impl From<SpendDescription> for domain::contract::SpendDescription {
+    fn from(value: SpendDescription) -> Self {
+        domain::contract::SpendDescription {
+            value_commitment: value.value_commitment,
+            anchor: value.anchor,
+            nullifier: value.nullifier,
+            rk: value.rk,
+            zkproof: value.zkproof,
+            spend_authority_signature: value.spend_authority_signature,
+        }
+    }
+}
+
+impl From<ReceiveDescription> for domain::contract::ReceiveDescription {
+    fn from(value: ReceiveDescription) -> Self {
+        domain::contract::ReceiveDescription {
+            value_commitment: value.value_commitment,
+            note_commitment: value.note_commitment,
+            epk: value.epk,
+            c_enc: value.c_enc,
+            c_out: value.c_out,
+            zkproof: value.zkproof,
+        }
+    }
+}
+
+impl From<ShieldedTransferContract>
+    for domain::contract::ShieldedTransferContract
+{
+    fn from(value: ShieldedTransferContract) -> Self {
+        domain::contract::ShieldedTransferContract {
+            transparent_from_address: value
+                .transparent_from_address
+                .as_slice()
+                .try_into()
+                .unwrap(),
+            from_amount: value.from_amount,
+            spend_description: value
+                .spend_description
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            receive_description: value
+                .receive_description
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            binding_signature: value.binding_signature,
+            transparent_to_address: value.transparent_to_address,
+            to_amount: value.to_amount,
+        }
+    }
+}
+
 macro_rules! impl_contract_conversion {
     ($($variant:ident),+ $(,)?) => {
         impl From<transaction::Contract> for domain::contract::Contract {
@@ -614,19 +831,19 @@ impl_contract_conversion!(
     ProposalCreateContract,
     ProposalApproveContract,
     ProposalDeleteContract,
-    // SetAccountIdContract,
-    // CreateSmartContract,
+    SetAccountIdContract,
+    CreateSmartContract,
     TriggerSmartContract,
-    // UpdateSettingContract,
+    UpdateSettingContract,
     ExchangeCreateContract,
     ExchangeInjectContract,
     ExchangeWithdrawContract,
     ExchangeTransactionContract,
-    // UpdateEnergyLimitContract,
+    UpdateEnergyLimitContract,
     AccountPermissionUpdateContract,
-    // ClearAbiContract,
+    ClearAbiContract,
     UpdateBrokerageContract,
-    // ShieldedTransferContract,
+    ShieldedTransferContract,
     MarketSellAssetContract,
     MarketCancelOrderContract,
     FreezeBalanceV2Contract,

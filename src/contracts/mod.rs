@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use alloy_primitives::U256;
 use alloy_sol_macro::sol;
 use alloy_sol_types::SolCall;
