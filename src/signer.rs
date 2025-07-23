@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use k256::ecdsa::{RecoveryId, Signature, SigningKey, signature::Signer};
 
 use crate::domain::{Hash32, address::TronAddress};
@@ -23,19 +25,19 @@ pub trait PrehashSigner {
 
 #[derive(Clone)]
 pub struct LocalSigner {
-    signing_key: SigningKey,
+    signing_key: Arc<SigningKey>,
 }
 
 impl LocalSigner {
     pub fn rand() -> Self {
         let mut rng = k256::elliptic_curve::rand_core::OsRng;
         LocalSigner {
-            signing_key: SigningKey::random(&mut rng),
+            signing_key: Arc::new(SigningKey::random(&mut rng)),
         }
     }
     pub fn from_bytes(buf: &[u8]) -> crate::Result<Self> {
         Ok(LocalSigner {
-            signing_key: SigningKey::from_slice(buf)?,
+            signing_key: Arc::new(SigningKey::from_slice(buf)?),
         })
     }
     pub fn tron_address(&self) -> TronAddress {
@@ -48,7 +50,9 @@ impl LocalSigner {
 
 impl From<SigningKey> for LocalSigner {
     fn from(signing_key: SigningKey) -> Self {
-        Self { signing_key }
+        Self {
+            signing_key: Arc::new(signing_key),
+        }
     }
 }
 
