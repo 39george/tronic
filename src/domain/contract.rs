@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+
+use time::OffsetDateTime;
+
+use super::account::AccountType;
 use crate::domain::{account::Permission, address::TronAddress, trx::Trx};
 
 use super::HexMessage;
@@ -66,30 +71,6 @@ pub struct TriggerSmartContract {
     pub token_id: i64,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct AssetIssueContract {
-    pub id: String,
-    pub owner_address: Vec<u8>,
-    pub name: Vec<u8>,
-    pub abbr: Vec<u8>,
-    pub total_supply: i64,
-    pub frozen_supply: Vec<FrozenSupply>,
-    pub trx_num: i32,
-    pub precision: i32,
-    pub num: i32,
-    pub start_time: i64,
-    pub end_time: i64,
-    /// useless
-    pub order: i64,
-    pub vote_score: i32,
-    pub description: Vec<u8>,
-    pub url: Vec<u8>,
-    pub free_asset_net_limit: i64,
-    pub public_free_asset_net_limit: i64,
-    pub public_free_asset_net_usage: i64,
-    pub public_latest_free_net_time: i64,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FrozenSupply {
     pub frozen_amount: Trx,
@@ -97,60 +78,86 @@ pub struct FrozenSupply {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct AssetIssueContract {
+    pub id: String,
+    pub owner_address: TronAddress,
+    pub name: Message,
+    pub abbr: Message,
+    pub total_supply: i64,
+    pub frozen_supply: Vec<FrozenSupply>,
+    pub trx_num: Trx,
+    pub precision: i32,
+    pub num: i32,
+    pub start_time: OffsetDateTime,
+    pub end_time: OffsetDateTime,
+    /// useless
+    pub order: i64,
+    pub vote_score: i32,
+    pub description: Message,
+    pub url: Message,
+    pub free_asset_net_limit: i64,
+    pub public_free_asset_net_limit: i64,
+    pub public_free_asset_net_usage: i64,
+    pub public_latest_free_net_time: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransferAssetContract {
     /// this field is token name before the proposal ALLOW_SAME_TOKEN_NAME is active, otherwise it is token id and token is should be in string format.
     pub asset_name: Message,
-    pub owner_address: Vec<u8>,
-    pub to_address: Vec<u8>,
-    pub amount: i64,
+    pub owner_address: TronAddress,
+    pub to_address: TronAddress,
+    pub amount: Trx,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnfreezeAssetContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UpdateAssetContract {
-    pub owner_address: Vec<u8>,
-    pub description: Vec<u8>,
-    pub url: Vec<u8>,
-    pub new_limit: i64,
-    pub new_public_limit: i64,
+    pub owner_address: TronAddress,
+    pub description: Message,
+    pub url: Message,
+    pub new_limit: i64,        // Not TRX
+    pub new_public_limit: i64, // Not TRX
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParticipateAssetIssueContract {
-    pub owner_address: Vec<u8>,
-    pub to_address: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub to_address: TronAddress,
     /// this field is token name before the proposal ALLOW_SAME_TOKEN_NAME is active, otherwise it is token id and token is should be in string format.
-    pub asset_name: Vec<u8>,
+    pub asset_name: Message,
     /// the amount of drops
-    pub amount: i64,
+    pub amount: Trx,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AccountCreateContract {
-    pub owner_address: Vec<u8>,
-    pub account_address: Vec<u8>,
-    pub r#type: i32,
+    pub owner_address: TronAddress,
+    pub account_address: TronAddress,
+    pub account_type: AccountType,
 }
+
 // Update account name. Account name is not unique now.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AccountUpdateContract {
-    pub account_name: Vec<u8>,
-    pub owner_address: Vec<u8>,
+    pub account_name: Message,
+    pub owner_address: TronAddress,
 }
+
 // Set account id if the account has no id. Account id is unique and case insensitive.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SetAccountIdContract {
-    pub account_id: Vec<u8>,
-    pub owner_address: Vec<u8>,
+    pub account_id: Message,
+    pub owner_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AccountPermissionUpdateContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     /// Empty is invalidate
     pub owner: Option<Permission>,
     /// Can be empty
@@ -161,50 +168,48 @@ pub struct AccountPermissionUpdateContract {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WitnessCreateContract {
-    pub owner_address: Vec<u8>,
-    pub url: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub url: Message,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WitnessUpdateContract {
-    pub owner_address: Vec<u8>,
-    pub update_url: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub update_url: Message,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Vote {
+    pub vote_address: TronAddress,
+    pub vote_count: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VoteWitnessContract {
-    pub owner_address: Vec<u8>,
-    pub votes: Vec<vote_witness_contract::Vote>,
+    pub owner_address: TronAddress,
+    pub votes: Vec<Vote>,
     pub support: bool,
-}
-// Nested message and enum types in `VoteWitnessContract`.
-pub mod vote_witness_contract {
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct Vote {
-        pub vote_address: Vec<u8>,
-        pub vote_count: i64,
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FreezeBalanceContract {
-    pub owner_address: Vec<u8>,
-    pub frozen_balance: i64,
-    pub frozen_duration: i64,
-    pub resource: i32,
-    pub receiver_address: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub frozen_balance: Trx,
+    pub frozen_duration: time::Duration,
+    pub resource: ResourceCode,
+    pub receiver_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnfreezeBalanceContract {
-    pub owner_address: Vec<u8>,
-    pub resource: i32,
-    pub receiver_address: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub resource: ResourceCode,
+    pub receiver_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WithdrawBalanceContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -216,80 +221,73 @@ pub struct TransferContract {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransactionBalanceTrace {
-    pub transaction_identifier: Vec<u8>,
-    pub operation: Vec<transaction_balance_trace::Operation>,
+    pub transaction_identifier: HexMessage,
+    pub operation: Vec<Operation>,
     pub r#type: String,
     pub status: String,
 }
-// Nested message and enum types in `TransactionBalanceTrace`.
-pub mod transaction_balance_trace {
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct Operation {
-        pub operation_identifier: i64,
-        pub address: Vec<u8>,
-        pub amount: i64,
-    }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Operation {
+    pub operation_identifier: i64,
+    pub address: TronAddress,
+    pub amount: Trx,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockBalanceTrace {
-    pub block_identifier:
-        ::core::option::Option<block_balance_trace::BlockIdentifier>,
-    pub timestamp: i64,
+    pub block_identifier: BlockIdentifier,
+    pub timestamp: OffsetDateTime,
     ///   BlockIdentifier parent_block_identifier = 4;
     pub transaction_balance_trace: Vec<TransactionBalanceTrace>,
 }
-// Nested message and enum types in `BlockBalanceTrace`.
-pub mod block_balance_trace {
-    #[derive(Debug, Clone, PartialEq)]
-    pub struct BlockIdentifier {
-        pub hash: Vec<u8>,
-        pub number: i64,
-    }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlockIdentifier {
+    pub hash: HexMessage,
+    pub number: i64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AccountTrace {
-    pub balance: i64,
-    pub placeholder: i64,
+    pub balance: Trx,
+    pub placeholder: Trx,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AccountIdentifier {
-    pub address: Vec<u8>,
+    pub address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AccountBalanceRequest {
-    pub account_identifier: ::core::option::Option<AccountIdentifier>,
-    pub block_identifier:
-        ::core::option::Option<block_balance_trace::BlockIdentifier>,
+    pub account_identifier: AccountIdentifier,
+    pub block_identifier: BlockIdentifier,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AccountBalanceResponse {
-    pub balance: i64,
-    pub block_identifier:
-        ::core::option::Option<block_balance_trace::BlockIdentifier>,
+    pub balance: Trx,
+    pub block_identifier: BlockIdentifier,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct FreezeBalanceV2Contract {
-    pub owner_address: Vec<u8>,
-    pub frozen_balance: i64,
-    pub resource: i32,
+    pub owner_address: TronAddress,
+    pub frozen_balance: Trx,
+    pub resource: ResourceCode,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UnfreezeBalanceV2Contract {
-    pub owner_address: Vec<u8>,
-    pub unfreeze_balance: i64,
-    pub resource: i32,
+    pub owner_address: TronAddress,
+    pub unfreeze_balance: Trx,
+    pub resource: ResourceCode,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WithdrawExpireUnfreezeContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -319,12 +317,12 @@ pub struct UnDelegateResourceContract {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CancelAllUnfreezeV2Contract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProposalApproveContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     pub proposal_id: i64,
     /// add or remove approval
     pub is_add_approval: bool,
@@ -332,105 +330,106 @@ pub struct ProposalApproveContract {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProposalCreateContract {
-    pub owner_address: Vec<u8>,
-    pub parameters: ::std::collections::HashMap<i64, i64>,
+    pub owner_address: TronAddress,
+    pub parameters: HashMap<i64, i64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProposalDeleteContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     pub proposal_id: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BuyStorageBytesContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     /// storage bytes for buy
     pub bytes: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BuyStorageContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     /// trx quantity for buy storage (sun)
-    pub quant: i64,
+    pub quant: Trx,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SellStorageContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     pub storage_bytes: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UpdateBrokerageContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     /// 1 mean 1%
     pub brokerage: i32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExchangeCreateContract {
-    pub owner_address: Vec<u8>,
-    pub first_token_id: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub first_token_id: Message,
     pub first_token_balance: i64,
-    pub second_token_id: Vec<u8>,
+    pub second_token_id: Message,
     pub second_token_balance: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExchangeInjectContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     pub exchange_id: i64,
-    pub token_id: Vec<u8>,
+    pub token_id: Message,
     pub quant: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExchangeWithdrawContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     pub exchange_id: i64,
-    pub token_id: Vec<u8>,
+    pub token_id: Message,
     pub quant: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExchangeTransactionContract {
-    pub owner_address: Vec<u8>,
+    pub owner_address: TronAddress,
     pub exchange_id: i64,
-    pub token_id: Vec<u8>,
+    pub token_id: Message,
     pub quant: i64,
     pub expected: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MarketSellAssetContract {
-    pub owner_address: Vec<u8>,
-    pub sell_token_id: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub sell_token_id: Message,
     pub sell_token_quantity: i64,
-    pub buy_token_id: Vec<u8>,
+    pub buy_token_id: Message,
     /// min to receive
     pub buy_token_quantity: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MarketCancelOrderContract {
-    pub owner_address: Vec<u8>,
-    pub order_id: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub order_id: HexMessage,
 }
 
+// TODO: continue
 #[derive(Debug, Clone, PartialEq)]
 pub struct SmartContract {
-    pub origin_address: Vec<u8>,
-    pub contract_address: Vec<u8>,
-    pub abi: ::core::option::Option<Abi>,
+    pub origin_address: TronAddress,
+    pub contract_address: TronAddress,
+    pub abi: Abi,
     pub bytecode: Vec<u8>,
-    pub call_value: i64,
+    pub call_value: Trx,
     pub consume_user_resource_percent: i64,
     pub name: String,
     pub origin_energy_limit: i64,
-    pub code_hash: Vec<u8>,
-    pub trx_hash: Vec<u8>,
+    pub code_hash: HexMessage,
+    pub trx_hash: HexMessage,
     pub version: i32,
 }
 
@@ -446,7 +445,7 @@ pub struct Entry {
     pub name: String,
     pub inputs: Vec<Param>,
     pub outputs: Vec<Param>,
-    pub r#type: i32,
+    pub entry_type: EntryType,
     pub payable: bool,
     pub state_mutability: i32,
 }
@@ -488,29 +487,29 @@ pub struct ContractState {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CreateSmartContract {
-    pub owner_address: Vec<u8>,
-    pub new_contract: ::core::option::Option<SmartContract>,
-    pub call_token_value: i64,
+    pub owner_address: TronAddress,
+    pub new_contract: SmartContract,
+    pub call_token_value: Trx,
     pub token_id: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ClearAbiContract {
-    pub owner_address: Vec<u8>,
-    pub contract_address: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub contract_address: TronAddress,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UpdateSettingContract {
-    pub owner_address: Vec<u8>,
-    pub contract_address: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub contract_address: TronAddress,
     pub consume_user_resource_percent: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UpdateEnergyLimitContract {
-    pub owner_address: Vec<u8>,
-    pub contract_address: Vec<u8>,
+    pub owner_address: TronAddress,
+    pub contract_address: TronAddress,
     pub origin_energy_limit: i64,
 }
 
@@ -543,7 +542,7 @@ pub struct ReceiveDescription {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ShieldedTransferContract {
     /// transparent address
-    pub transparent_from_address: Vec<u8>,
+    pub transparent_from_address: TronAddress,
     pub from_amount: i64,
     pub spend_description: Vec<SpendDescription>,
     pub receive_description: Vec<ReceiveDescription>,

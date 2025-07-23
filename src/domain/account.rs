@@ -5,6 +5,16 @@ use time::OffsetDateTime;
 
 use crate::domain::{address::TronAddress, trx::Trx};
 
+use super::Message;
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub enum AccountType {
+    #[default]
+    Normal = 0,
+    AssetIssue = 1,
+    Contract = 2,
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Key {
     pub address: TronAddress,
@@ -89,8 +99,8 @@ pub struct UnFreezeV2 {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Account {
     /// account nick name
-    pub account_name: ::prost::alloc::vec::Vec<u8>,
-    pub r#type: i32,
+    pub account_name: Message,
+    pub account_type: AccountType,
     /// the create address
     pub address: ::prost::alloc::vec::Vec<u8>,
     /// the trx balance

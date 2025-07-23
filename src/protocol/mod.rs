@@ -179,13 +179,38 @@ impl From<crate::domain::account::Key> for Key {
     }
 }
 
-impl From<i32> for crate::domain::account::PermissionType {
-    fn from(i: i32) -> Self {
+impl From<AccountType> for domain::account::AccountType {
+    fn from(value: AccountType) -> Self {
+        match value {
+            AccountType::Normal => domain::account::AccountType::Normal,
+            AccountType::AssetIssue => domain::account::AccountType::AssetIssue,
+            AccountType::Contract => domain::account::AccountType::Contract,
+        }
+    }
+}
+
+impl From<domain::account::AccountType> for AccountType {
+    fn from(value: domain::account::AccountType) -> Self {
+        match value {
+            domain::account::AccountType::Normal => AccountType::Normal,
+            domain::account::AccountType::AssetIssue => AccountType::AssetIssue,
+            domain::account::AccountType::Contract => AccountType::Contract,
+        }
+    }
+}
+
+impl From<permission::PermissionType> for domain::account::PermissionType {
+    fn from(i: permission::PermissionType) -> Self {
         match i {
-            0 => Self::Owner,
-            1 => Self::Witness,
-            2 => Self::Active,
-            _ => Self::Active,
+            permission::PermissionType::Owner => {
+                domain::account::PermissionType::Owner
+            }
+            permission::PermissionType::Witness => {
+                domain::account::PermissionType::Witness
+            }
+            permission::PermissionType::Active => {
+                domain::account::PermissionType::Active
+            }
         }
     }
 }
@@ -199,7 +224,7 @@ impl From<crate::domain::account::PermissionType> for i32 {
 impl From<Permission> for crate::domain::account::Permission {
     fn from(p: Permission) -> Self {
         Self {
-            permission_type: p.r#type.into(),
+            permission_type: p.r#type().into(),
             id: p.id,
             permission_name: p.permission_name,
             threshold: p.threshold,
@@ -352,8 +377,8 @@ impl From<domain::account::AccountResource> for account::AccountResource {
 impl From<Account> for domain::account::Account {
     fn from(a: Account) -> Self {
         Self {
-            account_name: a.account_name,
-            r#type: a.r#type,
+            account_type: a.r#type().into(),
+            account_name: a.account_name.into(),
             address: a.address,
             balance: a.balance,
             votes: a.votes.into_iter().map(Into::into).collect(),
@@ -414,8 +439,8 @@ impl From<Account> for domain::account::Account {
 impl From<domain::account::Account> for Account {
     fn from(a: domain::account::Account) -> Self {
         Self {
-            account_name: a.account_name,
-            r#type: a.r#type,
+            account_name: a.account_name.as_bytes().to_vec(),
+            r#type: AccountType::from(a.account_type).into(),
             address: a.address,
             balance: a.balance,
             votes: a.votes.into_iter().map(Into::into).collect(),

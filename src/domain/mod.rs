@@ -80,7 +80,7 @@ impl Deref for HexMessage {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Message(String);
 
 impl From<Vec<u8>> for Message {
