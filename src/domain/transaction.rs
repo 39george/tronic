@@ -87,13 +87,13 @@ impl Transaction {
         // Total bandwidth is sum of all components
         raw_data_size + signature_size + result_size
     }
+    pub fn get_contract(&self) -> Option<Contract> {
+        self.raw.as_ref().and_then(|r| r.contract.clone())
+    }
 }
 
 impl TransactionExtention {
     pub fn get_contract(&self) -> Option<Contract> {
-        self.transaction
-            .as_ref()
-            .and_then(|t| t.raw.as_ref())
-            .and_then(|r| r.contract.clone())
+        self.transaction.as_ref().and_then(|t| t.get_contract())
     }
 }

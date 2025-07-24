@@ -1,5 +1,6 @@
 use crate::domain;
 use crate::domain::address::TronAddress;
+use crate::domain::contract::TriggerSmartContract;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum AddressType {
@@ -175,5 +176,14 @@ impl super::Contract {
 
     pub fn to_address(&self) -> Option<TronAddress> {
         self.get_address(AddressType::To)
+    }
+
+    pub fn trigger_smart_contract(&self) -> Option<TriggerSmartContract> {
+        match self.contract_type {
+            domain::contract::ContractType::TriggerSmartContract(
+                ref contract,
+            ) => Some(contract.clone()),
+            _ => None,
+        }
     }
 }

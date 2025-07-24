@@ -5,6 +5,7 @@ use http::Uri;
 
 use crate::Result;
 use crate::client::Auth;
+use crate::contracts::AbiEncode;
 use crate::domain;
 use crate::domain::address::TronAddress;
 use crate::domain::trx;
@@ -98,16 +99,16 @@ impl crate::client::TronProvider for GrpcProvider {
             Ok(txext.into())
         }
     }
-    async fn trigger_smart_contract<C: alloy_sol_types::SolCall + Send>(
+    async fn trigger_smart_contract<A: AbiEncode + Send>(
         &self,
         owner: TronAddress,
         contract: TronAddress,
-        call: C,
+        call: A,
     ) -> Result<domain::transaction::TransactionExtention> {
         let contract = protocol::TriggerSmartContract {
             owner_address: owner.as_bytes().to_vec(),
             contract_address: contract.as_bytes().to_vec(),
-            data: call.abi_encode(),
+            data: call.encode(),
             ..Default::default()
         };
 
@@ -167,16 +168,16 @@ impl crate::client::TronProvider for GrpcProvider {
             node.get_account(account).await?.into_inner().into();
         Ok(account)
     }
-    async fn trigger_constant_contract<C: alloy_sol_types::SolCall + Send>(
+    async fn trigger_constant_contract<A: AbiEncode + Send>(
         &self,
         owner: TronAddress,
         contract: TronAddress,
-        call: C,
+        call: A,
     ) -> Result<domain::transaction::TransactionExtention> {
         let contract = protocol::TriggerSmartContract {
             owner_address: owner.as_bytes().to_vec(),
             contract_address: contract.as_bytes().to_vec(),
-            data: call.abi_encode(),
+            data: call.encode(),
             ..Default::default()
         };
 

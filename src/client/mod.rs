@@ -4,6 +4,7 @@ use secrecy::SecretString;
 
 use crate::Result;
 use crate::contracts;
+use crate::contracts::AbiEncode;
 use crate::domain;
 use crate::domain::Hash32;
 use crate::domain::address::TronAddress;
@@ -29,11 +30,11 @@ pub trait TronProvider {
         to: TronAddress,
         amount: Trx,
     ) -> Result<domain::transaction::TransactionExtention>;
-    async fn trigger_smart_contract<C: alloy_sol_types::SolCall + Send>(
+    async fn trigger_smart_contract<A: AbiEncode + Send>(
         &self,
         owner: TronAddress,
         contract: TronAddress,
-        call: C,
+        call: A,
     ) -> Result<domain::transaction::TransactionExtention>;
     async fn broadcast_transaction(
         &self,
@@ -49,11 +50,11 @@ pub trait TronProvider {
         &self,
         address: TronAddress,
     ) -> Result<domain::account::Account>;
-    async fn trigger_constant_contract<C: alloy_sol_types::SolCall + Send>(
+    async fn trigger_constant_contract<A: AbiEncode + Send>(
         &self,
         owner: TronAddress,
         contract: TronAddress,
-        call: C,
+        call: A,
     ) -> Result<domain::transaction::TransactionExtention>;
     async fn get_now_block(&self) -> Result<domain::block::BlockExtention>;
 }

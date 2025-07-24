@@ -575,7 +575,7 @@ impl From<SmartContract> for domain::contract::SmartContract {
                 .contract_address
                 .as_slice()
                 .try_into()
-                .unwrap(),
+                .unwrap_or_default(),
             abi: value.abi.unwrap_or_default().into(),
             bytecode: value.bytecode,
             call_value: value.call_value.into(),

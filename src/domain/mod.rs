@@ -73,6 +73,18 @@ impl From<Vec<u8>> for HexMessage {
     }
 }
 
+impl From<HexMessage> for Vec<u8> {
+    fn from(value: HexMessage) -> Self {
+        hex::decode(value.0).unwrap_or_default()
+    }
+}
+
+impl HexMessage {
+    pub fn to_vec(self) -> Vec<u8> {
+        Vec::<u8>::from(self)
+    }
+}
+
 impl Deref for HexMessage {
     type Target = str;
     fn deref(&self) -> &Self::Target {

@@ -1,72 +1,66 @@
+use std::marker::PhantomData;
 use std::{collections::HashSet, future::Future};
 
-use crate::Filter;
 use crate::domain::address::TronAddress;
-use crate::domain::contract::Contract;
+use crate::domain::contract::{Contract, TriggerSmartContract};
 use crate::domain::transaction::TransactionExtention;
-
-#[derive(Default, Clone)]
-pub enum AddressFilterKind {
-    #[default]
-    Account,
-    Contract,
-    Both,
-}
+use crate::{AddressExtractor, Filter};
 
 #[derive(Clone)]
-pub struct AddressFilter<F> {
+pub struct AddressFilter<F, E> {
     fetch_addrs: F,
-    kind: AddressFilterKind,
+    extractor: PhantomData<E>,
 }
 
-impl<F> AddressFilter<F> {
-    pub fn new(fetch_addrs: F) -> Self {
-        Self {
+impl<F> AddressFilter<F, ()> {
+    pub fn new(fetch_addrs: F) -> AddressFilter<F, ()> {
+        AddressFilter::<F, ()> {
             fetch_addrs,
-            kind: Default::default(),
+            extractor: Default::default(),
         }
     }
-    pub fn with_kind(mut self, kind: AddressFilterKind) -> Self {
-        self.kind = kind;
-        self
+    pub fn with_extractor<NewE>(self) -> AddressFilter<F, NewE> {
+        AddressFilter::<F, NewE> {
+            fetch_addrs: self.fetch_addrs,
+            extractor: Default::default(),
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl<F, Fut> Filter<TransactionExtention> for AddressFilter<F>
+impl<F, Fut, E> Filter<TransactionExtention> for AddressFilter<F, E>
 where
     F: FnOnce() -> Fut + Send + Sync + Clone,
-    Fut: Future<Output = HashSet<TronAddress>> + Send,
+    Fut: Future<Output = Option<HashSet<TronAddress>>> + Send,
+    E: AddressExtractor<TriggerSmartContract> + Send + Sync + Clone,
 {
     async fn filter(&self, txext: TransactionExtention) -> bool {
         if let Some(contract) = txext.get_contract() {
             let addrs = (self.fetch_addrs.clone())().await;
-            let check_owner = |contract: &Contract| {
-                contract.owner_address().is_some_and(|a| addrs.contains(&a))
-            };
-            let check_to = |contract: &Contract| {
-                contract.to_address().is_some_and(|a| {
-                    println!("to is {}", a);
-                    addrs.contains(&a)
-                })
-            };
-            let check_contract = |contract: &Contract| {
-                contract
-                    .contract_address()
-                    .is_some_and(|a| addrs.contains(&a))
-            };
-
-            match self.kind {
-                AddressFilterKind::Account => {
-                    check_owner(&contract) || check_to(&contract)
+            let mut found = false;
+            if let Some(ref addrs) = addrs {
+                let check_owner = |contract: &Contract| {
+                    contract.owner_address().is_some_and(|a| addrs.contains(&a))
+                };
+                let check_to = |contract: &Contract| {
+                    contract.to_address().is_some_and(|a| addrs.contains(&a))
+                };
+                let check_contract = |contract: &Contract| {
+                    contract
+                        .contract_address()
+                        .is_some_and(|a| addrs.contains(&a))
+                };
+                if let Some(contract) = contract.trigger_smart_contract() {
+                    let address = E::extract(contract);
+                    found =
+                        address.is_some_and(|a| addrs.contains(&a)) || found;
                 }
-                AddressFilterKind::Contract => check_contract(&contract),
-                AddressFilterKind::Both => {
-                    check_owner(&contract)
-                        || check_to(&contract)
-                        || check_contract(&contract)
-                }
+                found = check_owner(&contract)
+                    || check_to(&contract)
+                    || check_contract(&contract)
+                    || found;
             }
+            found || addrs.is_none()
         } else {
             false
         }

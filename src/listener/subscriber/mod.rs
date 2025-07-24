@@ -1,13 +1,6 @@
-use std::{collections::HashSet, future::Future};
+use std::future::Future;
 
-use crate::{
-    client::{Client, TronProvider},
-    domain::{
-        address::TronAddress,
-        block::BlockExtention,
-        transaction::{Transaction, TransactionExtention},
-    },
-};
+use crate::domain::block::BlockExtention;
 
 pub mod filters;
 pub mod tx_sub;
