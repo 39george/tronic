@@ -88,3 +88,12 @@ impl Transaction {
         raw_data_size + signature_size + result_size
     }
 }
+
+impl TransactionExtention {
+    pub fn get_contract(&self) -> Option<Contract> {
+        self.transaction
+            .as_ref()
+            .and_then(|t| t.raw.as_ref())
+            .and_then(|r| r.contract.clone())
+    }
+}

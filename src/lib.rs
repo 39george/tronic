@@ -1,5 +1,8 @@
-#![feature(error_generic_member_access)]
 #![allow(clippy::result_large_err)]
+#![feature(error_generic_member_access)]
+#![feature(unboxed_closures)]
+#![feature(fn_traits)]
+#![feature(impl_trait_in_assoc_type)]
 
 #[allow(warnings)]
 pub mod protocol;

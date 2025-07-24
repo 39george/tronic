@@ -778,7 +778,11 @@ impl From<ShieldedTransferContract>
                 .map(Into::into)
                 .collect(),
             binding_signature: value.binding_signature,
-            transparent_to_address: value.transparent_to_address,
+            transparent_to_address: value
+                .transparent_to_address
+                .as_slice()
+                .try_into()
+                .unwrap(),
             to_amount: value.to_amount,
         }
     }

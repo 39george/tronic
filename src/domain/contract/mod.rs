@@ -8,6 +8,8 @@ use crate::domain::{account::Permission, address::TronAddress, trx::Trx};
 use super::HexMessage;
 use super::Message;
 
+pub mod methods;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ContractType {
     AccountCreateContract(AccountCreateContract),
@@ -548,7 +550,7 @@ pub struct ShieldedTransferContract {
     pub receive_description: Vec<ReceiveDescription>,
     pub binding_signature: Vec<u8>,
     /// transparent address
-    pub transparent_to_address: Vec<u8>,
+    pub transparent_to_address: TronAddress,
     /// the amount to transparent to_address
     pub to_amount: i64,
 }
