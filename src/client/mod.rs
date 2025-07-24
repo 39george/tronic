@@ -5,6 +5,7 @@ use secrecy::SecretString;
 use crate::Result;
 use crate::contracts;
 use crate::contracts::AbiEncode;
+use crate::contracts::token::Token;
 use crate::domain;
 use crate::domain::Hash32;
 use crate::domain::address::TronAddress;
@@ -123,22 +124,22 @@ where
             address: None,
         }
     }
-    pub fn trc20_balance_of(
+    pub fn trc20_balance_of<T: Token>(
         &self,
         contract: TronAddress,
-    ) -> builder::Trc20BalanceOfBuilder<'_, P, S> {
+    ) -> builder::Trc20BalanceOfBuilder<'_, P, S, T> {
         builder::Trc20BalanceOfBuilder {
             client: self,
             contract: contracts::trc20::Trc20Contract::new(contract),
             owner: None,
         }
     }
-    pub async fn trc20_transfer(
+    pub async fn trc20_transfer<T: Token>(
         &self,
         to: TronAddress,
         contract: TronAddress,
         amount: u64,
-    ) -> builder::Trc20TransferBuilder<'_, P, S> {
+    ) -> builder::Trc20TransferBuilder<'_, P, S, T> {
         builder::Trc20TransferBuilder {
             client: self,
             to,

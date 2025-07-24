@@ -2,6 +2,7 @@ use std::{collections::HashMap, mem};
 
 use time::OffsetDateTime;
 
+use crate::domain::Message;
 use crate::domain::trx::Trx;
 
 use super::Hash32;
@@ -38,7 +39,7 @@ pub struct RawTransaction {
     pub ref_block_num: i64,
     pub ref_block_hash: RefBlockHash,
     pub expiration: OffsetDateTime,
-    pub data: Vec<u8>,
+    pub data: Message,
     pub contract: Option<Contract>,
     pub scripts: Vec<u8>,
     pub timestamp: OffsetDateTime,

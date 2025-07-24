@@ -1,3 +1,4 @@
+pub mod token;
 pub mod trc20;
 
 pub trait TryFromData: Sized {

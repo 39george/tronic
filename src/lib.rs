@@ -13,6 +13,7 @@ pub mod client;
 pub mod contracts;
 pub mod domain;
 pub mod error;
+pub mod extractor;
 pub mod listener;
 pub mod providers;
 pub mod signer;
@@ -23,16 +24,6 @@ type Result<T> = std::result::Result<T, error::Error>;
 #[async_trait::async_trait]
 pub trait Filter<T> {
     async fn filter(&self, by: T) -> bool;
-}
-
-pub trait AddressExtractor<T> {
-    fn extract(from: T) -> Option<TronAddress>;
-}
-
-impl<T> AddressExtractor<T> for () {
-    fn extract(_: T) -> Option<TronAddress> {
-        None
-    }
 }
 
 pub fn error_chain_fmt(

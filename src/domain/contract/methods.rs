@@ -16,28 +16,28 @@ impl super::Contract {
                 match address_type {
                     AddressType::Owner => Some(contract.owner_address),
                     AddressType::To => Some(contract.account_address),
-                    AddressType::Contract => None, // No contract address here
+                    AddressType::Contract => None,
                 }
             }
             domain::contract::ContractType::AccountUpdateContract(contract) => {
                 match address_type {
                     AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
+                    AddressType::To => None,
+                    AddressType::Contract => None,
                 }
             }
             domain::contract::ContractType::TransferContract(contract) => {
                 match address_type {
                     AddressType::Owner => Some(contract.owner_address),
                     AddressType::To => Some(contract.to_address),
-                    AddressType::Contract => None, // No contract address here
+                    AddressType::Contract => None,
                 }
             }
             domain::contract::ContractType::TransferAssetContract(contract) => {
                 match address_type {
                     AddressType::Owner => Some(contract.owner_address),
                     AddressType::To => Some(contract.to_address),
-                    AddressType::Contract => None, // No contract address here
+                    AddressType::Contract => None,
                 }
             }
             domain::contract::ContractType::TriggerSmartContract(contract) => {
@@ -50,118 +50,108 @@ impl super::Contract {
             domain::contract::ContractType::AssetIssueContract(contract) => {
                 match address_type {
                     AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
+                    AddressType::To => None,
+                    AddressType::Contract => None,
                 }
             }
             domain::contract::ContractType::ParticipateAssetIssueContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => Some(contract.to_address),
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => Some(contract.to_address),
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::AccountPermissionUpdateContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::FreezeBalanceContract(contract) => {
                 match address_type {
                     AddressType::Owner => Some(contract.owner_address),
                     AddressType::To => Some(contract.receiver_address),
-                    AddressType::Contract => None, // No contract address here
+                    AddressType::Contract => None,
                 }
             }
             domain::contract::ContractType::UnfreezeBalanceContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => Some(contract.receiver_address),
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => Some(contract.receiver_address),
+                AddressType::Contract => None,
+            },
+            domain::contract::ContractType::FreezeBalanceV2Contract(
+                contract,
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
+            domain::contract::ContractType::UnfreezeBalanceV2Contract(
+                contract,
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::DelegateResourceContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => Some(contract.receiver_address),
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => Some(contract.receiver_address),
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::UnDelegateResourceContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => Some(contract.receiver_address),
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => Some(contract.receiver_address),
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::ExchangeCreateContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::ExchangeInjectContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::ExchangeWithdrawContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::ExchangeTransactionContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::MarketSellAssetContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => Some(contract.owner_address),
-                    AddressType::To => None, // No 'to' address here
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.owner_address),
+                AddressType::To => None,
+                AddressType::Contract => None,
+            },
             domain::contract::ContractType::ShieldedTransferContract(
                 contract,
-            ) => {
-                match address_type {
-                    AddressType::Owner => {
-                        Some(contract.transparent_from_address)
-                    }
-                    AddressType::To => Some(contract.transparent_to_address),
-                    AddressType::Contract => None, // No contract address here
-                }
-            }
+            ) => match address_type {
+                AddressType::Owner => Some(contract.transparent_from_address),
+                AddressType::To => Some(contract.transparent_to_address),
+                AddressType::Contract => None,
+            },
             _ => None, // Return None if the contract doesn't match any case
         }
     }

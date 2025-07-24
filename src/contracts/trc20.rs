@@ -1,9 +1,10 @@
+use std::marker::PhantomData;
+
 use alloy_primitives::U256;
 
 use crate::{
-    AddressExtractor,
-    contracts::AbiDecode,
-    domain::{address::TronAddress, contract::TriggerSmartContract},
+    contracts::{AbiDecode, token::Token},
+    domain::address::TronAddress,
 };
 
 use super::TryFromData;
@@ -43,6 +44,7 @@ pub mod Trc20 {
     }
 
     macro_rules! generate_trc20_structs {
+    // Handle non-generic structs
     ($($name:ident { $($field:ident: $ty:ty),+ }),+) => {
         $(
             #[derive(Clone, Debug)]
@@ -51,16 +53,38 @@ pub mod Trc20 {
             }
         )+
     };
+    // Handle generic structs
+    ($($name:ident<$generic:ident> { $($field:ident: $ty:ty),+ }),+) => {
+        $(
+            #[derive(Clone, Debug)]
+            pub struct $name<$generic> {
+                $(pub $field: $ty),+
+            }
+        )+
+    };
+    // Mixed case (both generic and non-generic)
+    ($(
+        $name:ident $(<$generic:ident>)? { $($field:ident: $ty:ty),+ }
+    ),+) => {
+        $(
+            #[derive(Clone, Debug)]
+            pub struct $name $(<$generic>)? {
+                $(pub $field: $ty),+
+            }
+        )+
+    };
 }
 
+    // Usage with generic parameters
     generate_trc20_structs! {
-        transferCall { recipient: TronAddress, amount: U256 },
+        transferCall<T> { recipient: TronAddress, amount: T },
         balanceOfCall { account: TronAddress },
-        approveCall { spender: TronAddress, amount: U256 },
+        approveCall<T> { spender: TronAddress, amount: T },
         allowanceCall { owner: TronAddress, spender: TronAddress },
-        transferFromCall { sender: TronAddress, recipient: TronAddress, amount: U256 }
+        transferFromCall<T> { sender: TronAddress, recipient: TronAddress, amount: T }
     }
 
+    // Macro for non-generic types
     macro_rules! impl_from_erc20 {
     ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
         impl From<$erc20_type> for $trc20_type {
@@ -73,6 +97,7 @@ pub mod Trc20 {
     };
 }
 
+    // Macro for non-generic types (reverse direction)
     macro_rules! impl_from_trc20 {
     ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
         impl From<$trc20_type> for $erc20_type {
@@ -85,13 +110,49 @@ pub mod Trc20 {
     };
 }
 
-    // Implement From conversions
-    impl_from_erc20!(transferCall, Erc20::transferCall { recipient, amount });
+    // Macro for generic types (ERC20 → TRC20)
+    macro_rules! impl_from_erc20_generic {
+    ($trc20_type:ident<$generic:ident>, $erc20_type:path { $($field:ident),+ }) => {
+        impl<$generic: From<U256>> From<$erc20_type> for $trc20_type<$generic> {
+            fn from(call: $erc20_type) -> Self {
+                $trc20_type {
+                    $($field: call.$field.into()),+
+                }
+            }
+        }
+    };
+}
+
+    // Macro for generic types (TRC20 → ERC20)
+    macro_rules! impl_from_trc20_generic {
+    ($trc20_type:ident<$generic:ident>, $erc20_type:path { $($field:ident),+ }) => {
+        impl<$generic: Into<U256>> From<$trc20_type<$generic>> for $erc20_type {
+            fn from(call: $trc20_type<$generic>) -> Self {
+                $erc20_type {
+                    $($field: call.$field.into()),+
+                }
+            }
+        }
+    };
+}
+
+    // Implement conversions for non-generic structs
     impl_from_erc20!(balanceOfCall, Erc20::balanceOfCall { account });
-    impl_from_erc20!(approveCall, Erc20::approveCall { spender, amount });
     impl_from_erc20!(allowanceCall, Erc20::allowanceCall { owner, spender });
-    impl_from_erc20!(
-        transferFromCall,
+    impl_from_trc20!(balanceOfCall, Erc20::balanceOfCall { account });
+    impl_from_trc20!(allowanceCall, Erc20::allowanceCall { owner, spender });
+
+    // Implement conversions for generic structs
+    impl_from_erc20_generic!(
+        transferCall<T>,
+        Erc20::transferCall { recipient, amount }
+    );
+    impl_from_erc20_generic!(
+        approveCall<T>,
+        Erc20::approveCall { spender, amount }
+    );
+    impl_from_erc20_generic!(
+        transferFromCall<T>,
         Erc20::transferFromCall {
             sender,
             recipient,
@@ -99,12 +160,16 @@ pub mod Trc20 {
         }
     );
 
-    impl_from_trc20!(transferCall, Erc20::transferCall { recipient, amount });
-    impl_from_trc20!(balanceOfCall, Erc20::balanceOfCall { account });
-    impl_from_trc20!(approveCall, Erc20::approveCall { spender, amount });
-    impl_from_trc20!(allowanceCall, Erc20::allowanceCall { owner, spender });
-    impl_from_trc20!(
-        transferFromCall,
+    impl_from_trc20_generic!(
+        transferCall<T>,
+        Erc20::transferCall { recipient, amount }
+    );
+    impl_from_trc20_generic!(
+        approveCall<T>,
+        Erc20::approveCall { spender, amount }
+    );
+    impl_from_trc20_generic!(
+        transferFromCall<T>,
         Erc20::transferFromCall {
             sender,
             recipient,
@@ -113,42 +178,70 @@ pub mod Trc20 {
     );
 
     #[macro_export]
-    macro_rules! impl_abi_encode_decode {
+    macro_rules! impl_abi_encode_decode_new {
+        // For non-generic types
         ($struct_name:ident, $sol_type:path) => {
             impl AbiEncode for $struct_name {
                 fn encode(self) -> Vec<u8> {
-                    let sol_type: $sol_type = self.into(); // Convert to the corresponding SolCall type
-                    sol_type.abi_encode() // Use the `abi_encode` method from SolCall
+                    let sol_type: $sol_type = self.into();
+                    sol_type.abi_encode()
                 }
             }
 
             impl AbiDecode for $struct_name {
-                type Error = String; // Define the error type
+                type Error = String;
 
                 fn decode(data: &[u8]) -> Result<Self, Self::Error> {
-                    // Use the `abi_decode` method from SolCall to decode the data
                     <$sol_type>::abi_decode(data)
-                        .map(|decoded| decoded.into()) // Convert the decoded value to the struct
+                        .map(|decoded| decoded.into())
+                        .map_err(|e| format!("Failed to decode: {}", e))
+                }
+            }
+        };
+
+        // For generic types
+        ($struct_name:ident<$generic:ident>, $sol_type:path) => {
+            impl<$generic: Into<U256> + From<U256>> AbiEncode
+                for $struct_name<$generic>
+            {
+                fn encode(self) -> Vec<u8> {
+                    let sol_type: $sol_type = self.into();
+                    sol_type.abi_encode()
+                }
+            }
+
+            impl<$generic: Into<U256> + From<U256>> AbiDecode
+                for $struct_name<$generic>
+            {
+                type Error = String;
+
+                fn decode(data: &[u8]) -> Result<Self, Self::Error> {
+                    <$sol_type>::abi_decode(data)
+                        .map(|decoded| decoded.into())
                         .map_err(|e| format!("Failed to decode: {}", e))
                 }
             }
         };
     }
 
-    impl_abi_encode_decode!(transferCall, Erc20::transferCall);
-    impl_abi_encode_decode!(balanceOfCall, Erc20::balanceOfCall);
-    impl_abi_encode_decode!(approveCall, Erc20::approveCall);
-    impl_abi_encode_decode!(allowanceCall, Erc20::allowanceCall);
-    impl_abi_encode_decode!(transferFromCall, Erc20::transferFromCall);
+    impl_abi_encode_decode_new!(transferCall<T>, Erc20::transferCall);
+    impl_abi_encode_decode_new!(balanceOfCall, Erc20::balanceOfCall);
+    impl_abi_encode_decode_new!(approveCall<T>, Erc20::approveCall);
+    impl_abi_encode_decode_new!(allowanceCall, Erc20::allowanceCall);
+    impl_abi_encode_decode_new!(transferFromCall<T>, Erc20::transferFromCall);
 }
 
-pub struct Trc20Contract {
+pub struct Trc20Contract<T> {
     contract_address: TronAddress,
+    _token: PhantomData<T>,
 }
 
-impl Trc20Contract {
+impl<T: Token> Trc20Contract<T> {
     pub fn new(contract_address: TronAddress) -> Self {
-        Trc20Contract { contract_address }
+        Trc20Contract {
+            contract_address,
+            _token: Default::default(),
+        }
     }
 
     pub fn address(&self) -> TronAddress {
@@ -160,10 +253,10 @@ impl Trc20Contract {
         &self,
         recipient: TronAddress,
         amount: u64,
-    ) -> Trc20::transferCall {
+    ) -> Trc20::transferCall<T> {
         Trc20::transferCall {
             recipient,
-            amount: U256::from(amount),
+            amount: U256::from(amount).into(),
         }
     }
 
@@ -177,10 +270,10 @@ impl Trc20Contract {
         &self,
         spender: TronAddress,
         amount: u64,
-    ) -> Trc20::approveCall {
+    ) -> Trc20::approveCall<T> {
         Trc20::approveCall {
             spender,
-            amount: U256::from(amount),
+            amount: U256::from(amount).into(),
         }
     }
 
@@ -199,43 +292,30 @@ impl Trc20Contract {
         sender: TronAddress,
         recipient: TronAddress,
         amount: u64,
-    ) -> Trc20::transferFromCall {
+    ) -> Trc20::transferFromCall<T> {
         Trc20::transferFromCall {
             sender,
             recipient,
-            amount: U256::from(amount),
+            amount: U256::from(amount).into(),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub enum Trc20Call {
+pub enum Trc20Call<T> {
     BalanceOf(Trc20::balanceOfCall),
-    Transfer(Trc20::transferCall),
+    Transfer(Trc20::transferCall<T>),
 }
 
-impl TryFromData for Trc20Call {
+impl<T: Token> TryFromData for Trc20Call<T> {
     type Error = String;
     fn try_from_data(data: &[u8]) -> Result<Self, Self::Error> {
-        if let Ok(call) = Trc20::transferCall::decode(data) {
+        if let Ok(call) = Trc20::transferCall::<T>::decode(data) {
             Ok(Trc20Call::Transfer(call))
         } else if let Ok(call) = Trc20::balanceOfCall::decode(data) {
             Ok(Trc20Call::BalanceOf(call))
         } else {
             Err("unknown call".into())
-        }
-    }
-}
-
-impl AddressExtractor<TriggerSmartContract> for Trc20Call {
-    fn extract(from: TriggerSmartContract) -> Option<TronAddress> {
-        let Ok(call) = Trc20Call::try_from_data(&Vec::<u8>::from(from.data))
-        else {
-            return None;
-        };
-        match call {
-            Trc20Call::Transfer(transfer_call) => Some(transfer_call.recipient),
-            _ => None,
         }
     }
 }

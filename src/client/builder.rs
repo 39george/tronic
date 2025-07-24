@@ -2,6 +2,7 @@ use anyhow::anyhow;
 
 use crate::Result;
 use crate::contracts;
+use crate::contracts::token::Token;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::error::Error;
@@ -78,19 +79,20 @@ where
     }
 }
 
-pub struct Trc20TransferBuilder<'a, P, S> {
+pub struct Trc20TransferBuilder<'a, P, S, T> {
     pub(super) client: &'a Client<P, S>,
-    pub(super) contract: contracts::trc20::Trc20Contract,
+    pub(super) contract: contracts::trc20::Trc20Contract<T>,
     pub(super) to: TronAddress,
     pub(super) amount: u64,
     pub(super) from: Option<TronAddress>,
 }
 
-impl<'a, P, S> Trc20TransferBuilder<'a, P, S>
+impl<'a, P, S, T> Trc20TransferBuilder<'a, P, S, T>
 where
     P: TronProvider,
     S: PrehashSigner + Clone,
     Error: From<S::Error>,
+    T: Token + Send,
 {
     pub fn from(mut self, address: TronAddress) -> Self {
         self.from = Some(address);
@@ -118,16 +120,17 @@ where
     }
 }
 
-pub struct Trc20BalanceOfBuilder<'a, P, S> {
+pub struct Trc20BalanceOfBuilder<'a, P, S, T> {
     pub(super) client: &'a Client<P, S>,
-    pub(super) contract: contracts::trc20::Trc20Contract,
+    pub(super) contract: contracts::trc20::Trc20Contract<T>,
     pub(super) owner: Option<TronAddress>,
 }
 
-impl<'a, P, S> Trc20BalanceOfBuilder<'a, P, S>
+impl<'a, P, S, T> Trc20BalanceOfBuilder<'a, P, S, T>
 where
     P: TronProvider,
     S: PrehashSigner + Clone,
+    T: Token,
 {
     pub fn owner(mut self, address: TronAddress) -> Self {
         self.owner = Some(address);

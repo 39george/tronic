@@ -101,6 +101,12 @@ impl From<Vec<u8>> for Message {
     }
 }
 
+impl From<Message> for Vec<u8> {
+    fn from(value: Message) -> Self {
+        value.0.as_bytes().to_vec()
+    }
+}
+
 impl Deref for Message {
     type Target = str;
     fn deref(&self) -> &Self::Target {
