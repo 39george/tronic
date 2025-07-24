@@ -42,127 +42,75 @@ pub mod Trc20 {
         }
     }
 
-    #[derive(Clone, Debug)]
-    pub struct transferCall {
-        pub recipient: TronAddress,
-        pub amount: U256,
+    macro_rules! generate_trc20_structs {
+    ($($name:ident { $($field:ident: $ty:ty),+ }),+) => {
+        $(
+            #[derive(Clone, Debug)]
+            pub struct $name {
+                $(pub $field: $ty),+
+            }
+        )+
+    };
+}
+
+    generate_trc20_structs! {
+        transferCall { recipient: TronAddress, amount: U256 },
+        balanceOfCall { account: TronAddress },
+        approveCall { spender: TronAddress, amount: U256 },
+        allowanceCall { owner: TronAddress, spender: TronAddress },
+        transferFromCall { sender: TronAddress, recipient: TronAddress, amount: U256 }
     }
 
-    #[derive(Clone, Debug)]
-    pub struct balanceOfCall {
-        pub account: TronAddress,
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct approveCall {
-        pub spender: TronAddress,
-        pub amount: U256,
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct allowanceCall {
-        pub owner: TronAddress,
-        pub spender: TronAddress,
-    }
-
-    #[derive(Clone, Debug)]
-    pub struct transferFromCall {
-        pub sender: TronAddress,
-        pub recipient: TronAddress,
-        pub amount: U256,
-    }
-
-    // Conversions from Erc20 types to Trc20 types
-    impl From<Erc20::transferCall> for transferCall {
-        fn from(call: Erc20::transferCall) -> Self {
-            transferCall {
-                recipient: call.recipient.into(),
-                amount: call.amount,
+    macro_rules! impl_from_erc20 {
+    ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
+        impl From<$erc20_type> for $trc20_type {
+            fn from(call: $erc20_type) -> Self {
+                $trc20_type {
+                    $($field: call.$field.into()),+
+                }
             }
         }
-    }
+    };
+}
 
-    impl From<Erc20::balanceOfCall> for balanceOfCall {
-        fn from(call: Erc20::balanceOfCall) -> Self {
-            balanceOfCall {
-                account: call.account.into(),
+    macro_rules! impl_from_trc20 {
+    ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
+        impl From<$trc20_type> for $erc20_type {
+            fn from(call: $trc20_type) -> Self {
+                $erc20_type {
+                    $($field: call.$field.into()),+
+                }
             }
         }
-    }
+    };
+}
 
-    impl From<Erc20::approveCall> for approveCall {
-        fn from(call: Erc20::approveCall) -> Self {
-            approveCall {
-                spender: call.spender.into(),
-                amount: call.amount,
-            }
+    // Implement From conversions
+    impl_from_erc20!(transferCall, Erc20::transferCall { recipient, amount });
+    impl_from_erc20!(balanceOfCall, Erc20::balanceOfCall { account });
+    impl_from_erc20!(approveCall, Erc20::approveCall { spender, amount });
+    impl_from_erc20!(allowanceCall, Erc20::allowanceCall { owner, spender });
+    impl_from_erc20!(
+        transferFromCall,
+        Erc20::transferFromCall {
+            sender,
+            recipient,
+            amount
         }
-    }
+    );
 
-    impl From<Erc20::allowanceCall> for allowanceCall {
-        fn from(call: Erc20::allowanceCall) -> Self {
-            allowanceCall {
-                owner: call.owner.into(),
-                spender: call.spender.into(),
-            }
+    impl_from_trc20!(transferCall, Erc20::transferCall { recipient, amount });
+    impl_from_trc20!(balanceOfCall, Erc20::balanceOfCall { account });
+    impl_from_trc20!(approveCall, Erc20::approveCall { spender, amount });
+    impl_from_trc20!(allowanceCall, Erc20::allowanceCall { owner, spender });
+    impl_from_trc20!(
+        transferFromCall,
+        Erc20::transferFromCall {
+            sender,
+            recipient,
+            amount
         }
-    }
-
-    impl From<Erc20::transferFromCall> for transferFromCall {
-        fn from(call: Erc20::transferFromCall) -> Self {
-            transferFromCall {
-                sender: call.sender.into(),
-                recipient: call.recipient.into(),
-                amount: call.amount,
-            }
-        }
-    }
-
-    // Conversions from Trc20 types to Erc20 types
-    impl From<transferCall> for Erc20::transferCall {
-        fn from(call: transferCall) -> Self {
-            Erc20::transferCall {
-                recipient: call.recipient.into(),
-                amount: call.amount,
-            }
-        }
-    }
-
-    impl From<balanceOfCall> for Erc20::balanceOfCall {
-        fn from(call: balanceOfCall) -> Self {
-            Erc20::balanceOfCall {
-                account: call.account.into(),
-            }
-        }
-    }
-
-    impl From<approveCall> for Erc20::approveCall {
-        fn from(call: approveCall) -> Self {
-            Erc20::approveCall {
-                spender: call.spender.into(),
-                amount: call.amount,
-            }
-        }
-    }
-
-    impl From<allowanceCall> for Erc20::allowanceCall {
-        fn from(call: allowanceCall) -> Self {
-            Erc20::allowanceCall {
-                owner: call.owner.into(),
-                spender: call.spender.into(),
-            }
-        }
-    }
-
-    impl From<transferFromCall> for Erc20::transferFromCall {
-        fn from(call: transferFromCall) -> Self {
-            Erc20::transferFromCall {
-                sender: call.sender.into(),
-                recipient: call.recipient.into(),
-                amount: call.amount,
-            }
-        }
-    }
+    );
 
     #[macro_export]
     macro_rules! impl_abi_encode_decode {
