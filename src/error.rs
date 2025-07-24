@@ -6,7 +6,7 @@ pub enum Error {
     #[error("unexpected error: {0}")]
     Unexpected(
         #[from]
-        #[backtrace]
+        // #[backtrace]
         anyhow::Error,
     ),
     #[error("not found: {0}")]

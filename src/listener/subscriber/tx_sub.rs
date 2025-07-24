@@ -1,10 +1,8 @@
-use std::{collections::HashSet, future::Future};
+use std::future::Future;
 
 use crate::Filter;
 use crate::client::{Client, TronProvider};
-use crate::domain::contract::Contract;
 use crate::domain::{
-    address::TronAddress,
     block::BlockExtention,
     transaction::{Transaction, TransactionExtention},
 };

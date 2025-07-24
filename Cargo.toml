@@ -52,5 +52,12 @@ rand = "0.9.1"
 # Telemetry
 tracing = "0.1"
 
+[[example]]
+name = "listener"
+path = "examples/listener.rs"
+
+[dev-dependencies]
+tokio = { version = "1.46", features = ["signal"] }
+
 [build-dependencies]
 tonic-build = "0.13"

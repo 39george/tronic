@@ -101,9 +101,21 @@ impl From<Vec<u8>> for Message {
     }
 }
 
+impl From<&str> for Message {
+    fn from(value: &str) -> Self {
+        Message(value.into())
+    }
+}
+
 impl From<Message> for Vec<u8> {
     fn from(value: Message) -> Self {
         value.0.as_bytes().to_vec()
+    }
+}
+
+impl std::fmt::Display for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
     }
 }
 

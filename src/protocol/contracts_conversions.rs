@@ -226,7 +226,7 @@ impl From<UnfreezeBalanceContract>
                 .receiver_address
                 .as_slice()
                 .try_into()
-                .unwrap(),
+                .unwrap_or_default(),
         }
     }
 }
