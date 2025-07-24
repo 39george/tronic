@@ -7,22 +7,22 @@ use crate::domain::address::TronAddress;
 sol! {
     #[derive(Debug)]
     contract Trc20 {
-         // Transfer method: Send amount of tokens from sender to recipient
+         /// Send amount of tokens from sender to recipient
         function transfer(address recipient, uint256 amount) external returns (bool);
 
-        // BalanceOf method: Check the token balance of a given account
+        /// Check the token balance of a given account
         function balanceOf(address account) external view returns (uint256);
 
-        // Approve method: Allow spender to withdraw from the sender's account multiple times
+        /// Allow spender to withdraw from the sender's account multiple times
         function approve(address spender, uint256 amount) external returns (bool);
 
-        // Allowance method: Check the remaining amount spender is allowed to spend on behalf of owner
+        /// Check the remaining amount spender is allowed to spend on behalf of owner
         function allowance(address owner, address spender) external view returns (uint256);
 
-        // TransferFrom method: Transfer tokens from one account to another, using the allowance
+        /// Transfer tokens from one account to another, using the allowance
         function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 
-        // Events to emit for Transfer and Approval actions
+        /// Events to emit for Transfer and Approval actions
         event Transfer(address indexed from, address indexed to, uint256 value);
         event Approval(address indexed owner, address indexed spender, uint256 value);
     }
@@ -33,7 +33,6 @@ pub struct Trc20Contract {
 }
 
 impl Trc20Contract {
-    // Create a new TRC20 contract instance
     pub fn new(contract_address: TronAddress) -> Self {
         Trc20Contract { contract_address }
     }
@@ -42,7 +41,7 @@ impl Trc20Contract {
         self.contract_address
     }
 
-    // Transfer method: Send amount of tokens from sender to recipient
+    /// Send amount of tokens from sender to recipient
     pub fn transfer(
         &self,
         recipient: TronAddress,
@@ -55,13 +54,13 @@ impl Trc20Contract {
         }
     }
 
-    // BalanceOf method: Check the token balance of a given account
+    /// Check the token balance of a given account
     pub fn balance_of(&self, account: TronAddress) -> Trc20::balanceOfCall {
         let account: alloy_primitives::Address = account.into();
         Trc20::balanceOfCall { account }
     }
 
-    // Approve method: Allow spender to withdraw from the sender's account multiple times
+    /// Allow spender to withdraw from the sender's account multiple times
     pub fn approve(
         &self,
         spender: TronAddress,
@@ -74,7 +73,7 @@ impl Trc20Contract {
         }
     }
 
-    // Allowance method: Check the remaining amount spender is allowed to spend on behalf of owner
+    /// Check the remaining amount spender is allowed to spend on behalf of owner
     pub fn allowance(
         &self,
         owner: TronAddress,
@@ -85,7 +84,7 @@ impl Trc20Contract {
         Trc20::allowanceCall { owner, spender }
     }
 
-    // TransferFrom method: Transfer tokens from one account to another, using the allowance
+    /// Transfer tokens from one account to another, using the allowance
     pub fn transfer_from(
         &self,
         sender: TronAddress,
@@ -101,7 +100,7 @@ impl Trc20Contract {
         }
     }
 
-    // Decode a `transfer` function call from raw bytes
+    /// Decode a `transfer` function call from raw bytes
     pub fn decode_transfer_call(
         data: &[u8],
     ) -> Result<Trc20::transferCall, anyhow::Error> {
@@ -109,7 +108,7 @@ impl Trc20Contract {
         Ok(transfer_call)
     }
 
-    // Decode a `balanceOf` function call from raw bytes
+    /// Decode a `balanceOf` function call from raw bytes
     pub fn decode_balance_of_call(
         data: &[u8],
     ) -> Result<Trc20::balanceOfCall, anyhow::Error> {
@@ -125,7 +124,7 @@ impl Trc20Contract {
         Ok(approve_call)
     }
 
-    // Decode an `allowance` function call from raw bytes
+    /// Decode an `allowance` function call from raw bytes
     pub fn decode_allowance_call(
         data: &[u8],
     ) -> Result<Trc20::allowanceCall, anyhow::Error> {
@@ -133,7 +132,7 @@ impl Trc20Contract {
         Ok(allowance_call)
     }
 
-    // Decode a `transferFrom` function call from raw bytes
+    /// Decode a `transferFrom` function call from raw bytes
     pub fn decode_transfer_from_call(
         data: &[u8],
     ) -> Result<Trc20::transferFromCall, anyhow::Error> {
