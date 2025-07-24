@@ -9,6 +9,7 @@ use crate::{
     },
 };
 
+pub mod filters;
 pub mod tx_sub;
 
 // TODO: implement for fnonce

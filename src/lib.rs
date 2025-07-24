@@ -17,6 +17,12 @@ pub mod signer;
 
 type Result<T> = std::result::Result<T, error::Error>;
 
+/// Trait to filter by some criteria
+#[async_trait::async_trait]
+pub trait Filter<T> {
+    async fn filter(&self, by: T) -> bool;
+}
+
 pub fn error_chain_fmt(
     e: &impl std::error::Error,
     f: &mut std::fmt::Formatter<'_>,

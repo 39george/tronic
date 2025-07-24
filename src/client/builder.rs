@@ -80,7 +80,7 @@ where
 
 pub struct Trc20TransferBuilder<'a, P, S> {
     pub(super) client: &'a Client<P, S>,
-    pub(super) contract: TronAddress,
+    pub(super) contract: contracts::trc20::Trc20Contract,
     pub(super) to: TronAddress,
     pub(super) amount: u64,
     pub(super) from: Option<TronAddress>,
@@ -105,11 +105,11 @@ where
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
 
-        let call = contracts::trc20_transfer(self.to, self.amount);
+        let call = self.contract.transfer(self.to, self.amount);
         let extention = self
             .client
             .provider
-            .trigger_smart_contract(from, self.contract, call)
+            .trigger_smart_contract(from, self.contract.address(), call)
             .await?;
         Ok(PendingTransaction {
             client: self.client,
@@ -120,7 +120,7 @@ where
 
 pub struct Trc20BalanceOfBuilder<'a, P, S> {
     pub(super) client: &'a Client<P, S>,
-    pub(super) contract: TronAddress,
+    pub(super) contract: contracts::trc20::Trc20Contract,
     pub(super) owner: Option<TronAddress>,
 }
 
@@ -142,11 +142,11 @@ where
                 Error::Unexpected(anyhow!("missing `owner` address"))
             })?;
 
-        let call = contracts::trc20_balance_of(owner);
+        let call = self.contract.balance_of(owner);
         let mut extention = self
             .client
             .provider
-            .trigger_constant_contract(owner, self.contract, call)
+            .trigger_constant_contract(owner, self.contract.address(), call)
             .await?;
         let balance = if let Some(result) = extention.constant_result.pop() {
             if result.len() == 32 {

@@ -3,6 +3,7 @@ use bon::Builder;
 use secrecy::SecretString;
 
 use crate::Result;
+use crate::contracts;
 use crate::domain;
 use crate::domain::Hash32;
 use crate::domain::address::TronAddress;
@@ -127,14 +128,14 @@ where
     ) -> builder::Trc20BalanceOfBuilder<'_, P, S> {
         builder::Trc20BalanceOfBuilder {
             client: self,
-            contract,
+            contract: contracts::trc20::Trc20Contract::new(contract),
             owner: None,
         }
     }
     pub async fn trc20_transfer(
         &self,
         to: TronAddress,
-        contract_address: TronAddress,
+        contract: TronAddress,
         amount: u64,
     ) -> builder::Trc20TransferBuilder<'_, P, S> {
         builder::Trc20TransferBuilder {
@@ -142,7 +143,7 @@ where
             to,
             amount,
             from: None,
-            contract: contract_address,
+            contract: contracts::trc20::Trc20Contract::new(contract),
         }
     }
     pub async fn listener(&self) -> ListenerHandle {
