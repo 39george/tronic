@@ -51,18 +51,6 @@ impl GrpcProvider {
             Ok(())
         }
     }
-    async fn chain_parameters(&self) -> Result<HashMap<String, i64>> {
-        let mut node = WalletClient::new(self.channel.clone());
-        let chain_parameters = node
-            .get_chain_parameters(protocol::EmptyMessage::default())
-            .await?
-            .into_inner()
-            .chain_parameter
-            .into_iter()
-            .map(|ch_p| (ch_p.key, ch_p.value))
-            .collect::<HashMap<_, _>>();
-        Ok(chain_parameters)
-    }
 }
 
 #[async_trait::async_trait]
@@ -141,20 +129,20 @@ impl crate::provider::TronProvider for GrpcProvider {
         Self::return_to_result(msg.result.clone())?;
         Ok(msg.energy_required)
     }
-    async fn energy_price(&self) -> Result<domain::trx::Trx> {
-        let chain_parameters = self.chain_parameters().await?;
-        let energy_price = chain_parameters
-            .get("getEnergyFee")
-            .ok_or(anyhow!("not found getTransactionFee"))?;
-        Ok((*energy_price).into())
-    }
-    async fn bandwidth_price(&self) -> Result<domain::trx::Trx> {
-        let chain_parameters = self.chain_parameters().await?;
-        let bandwidth_unit_price = chain_parameters
-            .get("getTransactionFee")
-            .ok_or(anyhow!("not found getTransactionFee"))?;
-        Ok((*bandwidth_unit_price).into())
-    }
+    // async fn energy_price(&self) -> Result<domain::trx::Trx> {
+    //     let chain_parameters = self.chain_parameters().await?;
+    //     let energy_price = chain_parameters
+    //         .get("getEnergyFee")
+    //         .ok_or(anyhow!("not found getTransactionFee"))?;
+    //     Ok((*energy_price).into())
+    // }
+    // async fn bandwidth_price(&self) -> Result<domain::trx::Trx> {
+    //     let chain_parameters = self.chain_parameters().await?;
+    //     let bandwidth_unit_price = chain_parameters
+    //         .get("getTransactionFee")
+    //         .ok_or(anyhow!("not found getTransactionFee"))?;
+    //     Ok((*bandwidth_unit_price).into())
+    // }
     async fn get_account(
         &self,
         address: TronAddress,
@@ -243,6 +231,18 @@ impl crate::provider::TronProvider for GrpcProvider {
             .await?
             .into_inner();
         Ok(transaction.into())
+    }
+    async fn chain_parameters(&self) -> Result<HashMap<String, i64>> {
+        let mut node = WalletClient::new(self.channel.clone());
+        let chain_parameters = node
+            .get_chain_parameters(protocol::EmptyMessage::default())
+            .await?
+            .into_inner()
+            .chain_parameter
+            .into_iter()
+            .map(|ch_p| (ch_p.key, ch_p.value))
+            .collect::<HashMap<_, _>>();
+        Ok(chain_parameters)
     }
 }
 

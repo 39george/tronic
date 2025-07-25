@@ -122,6 +122,20 @@ where
     ) -> Result<PermissionHandler<'_, P, S>> {
         PermissionHandler::new(self, address).await
     }
+    pub async fn energy_price(&self) -> Result<Trx> {
+        let chain_parameters = self.provider.chain_parameters().await?;
+        let energy_price = chain_parameters
+            .get("getEnergyFee")
+            .ok_or(anyhow!("not found getTransactionFee"))?;
+        Ok((*energy_price).into())
+    }
+    pub async fn bandwidth_price(&self) -> Result<Trx> {
+        let chain_parameters = self.provider.chain_parameters().await?;
+        let bandwidth_unit_price = chain_parameters
+            .get("getTransactionFee")
+            .ok_or(anyhow!("not found getTransactionFee"))?;
+        Ok((*bandwidth_unit_price).into())
+    }
 }
 
 impl<P, S> std::ops::Deref for Client<P, S> {

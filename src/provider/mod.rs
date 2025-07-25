@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::Result;
 use crate::contracts::AbiEncode;
 use crate::domain::address::TronAddress;
@@ -28,8 +30,8 @@ pub trait TronProvider {
         &self,
         contract: domain::contract::TriggerSmartContract,
     ) -> Result<i64>;
-    async fn energy_price(&self) -> Result<domain::trx::Trx>;
-    async fn bandwidth_price(&self) -> Result<domain::trx::Trx>;
+    // async fn energy_price(&self) -> Result<domain::trx::Trx>;
+    // async fn bandwidth_price(&self) -> Result<domain::trx::Trx>;
     async fn get_account(
         &self,
         address: TronAddress,
@@ -57,6 +59,9 @@ pub trait TronProvider {
         &self,
         txid: Hash32,
     ) -> Result<domain::transaction::TransactionInfo>;
+    async fn chain_parameters(&self) -> Result<HashMap<String, i64>>;
+
+    // async fn calculate_fee(&self, transaction: &Transaction) -> Result<Fee>;
 
     //     async fn get_contract_abi(
     //     &self,
@@ -79,12 +84,4 @@ pub trait TronProvider {
     // async fn get_chain_parameters(&self) -> Result<Vec<ChainParameter>>;
 
     // async fn get_node_info(&self) -> Result<NodeInfo>;
-
-    // async fn calculate_fee(&self, transaction: &Transaction) -> Result<Fee>;
-
-    // async fn add_signature(
-    //     &self,
-    //     transaction: Transaction,
-    //     signature: Vec<u8>,
-    // ) -> Result<Transaction>;
 }
