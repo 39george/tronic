@@ -112,7 +112,8 @@ pub struct Permission {
     pub(crate) keys: Vec<Key>,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, bon::Builder)]
+#[builder(start_fn = with_name)]
 pub struct PermissionParams {
     pub permission_name: PermissionName,
     pub threshold: i64,

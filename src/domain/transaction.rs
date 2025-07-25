@@ -3,6 +3,7 @@ use std::{collections::HashMap, mem};
 use time::OffsetDateTime;
 
 use crate::domain::Message;
+use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 
 use super::Hash32;
@@ -12,7 +13,12 @@ use super::RefBlockHash;
 use super::contract::Contract;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct UnknownType;
+pub struct MarketOrderDetail {
+    pub maker_order_id: Vec<u8>,
+    pub taker_order_id: Vec<u8>,
+    pub fill_sell_quantity: i64,
+    pub fill_buy_quantity: i64,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ContractResult {
@@ -48,9 +54,21 @@ pub struct TransactionResult {
     pub exchange_id: i64,
     pub shielded_transaction_fee: i64,
     pub order_id: Vec<u8>,
-    pub order_details: Vec<UnknownType>,
+    pub order_details: Vec<MarketOrderDetail>,
     pub withdraw_expire_amount: i64,
     pub cancel_unfreeze_v2_amount: HashMap<String, i64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AccountId {
+    pub name: Message,
+    pub address: TronAddress,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Authority {
+    pub account: AccountId,
+    pub permission_name: Message,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -60,10 +78,11 @@ pub struct RawTransaction {
     pub ref_block_hash: RefBlockHash,
     pub expiration: OffsetDateTime,
     pub data: Message,
-    pub contract: Option<Contract>,
+    pub contract: Vec<Contract>,
     pub scripts: Vec<u8>,
     pub timestamp: OffsetDateTime,
     pub fee_limit: Trx,
+    pub auths: Vec<Authority>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -109,7 +128,7 @@ impl Transaction {
         raw_data_size + signature_size + result_size
     }
     pub fn get_contract(&self) -> Option<Contract> {
-        self.raw.as_ref().and_then(|r| r.contract.clone())
+        self.raw.as_ref().and_then(|r| r.contract.clone().pop())
     }
 }
 

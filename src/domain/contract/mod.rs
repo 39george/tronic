@@ -11,48 +11,60 @@ use super::Message;
 pub mod methods;
 
 #[derive(Debug, Clone, PartialEq)]
+#[repr(i32)]
 pub enum ContractType {
-    AccountCreateContract(AccountCreateContract),
-    TransferContract(TransferContract),
-    TransferAssetContract(TransferAssetContract),
-    VoteAssetContract,
-    VoteWitnessContract(VoteWitnessContract),
-    WitnessCreateContract(WitnessCreateContract),
-    AssetIssueContract(AssetIssueContract),
-    WitnessUpdateContract(WitnessUpdateContract),
-    ParticipateAssetIssueContract(ParticipateAssetIssueContract),
-    AccountUpdateContract(AccountUpdateContract),
-    FreezeBalanceContract(FreezeBalanceContract),
-    UnfreezeBalanceContract(UnfreezeBalanceContract),
-    WithdrawBalanceContract(WithdrawBalanceContract),
-    UnfreezeAssetContract(UnfreezeAssetContract),
-    UpdateAssetContract(UpdateAssetContract),
-    ProposalCreateContract(ProposalCreateContract),
-    ProposalApproveContract(ProposalApproveContract),
-    ProposalDeleteContract(ProposalDeleteContract),
-    SetAccountIdContract(SetAccountIdContract),
-    CustomContract,
-    CreateSmartContract(CreateSmartContract),
-    TriggerSmartContract(TriggerSmartContract),
-    GetContract,
-    UpdateSettingContract(UpdateSettingContract),
-    ExchangeCreateContract(ExchangeCreateContract),
-    ExchangeInjectContract(ExchangeInjectContract),
-    ExchangeWithdrawContract(ExchangeWithdrawContract),
-    ExchangeTransactionContract(ExchangeTransactionContract),
-    UpdateEnergyLimitContract(UpdateEnergyLimitContract),
-    AccountPermissionUpdateContract(AccountPermissionUpdateContract),
-    ClearAbiContract(ClearAbiContract),
-    UpdateBrokerageContract(UpdateBrokerageContract),
-    ShieldedTransferContract(ShieldedTransferContract),
-    MarketSellAssetContract(MarketSellAssetContract),
-    MarketCancelOrderContract(MarketCancelOrderContract),
-    FreezeBalanceV2Contract(FreezeBalanceV2Contract),
-    UnfreezeBalanceV2Contract(UnfreezeBalanceV2Contract),
-    WithdrawExpireUnfreezeContract(WithdrawExpireUnfreezeContract),
-    DelegateResourceContract(DelegateResourceContract),
-    UnDelegateResourceContract(UnDelegateResourceContract),
-    CancelAllUnfreezeV2Contract(CancelAllUnfreezeV2Contract),
+    AccountCreateContract(AccountCreateContract) = 0,
+    TransferContract(TransferContract) = 1,
+    TransferAssetContract(TransferAssetContract) = 2,
+    VoteAssetContract = 3,
+    VoteWitnessContract(VoteWitnessContract) = 4,
+    WitnessCreateContract(WitnessCreateContract) = 5,
+    AssetIssueContract(AssetIssueContract) = 6,
+    WitnessUpdateContract(WitnessUpdateContract) = 8,
+    ParticipateAssetIssueContract(ParticipateAssetIssueContract) = 9,
+    AccountUpdateContract(AccountUpdateContract) = 10,
+    FreezeBalanceContract(FreezeBalanceContract) = 11,
+    UnfreezeBalanceContract(UnfreezeBalanceContract) = 12,
+    WithdrawBalanceContract(WithdrawBalanceContract) = 13,
+    UnfreezeAssetContract(UnfreezeAssetContract) = 14,
+    UpdateAssetContract(UpdateAssetContract) = 15,
+    ProposalCreateContract(ProposalCreateContract) = 16,
+    ProposalApproveContract(ProposalApproveContract) = 17,
+    ProposalDeleteContract(ProposalDeleteContract) = 18,
+    SetAccountIdContract(SetAccountIdContract) = 19,
+    CustomContract = 20,
+    CreateSmartContract(CreateSmartContract) = 30,
+    TriggerSmartContract(TriggerSmartContract) = 31,
+    GetContract = 32,
+    UpdateSettingContract(UpdateSettingContract) = 33,
+    ExchangeCreateContract(ExchangeCreateContract) = 41,
+    ExchangeInjectContract(ExchangeInjectContract) = 42,
+    ExchangeWithdrawContract(ExchangeWithdrawContract) = 43,
+    ExchangeTransactionContract(ExchangeTransactionContract) = 44,
+    UpdateEnergyLimitContract(UpdateEnergyLimitContract) = 45,
+    AccountPermissionUpdateContract(AccountPermissionUpdateContract) = 46,
+    ClearAbiContract(ClearAbiContract) = 48,
+    UpdateBrokerageContract(UpdateBrokerageContract) = 49,
+    ShieldedTransferContract(ShieldedTransferContract) = 51,
+    MarketSellAssetContract(MarketSellAssetContract) = 52,
+    MarketCancelOrderContract(MarketCancelOrderContract) = 53,
+    FreezeBalanceV2Contract(FreezeBalanceV2Contract) = 54,
+    UnfreezeBalanceV2Contract(UnfreezeBalanceV2Contract) = 55,
+    WithdrawExpireUnfreezeContract(WithdrawExpireUnfreezeContract) = 56,
+    DelegateResourceContract(DelegateResourceContract) = 57,
+    UnDelegateResourceContract(UnDelegateResourceContract) = 58,
+    CancelAllUnfreezeV2Contract(CancelAllUnfreezeV2Contract) = 59,
+}
+
+impl ContractType {
+    #[must_use]
+    pub const fn id(&self) -> i32 {
+        // SAFETY: This is safe because `Foo` is repr(i32).
+        #[allow(unsafe_code)]
+        unsafe {
+            *std::ptr::from_ref::<Self>(self).cast::<i32>()
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

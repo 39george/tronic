@@ -44,6 +44,64 @@ impl_enum_conversions! {
     }
 }
 
+impl From<AccountId> for domain::transaction::AccountId {
+    fn from(value: AccountId) -> Self {
+        domain::transaction::AccountId {
+            name: value.name.into(),
+            address: value.address.as_slice().try_into().unwrap_or_default(),
+        }
+    }
+}
+
+impl From<domain::transaction::AccountId> for AccountId {
+    fn from(value: domain::transaction::AccountId) -> Self {
+        AccountId {
+            name: value.name.into(),
+            address: value.address.as_bytes().to_vec(),
+        }
+    }
+}
+
+impl From<Authority> for domain::transaction::Authority {
+    fn from(value: Authority) -> Self {
+        domain::transaction::Authority {
+            account: value.account.unwrap_or_default().into(),
+            permission_name: value.permission_name.into(),
+        }
+    }
+}
+
+impl From<domain::transaction::Authority> for Authority {
+    fn from(value: domain::transaction::Authority) -> Self {
+        Authority {
+            account: Some(value.account.into()),
+            permission_name: value.permission_name.into(),
+        }
+    }
+}
+
+impl From<MarketOrderDetail> for domain::transaction::MarketOrderDetail {
+    fn from(value: MarketOrderDetail) -> Self {
+        domain::transaction::MarketOrderDetail {
+            maker_order_id: value.maker_order_id,
+            taker_order_id: value.taker_order_id,
+            fill_sell_quantity: value.fill_sell_quantity,
+            fill_buy_quantity: value.fill_buy_quantity,
+        }
+    }
+}
+
+impl From<domain::transaction::MarketOrderDetail> for MarketOrderDetail {
+    fn from(value: domain::transaction::MarketOrderDetail) -> Self {
+        MarketOrderDetail {
+            maker_order_id: value.maker_order_id,
+            taker_order_id: value.taker_order_id,
+            fill_sell_quantity: value.fill_sell_quantity,
+            fill_buy_quantity: value.fill_buy_quantity,
+        }
+    }
+}
+
 impl From<transaction::Result> for domain::transaction::TransactionResult {
     fn from(r: transaction::Result) -> Self {
         domain::transaction::TransactionResult {
@@ -60,8 +118,11 @@ impl From<transaction::Result> for domain::transaction::TransactionResult {
             exchange_id: r.exchange_id,
             shielded_transaction_fee: r.shielded_transaction_fee,
             order_id: r.order_id,
-            // TODO: Use appropriate type
-            order_details: vec![domain::transaction::UnknownType],
+            order_details: r
+                .order_details
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             withdraw_expire_amount: r.withdraw_expire_amount,
             cancel_unfreeze_v2_amount: r.cancel_unfreeze_v2_amount,
         }
@@ -87,18 +148,14 @@ impl From<domain::transaction::TransactionResult> for transaction::Result {
             exchange_id: r.exchange_id,
             shielded_transaction_fee: r.shielded_transaction_fee,
             order_id: r.order_id,
-            // TODO: Use appropriate type
-            order_details: Default::default(),
+            order_details: r
+                .order_details
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             withdraw_expire_amount: r.withdraw_expire_amount,
             cancel_unfreeze_v2_amount: r.cancel_unfreeze_v2_amount,
         }
-    }
-}
-
-impl From<domain::contract::Contract> for transaction::Contract {
-    fn from(c: domain::contract::Contract) -> Self {
-        // TODO: implement
-        transaction::Contract::default()
     }
 }
 
@@ -110,10 +167,11 @@ impl From<transaction::Raw> for domain::transaction::RawTransaction {
             ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
             expiration: tron_to_datetime(r.expiration),
             data: r.data.into(),
-            contract: r.contract.pop().map(Into::into),
+            contract: r.contract.into_iter().map(Into::into).collect(),
             scripts: r.scripts,
             timestamp: tron_to_datetime(r.timestamp),
             fee_limit: r.fee_limit.into(),
+            auths: r.auths.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -126,11 +184,11 @@ impl From<domain::transaction::RawTransaction> for transaction::Raw {
             ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
             expiration: datetime_to_tron(r.expiration),
             data: r.data.into(),
-            contract: r.contract.map(|c| vec![c.into()]).unwrap_or_default(),
+            contract: r.contract.into_iter().map(Into::into).collect(),
             scripts: r.scripts,
             timestamp: datetime_to_tron(r.timestamp),
             fee_limit: r.fee_limit.into(),
-            auths: Default::default(),
+            auths: r.auths.into_iter().map(Into::into).collect(),
         }
     }
 }

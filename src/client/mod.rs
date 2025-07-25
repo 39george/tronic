@@ -38,8 +38,8 @@ where
     pub async fn broadcast(self, ctx: S::Ctx) -> Result<Hash32> {
         let txid = &self.txext.txid;
 
-        let signature = self.client.signer.sign(txid, &ctx).await?;
-        let recovery_id = self.client.signer.recovery_id(txid, &signature)?;
+        let (signature, recovery_id) =
+            self.client.signer.sign_recoverable(txid, &ctx).await?;
         let recoverable_signature =
             domain::RecoverableSignature::new(signature, recovery_id);
 

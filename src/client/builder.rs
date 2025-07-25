@@ -192,13 +192,13 @@ where
         let account = client.get_account(owner_address).await?;
         Ok(PermissionHandler {
             client,
-            account,
             permission_update: AccountPermissionUpdateContract {
                 owner_address,
-                owner: None,
-                witness: None,
-                actives: Vec::new(),
+                owner: Some(account.owner_permission.clone()),
+                witness: account.witness_permission.clone(),
+                actives: account.active_permission.clone(),
             },
+            account,
         })
     }
     pub fn owner(&self) -> PermissionParams {
@@ -243,20 +243,20 @@ where
 
         if !has_changes {
             return Err(Error::InvalidInput(
-                "No permission changes detected".into(),
+                "no permission changes detected".into(),
             ));
         }
 
         // Validate required fields (TRON rules)
         if self.permission_update.owner.is_none() {
             return Err(Error::InvalidInput(
-                "Owner permission must be specified".into(),
+                "owner permission must be specified".into(),
             ));
         }
 
         if self.permission_update.actives.is_empty() {
             return Err(Error::InvalidInput(
-                "At least one active permission must be specified".into(),
+                "at least one active permission must be specified".into(),
             ));
         }
 
