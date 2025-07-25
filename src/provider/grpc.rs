@@ -6,9 +6,9 @@ use http::Uri;
 use crate::Result;
 use crate::client::Auth;
 use crate::contracts::AbiEncode;
-use crate::domain;
 use crate::domain::address::TronAddress;
 use crate::domain::trx;
+use crate::domain::{self, Hash32};
 use crate::error::Error;
 use crate::protocol;
 use crate::protocol::wallet_client::WalletClient;
@@ -221,6 +221,17 @@ impl crate::provider::TronProvider for GrpcProvider {
             node.account_permission_update(contract).await?.into_inner();
         Self::return_to_result(txext.result.clone())?;
         Ok(txext.into())
+    }
+    async fn get_transaction_by_id(
+        &self,
+        txid: Hash32,
+    ) -> Result<domain::transaction::Transaction> {
+        let mut node = self.wallet_client();
+        let transaction = node
+            .get_transaction_by_id(protocol::BytesMessage::from(txid))
+            .await?
+            .into_inner();
+        Ok(transaction.into())
     }
 }
 

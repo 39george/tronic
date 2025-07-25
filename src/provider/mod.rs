@@ -1,8 +1,8 @@
 use crate::Result;
 use crate::contracts::AbiEncode;
-use crate::domain;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
+use crate::domain::{self, Hash32};
 
 pub mod grpc;
 
@@ -49,12 +49,10 @@ pub trait TronProvider {
         &self,
         contract: domain::contract::AccountPermissionUpdateContract,
     ) -> Result<domain::transaction::TransactionExtention>;
-
-    // async fn get_transaction_by_id(
-    //     &self,
-    //     tx_id: [u8; 32],
-    // ) -> Result<Option<Transaction>>;
-
+    async fn get_transaction_by_id(
+        &self,
+        txid: Hash32,
+    ) -> Result<domain::transaction::Transaction>;
     // async fn get_transaction_info(
     //     &self,
     //     tx_id: [u8; 32],

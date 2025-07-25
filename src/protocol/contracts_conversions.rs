@@ -87,7 +87,7 @@ impl From<AssetIssueContract> for domain::contract::AssetIssueContract {
 impl From<domain::contract::AssetIssueContract> for AssetIssueContract {
     fn from(value: domain::contract::AssetIssueContract) -> Self {
         AssetIssueContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             id: value.id,
             name: value.name.into(),
             abbr: value.abbr.into(),
@@ -130,8 +130,8 @@ impl From<TransferAssetContract> for domain::contract::TransferAssetContract {
 impl From<domain::contract::TransferAssetContract> for TransferAssetContract {
     fn from(value: domain::contract::TransferAssetContract) -> Self {
         TransferAssetContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
-            to_address: value.to_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
+            to_address: value.to_address.as_bytes().to_vec(),
             amount: value.amount.into(),
             asset_name: value.asset_name.into(),
         }
@@ -149,7 +149,7 @@ impl From<UnfreezeAssetContract> for domain::contract::UnfreezeAssetContract {
 impl From<domain::contract::UnfreezeAssetContract> for UnfreezeAssetContract {
     fn from(value: domain::contract::UnfreezeAssetContract) -> Self {
         UnfreezeAssetContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
         }
     }
 }
@@ -169,7 +169,7 @@ impl From<UpdateAssetContract> for domain::contract::UpdateAssetContract {
 impl From<domain::contract::UpdateAssetContract> for UpdateAssetContract {
     fn from(value: domain::contract::UpdateAssetContract) -> Self {
         UpdateAssetContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             description: value.description.into(),
             url: value.url.into(),
             new_limit: value.new_limit,
@@ -196,8 +196,8 @@ impl From<domain::contract::ParticipateAssetIssueContract>
 {
     fn from(value: domain::contract::ParticipateAssetIssueContract) -> Self {
         ParticipateAssetIssueContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
-            to_address: value.to_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
+            to_address: value.to_address.as_bytes().to_vec(),
             asset_name: value.asset_name.into(),
             amount: value.amount.into(),
         }
@@ -222,7 +222,7 @@ impl From<domain::contract::AccountCreateContract> for AccountCreateContract {
     fn from(value: domain::contract::AccountCreateContract) -> Self {
         AccountCreateContract {
             r#type: AccountType::from(value.account_type).into(),
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             account_address: value
                 .account_address
                 .as_bytes()
@@ -244,7 +244,7 @@ impl From<AccountUpdateContract> for domain::contract::AccountUpdateContract {
 impl From<domain::contract::AccountUpdateContract> for AccountUpdateContract {
     fn from(value: domain::contract::AccountUpdateContract) -> Self {
         AccountUpdateContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             account_name: value.account_name.into(),
         }
     }
@@ -262,7 +262,7 @@ impl From<SetAccountIdContract> for domain::contract::SetAccountIdContract {
 impl From<domain::contract::SetAccountIdContract> for SetAccountIdContract {
     fn from(value: domain::contract::SetAccountIdContract) -> Self {
         SetAccountIdContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             account_id: value.account_id.into(),
         }
     }
@@ -306,7 +306,7 @@ impl From<WitnessCreateContract> for domain::contract::WitnessCreateContract {
 impl From<domain::contract::WitnessCreateContract> for WitnessCreateContract {
     fn from(value: domain::contract::WitnessCreateContract) -> Self {
         WitnessCreateContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             url: value.url.into(),
         }
     }
@@ -324,7 +324,7 @@ impl From<WitnessUpdateContract> for domain::contract::WitnessUpdateContract {
 impl From<domain::contract::WitnessUpdateContract> for WitnessUpdateContract {
     fn from(value: domain::contract::WitnessUpdateContract) -> Self {
         WitnessUpdateContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             update_url: value.update_url.into(),
         }
     }
@@ -342,7 +342,7 @@ impl From<vote_witness_contract::Vote> for domain::contract::Vote {
 impl From<domain::contract::Vote> for vote_witness_contract::Vote {
     fn from(value: domain::contract::Vote) -> Self {
         vote_witness_contract::Vote {
-            vote_address: value.vote_address.as_bytes().try_into().unwrap(),
+            vote_address: value.vote_address.as_bytes().to_vec(),
             vote_count: value.vote_count,
         }
     }
@@ -361,7 +361,7 @@ impl From<VoteWitnessContract> for domain::contract::VoteWitnessContract {
 impl From<domain::contract::VoteWitnessContract> for VoteWitnessContract {
     fn from(value: domain::contract::VoteWitnessContract) -> Self {
         VoteWitnessContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             votes: value.votes.into_iter().map(Into::into).collect(),
             support: value.support,
         }
@@ -387,7 +387,7 @@ impl From<FreezeBalanceContract> for domain::contract::FreezeBalanceContract {
 impl From<domain::contract::FreezeBalanceContract> for FreezeBalanceContract {
     fn from(value: domain::contract::FreezeBalanceContract) -> Self {
         FreezeBalanceContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             frozen_balance: value.frozen_balance.into(),
             frozen_duration: value.frozen_duration.whole_days(),
             resource: ResourceCode::from(value.resource).into(),
@@ -421,7 +421,7 @@ impl From<domain::contract::UnfreezeBalanceContract>
 {
     fn from(value: domain::contract::UnfreezeBalanceContract) -> Self {
         UnfreezeBalanceContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             resource: ResourceCode::from(value.resource).into(),
             receiver_address: value
                 .receiver_address
@@ -447,7 +447,7 @@ impl From<domain::contract::WithdrawBalanceContract>
 {
     fn from(value: domain::contract::WithdrawBalanceContract) -> Self {
         WithdrawBalanceContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
         }
     }
 }
@@ -465,8 +465,8 @@ impl From<TransferContract> for domain::contract::TransferContract {
 impl From<domain::contract::TransferContract> for TransferContract {
     fn from(value: domain::contract::TransferContract) -> Self {
         TransferContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
-            to_address: value.to_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
+            to_address: value.to_address.as_bytes().to_vec(),
             amount: value.amount.into(),
         }
     }
@@ -601,7 +601,7 @@ impl From<AccountIdentifier> for domain::contract::AccountIdentifier {
 impl From<domain::contract::AccountIdentifier> for AccountIdentifier {
     fn from(value: domain::contract::AccountIdentifier) -> Self {
         AccountIdentifier {
-            address: value.address.as_bytes().try_into().unwrap(),
+            address: value.address.as_bytes().to_vec(),
         }
     }
 }
@@ -662,7 +662,7 @@ impl From<domain::contract::FreezeBalanceV2Contract>
 {
     fn from(value: domain::contract::FreezeBalanceV2Contract) -> Self {
         FreezeBalanceV2Contract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             frozen_balance: value.frozen_balance.into(),
             resource: ResourceCode::from(value.resource).into(),
         }
@@ -686,7 +686,7 @@ impl From<domain::contract::UnfreezeBalanceV2Contract>
 {
     fn from(value: domain::contract::UnfreezeBalanceV2Contract) -> Self {
         UnfreezeBalanceV2Contract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             resource: ResourceCode::from(value.resource).into(),
             unfreeze_balance: value.unfreeze_balance.into(),
         }
@@ -708,7 +708,7 @@ impl From<domain::contract::WithdrawExpireUnfreezeContract>
 {
     fn from(value: domain::contract::WithdrawExpireUnfreezeContract) -> Self {
         WithdrawExpireUnfreezeContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
         }
     }
 }
@@ -737,7 +737,7 @@ impl From<domain::contract::DelegateResourceContract>
 {
     fn from(value: domain::contract::DelegateResourceContract) -> Self {
         DelegateResourceContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             resource: ResourceCode::from(value.resource).into(),
             balance: value.balance.into(),
             receiver_address: value
@@ -773,7 +773,7 @@ impl From<domain::contract::UnDelegateResourceContract>
 {
     fn from(value: domain::contract::UnDelegateResourceContract) -> Self {
         UnDelegateResourceContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             resource: ResourceCode::from(value.resource).into(),
             balance: value.balance.into(),
             receiver_address: value
@@ -800,7 +800,7 @@ impl From<domain::contract::CancelAllUnfreezeV2Contract>
 {
     fn from(value: domain::contract::CancelAllUnfreezeV2Contract) -> Self {
         CancelAllUnfreezeV2Contract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
         }
     }
 }
@@ -822,7 +822,7 @@ impl From<domain::contract::ProposalApproveContract>
 {
     fn from(value: domain::contract::ProposalApproveContract) -> Self {
         ProposalApproveContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             proposal_id: value.proposal_id,
             is_add_approval: value.is_add_approval,
         }
@@ -841,7 +841,7 @@ impl From<ProposalCreateContract> for domain::contract::ProposalCreateContract {
 impl From<domain::contract::ProposalCreateContract> for ProposalCreateContract {
     fn from(value: domain::contract::ProposalCreateContract) -> Self {
         ProposalCreateContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             parameters: value.parameters,
         }
     }
@@ -859,7 +859,7 @@ impl From<ProposalDeleteContract> for domain::contract::ProposalDeleteContract {
 impl From<domain::contract::ProposalDeleteContract> for ProposalDeleteContract {
     fn from(value: domain::contract::ProposalDeleteContract) -> Self {
         ProposalDeleteContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             proposal_id: value.proposal_id,
         }
     }
@@ -877,7 +877,7 @@ impl From<BuyStorageContract> for domain::contract::BuyStorageContract {
 impl From<domain::contract::BuyStorageContract> for BuyStorageContract {
     fn from(value: domain::contract::BuyStorageContract) -> Self {
         BuyStorageContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             quant: value.quant.into(),
         }
     }
@@ -895,7 +895,7 @@ impl From<SellStorageContract> for domain::contract::SellStorageContract {
 impl From<domain::contract::SellStorageContract> for SellStorageContract {
     fn from(value: domain::contract::SellStorageContract) -> Self {
         SellStorageContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             storage_bytes: value.storage_bytes,
         }
     }
@@ -917,7 +917,7 @@ impl From<domain::contract::UpdateBrokerageContract>
 {
     fn from(value: domain::contract::UpdateBrokerageContract) -> Self {
         UpdateBrokerageContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             brokerage: value.brokerage,
         }
     }
@@ -938,7 +938,7 @@ impl From<ExchangeCreateContract> for domain::contract::ExchangeCreateContract {
 impl From<domain::contract::ExchangeCreateContract> for ExchangeCreateContract {
     fn from(value: domain::contract::ExchangeCreateContract) -> Self {
         ExchangeCreateContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             first_token_id: value.first_token_id.into(),
             first_token_balance: value.first_token_balance,
             second_token_id: value.second_token_id.into(),
@@ -961,7 +961,7 @@ impl From<ExchangeInjectContract> for domain::contract::ExchangeInjectContract {
 impl From<domain::contract::ExchangeInjectContract> for ExchangeInjectContract {
     fn from(value: domain::contract::ExchangeInjectContract) -> Self {
         ExchangeInjectContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             exchange_id: value.exchange_id,
             token_id: value.token_id.into(),
             quant: value.quant,
@@ -987,7 +987,7 @@ impl From<domain::contract::ExchangeWithdrawContract>
 {
     fn from(value: domain::contract::ExchangeWithdrawContract) -> Self {
         ExchangeWithdrawContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             exchange_id: value.exchange_id,
             token_id: value.token_id.into(),
             quant: value.quant,
@@ -1014,7 +1014,7 @@ impl From<domain::contract::ExchangeTransactionContract>
 {
     fn from(value: domain::contract::ExchangeTransactionContract) -> Self {
         ExchangeTransactionContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             exchange_id: value.exchange_id,
             token_id: value.token_id.into(),
             quant: value.quant,
@@ -1042,7 +1042,7 @@ impl From<domain::contract::MarketSellAssetContract>
 {
     fn from(value: domain::contract::MarketSellAssetContract) -> Self {
         MarketSellAssetContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             sell_token_id: value.sell_token_id.into(),
             sell_token_quantity: value.sell_token_quantity,
             buy_token_id: value.buy_token_id.into(),
@@ -1067,7 +1067,7 @@ impl From<domain::contract::MarketCancelOrderContract>
 {
     fn from(value: domain::contract::MarketCancelOrderContract) -> Self {
         MarketCancelOrderContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             order_id: value.order_id.into(),
         }
     }
@@ -1098,7 +1098,7 @@ impl From<SmartContract> for domain::contract::SmartContract {
 impl From<domain::contract::SmartContract> for SmartContract {
     fn from(value: domain::contract::SmartContract) -> Self {
         SmartContract {
-            origin_address: value.origin_address.as_bytes().try_into().unwrap(),
+            origin_address: value.origin_address.as_bytes().to_vec(),
             contract_address: value
                 .contract_address
                 .as_bytes()
@@ -1236,7 +1236,7 @@ impl From<CreateSmartContract> for domain::contract::CreateSmartContract {
 impl From<domain::contract::CreateSmartContract> for CreateSmartContract {
     fn from(value: domain::contract::CreateSmartContract) -> Self {
         CreateSmartContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             new_contract: Some(value.new_contract.into()),
             call_token_value: value.call_token_value.into(),
             token_id: value.token_id,
@@ -1260,7 +1260,7 @@ impl From<ClearAbiContract> for domain::contract::ClearAbiContract {
 impl From<domain::contract::ClearAbiContract> for ClearAbiContract {
     fn from(value: domain::contract::ClearAbiContract) -> Self {
         ClearAbiContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             contract_address: value
                 .contract_address
                 .as_bytes()
@@ -1287,7 +1287,7 @@ impl From<UpdateSettingContract> for domain::contract::UpdateSettingContract {
 impl From<domain::contract::UpdateSettingContract> for UpdateSettingContract {
     fn from(value: domain::contract::UpdateSettingContract) -> Self {
         UpdateSettingContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             contract_address: value
                 .contract_address
                 .as_bytes()
@@ -1319,7 +1319,7 @@ impl From<domain::contract::UpdateEnergyLimitContract>
 {
     fn from(value: domain::contract::UpdateEnergyLimitContract) -> Self {
         UpdateEnergyLimitContract {
-            owner_address: value.owner_address.as_bytes().try_into().unwrap(),
+            owner_address: value.owner_address.as_bytes().to_vec(),
             contract_address: value
                 .contract_address
                 .as_bytes()

@@ -14,8 +14,8 @@ use super::contract::Contract;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MarketOrderDetail {
-    pub maker_order_id: Vec<u8>,
-    pub taker_order_id: Vec<u8>,
+    pub maker_order_id: Hash32,
+    pub taker_order_id: Hash32,
     pub fill_sell_quantity: i64,
     pub fill_buy_quantity: i64,
 }
@@ -99,6 +99,76 @@ pub struct TransactionExtention {
     pub constant_result: Vec<Vec<u8>>,
     pub energy_used: i64,
     pub energy_penalty: i64,
+}
+
+pub struct Log {
+    pub address: Vec<u8>,
+    pub topics: Vec<Vec<u8>>,
+    pub data: Vec<u8>,
+}
+
+pub struct ResourceReceipt {
+    pub energy_usage: i64,
+    pub energy_fee: i64,
+    pub origin_energy_usage: i64,
+    pub energy_usage_total: i64,
+    pub net_usage: i64,
+    pub net_fee: i64,
+    pub result: ContractResult,
+    pub energy_penalty_total: i64,
+}
+
+pub struct CallValueInfo {
+    /// trx (TBD: or token) value
+    pub call_value: i64,
+    /// TBD: tokenName, trx should be empty
+    pub token_id: String,
+}
+
+pub struct InternalTransaction {
+    /// internalTransaction identity, the root InternalTransaction hash
+    /// should equals to root transaction id.
+    pub hash: Hash32,
+    /// the one send trx (TBD: or token) via function
+    pub caller_address: TronAddress,
+    /// the one recieve trx (TBD: or token) via function
+    pub transfer_to_address: TronAddress,
+    pub call_value_info: Vec<CallValueInfo>,
+    pub note: Message,
+    pub rejected: bool,
+    pub extra: String,
+}
+
+pub enum TxCode {
+    Sucess = 0,
+    Failed = 1,
+}
+
+pub struct TransactionInfo {
+    pub id: Hash32,
+    pub fee: Trx,
+    pub block_number: i64,
+    pub block_time_stamp: OffsetDateTime,
+    pub contract_result: Vec<Vec<u8>>,
+    pub contract_address: TronAddress,
+    pub receipt: Option<ResourceReceipt>,
+    pub log: Vec<Log>,
+    pub result: TxCode,
+    pub res_message: Message,
+    pub asset_issue_id: String,
+    pub withdraw_amount: Trx,
+    pub unfreeze_amount: Trx,
+    pub internal_transactions: Vec<InternalTransaction>,
+    pub exchange_received_amount: i64,
+    pub exchange_inject_another_amount: i64,
+    pub exchange_withdraw_another_amount: i64,
+    pub exchange_id: i64,
+    pub shielded_transaction_fee: Trx,
+    pub order_id: Vec<u8>,
+    pub order_details: Vec<MarketOrderDetail>,
+    pub packing_fee: Trx,
+    pub withdraw_expire_amount: i64,
+    pub cancel_unfreeze_v2_amount: HashMap<String, Trx>,
 }
 
 impl Transaction {

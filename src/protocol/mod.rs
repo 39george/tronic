@@ -7,7 +7,8 @@ pub use protocol::*;
 
 use crate::{
     domain::{
-        self, RecoverableSignature, address::TronAddress, permission::Ops,
+        self, Hash32, RecoverableSignature, address::TronAddress,
+        permission::Ops,
     },
     impl_enum_conversions,
 };
@@ -22,6 +23,14 @@ pub const TRON_PROTOCOL_FILE_DESCRIPTOR_SET: &[u8] =
     tonic::include_file_descriptor_set!("tron_protocol_descriptor");
 
 // ────────────────────────────── Transaction ─────────────────────────────── //
+
+impl From<Hash32> for BytesMessage {
+    fn from(value: Hash32) -> Self {
+        BytesMessage {
+            value: value.into(),
+        }
+    }
+}
 
 impl_enum_conversions! {
   transaction::result::ContractResult => domain::transaction::ContractResult {
@@ -83,8 +92,8 @@ impl From<domain::transaction::Authority> for Authority {
 impl From<MarketOrderDetail> for domain::transaction::MarketOrderDetail {
     fn from(value: MarketOrderDetail) -> Self {
         domain::transaction::MarketOrderDetail {
-            maker_order_id: value.maker_order_id,
-            taker_order_id: value.taker_order_id,
+            maker_order_id: value.maker_order_id.try_into().unwrap_or_default(),
+            taker_order_id: value.taker_order_id.try_into().unwrap_or_default(),
             fill_sell_quantity: value.fill_sell_quantity,
             fill_buy_quantity: value.fill_buy_quantity,
         }
@@ -94,8 +103,8 @@ impl From<MarketOrderDetail> for domain::transaction::MarketOrderDetail {
 impl From<domain::transaction::MarketOrderDetail> for MarketOrderDetail {
     fn from(value: domain::transaction::MarketOrderDetail) -> Self {
         MarketOrderDetail {
-            maker_order_id: value.maker_order_id,
-            taker_order_id: value.taker_order_id,
+            maker_order_id: value.maker_order_id.into(),
+            taker_order_id: value.taker_order_id.into(),
             fill_sell_quantity: value.fill_sell_quantity,
             fill_buy_quantity: value.fill_buy_quantity,
         }
@@ -240,7 +249,237 @@ impl From<domain::transaction::TransactionExtention> for TransactionExtention {
             constant_result: txext.constant_result,
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
-            ..Default::default()
+            result: todo!(),
+            logs: todo!(),
+            internal_transactions: todo!(),
+        }
+    }
+}
+
+impl From<domain::transaction::Log> for transaction_info::Log {
+    fn from(value: domain::transaction::Log) -> Self {
+        transaction_info::Log {
+            address: value.address,
+            topics: value.topics,
+            data: value.data,
+        }
+    }
+}
+
+impl From<transaction_info::Log> for domain::transaction::Log {
+    fn from(value: transaction_info::Log) -> Self {
+        domain::transaction::Log {
+            address: value.address,
+            topics: value.topics,
+            data: value.data,
+        }
+    }
+}
+
+impl From<domain::transaction::ResourceReceipt> for ResourceReceipt {
+    fn from(value: domain::transaction::ResourceReceipt) -> Self {
+        ResourceReceipt {
+            energy_usage: value.energy_usage,
+            energy_fee: value.energy_fee,
+            origin_energy_usage: value.origin_energy_usage,
+            energy_usage_total: value.energy_usage_total,
+            net_usage: value.net_usage,
+            net_fee: value.net_fee,
+            result: transaction::result::ContractResult::from(value.result)
+                .into(),
+            energy_penalty_total: value.energy_penalty_total,
+        }
+    }
+}
+
+impl From<ResourceReceipt> for domain::transaction::ResourceReceipt {
+    fn from(value: ResourceReceipt) -> Self {
+        domain::transaction::ResourceReceipt {
+            energy_usage: value.energy_usage,
+            energy_fee: value.energy_fee,
+            origin_energy_usage: value.origin_energy_usage,
+            energy_usage_total: value.energy_usage_total,
+            net_usage: value.net_usage,
+            net_fee: value.net_fee,
+            result: value.result().into(),
+            energy_penalty_total: value.energy_penalty_total,
+        }
+    }
+}
+
+impl From<domain::transaction::CallValueInfo>
+    for internal_transaction::CallValueInfo
+{
+    fn from(value: domain::transaction::CallValueInfo) -> Self {
+        internal_transaction::CallValueInfo {
+            call_value: value.call_value,
+            token_id: value.token_id,
+        }
+    }
+}
+
+impl From<internal_transaction::CallValueInfo>
+    for domain::transaction::CallValueInfo
+{
+    fn from(value: internal_transaction::CallValueInfo) -> Self {
+        domain::transaction::CallValueInfo {
+            call_value: value.call_value,
+            token_id: value.token_id,
+        }
+    }
+}
+
+impl From<domain::transaction::InternalTransaction> for InternalTransaction {
+    fn from(value: domain::transaction::InternalTransaction) -> Self {
+        InternalTransaction {
+            hash: value.hash.into(),
+            caller_address: value
+                .caller_address
+                .as_bytes()
+                .try_into()
+                .unwrap_or_default(),
+            transfer_to_address: value
+                .transfer_to_address
+                .as_bytes()
+                .try_into()
+                .unwrap_or_default(),
+            call_value_info: value
+                .call_value_info
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            note: value.note.into(),
+            rejected: value.rejected,
+            extra: value.extra,
+        }
+    }
+}
+
+impl From<InternalTransaction> for domain::transaction::InternalTransaction {
+    fn from(value: InternalTransaction) -> Self {
+        domain::transaction::InternalTransaction {
+            hash: value.hash.try_into().unwrap_or_default(),
+            caller_address: value
+                .caller_address
+                .as_slice()
+                .try_into()
+                .unwrap_or_default(),
+            transfer_to_address: value
+                .transfer_to_address
+                .as_slice()
+                .try_into()
+                .unwrap_or_default(),
+            call_value_info: value
+                .call_value_info
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            note: value.note.into(),
+            rejected: value.rejected,
+            extra: value.extra,
+        }
+    }
+}
+
+impl_enum_conversions! {
+    transaction_info::Code => domain::transaction::TxCode {
+        Sucess,
+        Failed
+    }
+}
+
+impl From<domain::transaction::TransactionInfo> for TransactionInfo {
+    fn from(value: domain::transaction::TransactionInfo) -> Self {
+        TransactionInfo {
+            id: value.id.try_into().unwrap_or_default(),
+            fee: value.fee.into(),
+            block_number: value.block_number,
+            block_time_stamp: datetime_to_tron(value.block_time_stamp),
+            contract_result: value.contract_result,
+            // TODO: abc
+            contract_address: value.contract_address.as_bytes().into(),
+            receipt: value.receipt.map(Into::into),
+            log: value.log.into_iter().map(Into::into).collect(),
+            result: transaction_info::Code::from(value.result).into(),
+            res_message: value.res_message.into(),
+            asset_issue_id: value.asset_issue_id,
+            withdraw_amount: value.withdraw_amount.into(),
+            unfreeze_amount: value.unfreeze_amount.into(),
+            internal_transactions: value
+                .internal_transactions
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            exchange_received_amount: value.exchange_received_amount,
+            exchange_inject_another_amount: value
+                .exchange_inject_another_amount,
+            exchange_withdraw_another_amount: value
+                .exchange_withdraw_another_amount,
+            exchange_id: value.exchange_id,
+            shielded_transaction_fee: value.shielded_transaction_fee.into(),
+            order_id: value.order_id,
+            order_details: value
+                .order_details
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            packing_fee: value.packing_fee.into(),
+            withdraw_expire_amount: value.withdraw_expire_amount,
+            cancel_unfreeze_v2_amount: value
+                .cancel_unfreeze_v2_amount
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        }
+    }
+}
+
+impl From<TransactionInfo> for domain::transaction::TransactionInfo {
+    fn from(value: TransactionInfo) -> Self {
+        domain::transaction::TransactionInfo {
+            result: value.result().into(),
+            id: value.id.try_into().unwrap_or_default(),
+            fee: value.fee.into(),
+            block_number: value.block_number,
+            block_time_stamp: tron_to_datetime(value.block_time_stamp),
+            contract_result: value.contract_result,
+            // TODO: abc
+            contract_address: value
+                .contract_address
+                .as_slice()
+                .try_into()
+                .unwrap_or_default(),
+            receipt: value.receipt.map(Into::into),
+            log: value.log.into_iter().map(Into::into).collect(),
+            res_message: value.res_message.into(),
+            asset_issue_id: value.asset_issue_id,
+            withdraw_amount: value.withdraw_amount.into(),
+            unfreeze_amount: value.unfreeze_amount.into(),
+            internal_transactions: value
+                .internal_transactions
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            exchange_received_amount: value.exchange_received_amount,
+            exchange_inject_another_amount: value
+                .exchange_inject_another_amount,
+            exchange_withdraw_another_amount: value
+                .exchange_withdraw_another_amount,
+            exchange_id: value.exchange_id,
+            shielded_transaction_fee: value.shielded_transaction_fee.into(),
+            order_id: value.order_id,
+            order_details: value
+                .order_details
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            packing_fee: value.packing_fee.into(),
+            withdraw_expire_amount: value.withdraw_expire_amount,
+            cancel_unfreeze_v2_amount: value
+                .cancel_unfreeze_v2_amount
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
         }
     }
 }
