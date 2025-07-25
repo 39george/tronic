@@ -45,3 +45,26 @@ macro_rules! impl_debug {
         }
     };
 }
+
+#[macro_export]
+macro_rules! impl_enum_conversions {
+    ($from_enum:path => $to_enum:path {
+        $($variant:ident),* $(,)?
+    }) => {
+        impl From<$from_enum> for $to_enum {
+            fn from(value: $from_enum) -> Self {
+                match value {
+                    $( <$from_enum>::$variant => <$to_enum>::$variant, )*
+                }
+            }
+        }
+
+        impl From<$to_enum> for $from_enum {
+            fn from(value: $to_enum) -> Self {
+                match value {
+                    $( <$to_enum>::$variant => <$from_enum>::$variant, )*
+                }
+            }
+        }
+    };
+}

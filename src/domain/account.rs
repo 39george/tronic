@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use derivative::Derivative;
 use time::OffsetDateTime;
 
+use crate::domain::contract::ResourceCode;
 use crate::domain::{address::TronAddress, trx::Trx};
 
 use super::Message;
+use super::permission::Permission;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum AccountType {
@@ -13,33 +15,6 @@ pub enum AccountType {
     Normal = 0,
     AssetIssue = 1,
     Contract = 2,
-}
-
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Key {
-    pub address: TronAddress,
-    pub weight: i64,
-}
-
-#[derive(Debug, Default, Clone, PartialEq)]
-pub enum PermissionType {
-    #[default]
-    Owner = 0,
-    Witness = 1,
-    Active = 2,
-}
-
-#[derive(Debug, Default, Clone, PartialEq)]
-pub struct Permission {
-    pub permission_type: PermissionType,
-    /// Owner id=0, Witness id=1, Active id start by 2
-    pub id: i32,
-    pub permission_name: String,
-    pub threshold: i64,
-    pub parent_id: i32,
-    /// 1 bit 1 contract
-    pub operations: Vec<u8>,
-    pub keys: Vec<Key>,
 }
 
 #[derive(Debug, Derivative, Clone, PartialEq)]
@@ -60,13 +35,15 @@ pub struct Vote {
     pub vote_count: i64,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Derivative, Clone, PartialEq)]
+#[derivative(Default)]
 pub struct AccountResource {
     /// energy resource, get from frozen
     pub energy_usage: i64,
     /// the frozen balance for energy
     pub frozen_balance_for_energy: Option<Frozen>,
-    pub latest_consume_time_for_energy: i64,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub latest_consume_time_for_energy: OffsetDateTime,
     /// Frozen balance provided by other accounts to this account
     pub acquired_delegated_frozen_balance_for_energy: i64,
     /// Frozen balances provided to other accounts
@@ -83,7 +60,7 @@ pub struct AccountResource {
 
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct FreezeV2 {
-    pub freeze_type: i32,
+    pub freeze_type: ResourceCode,
     pub amount: Trx,
 }
 
@@ -117,9 +94,9 @@ pub struct Account {
     /// bandwidth, get from frozen
     pub net_usage: i64,
     /// Frozen balance provided by other accounts to this account
-    pub acquired_delegated_frozen_balance_for_bandwidth: i64,
+    pub acquired_delegated_frozen_balance_for_bandwidth: Trx,
     /// Freeze and provide balances to other accounts
-    pub delegated_frozen_balance_for_bandwidth: i64,
+    pub delegated_frozen_balance_for_bandwidth: Trx,
     pub old_tron_power: i64,
     pub tron_power: Option<Frozen>,
     pub asset_optimized: bool,
@@ -132,7 +109,8 @@ pub struct Account {
     /// witness block producing allowance
     pub allowance: i64,
     /// last withdraw time
-    pub latest_withdraw_time: i64,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub latest_withdraw_time: OffsetDateTime,
     /// not used so far
     pub code: Vec<u8>,
     pub is_witness: bool,
@@ -147,8 +125,10 @@ pub struct Account {
     pub free_net_usage: i64,
     pub free_asset_net_usage: HashMap<String, i64>,
     pub free_asset_net_usage_v2: HashMap<String, i64>,
-    pub latest_consume_time: i64,
-    pub latest_consume_free_time: i64,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub latest_consume_time: OffsetDateTime,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub latest_consume_free_time: OffsetDateTime,
     /// the identity of this account, case insensitive
     pub account_id: Vec<u8>,
     pub net_window_size: i64,
@@ -156,7 +136,7 @@ pub struct Account {
     pub account_resource: AccountResource,
     pub code_hash: Vec<u8>,
     pub owner_permission: Permission,
-    pub witness_permission: Permission,
+    pub witness_permission: Option<Permission>,
     pub active_permission: Vec<Permission>,
     pub frozen_v2: Vec<FreezeV2>,
     pub unfrozen_v2: Vec<UnFreezeV2>,

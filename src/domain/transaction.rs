@@ -15,10 +15,30 @@ use super::contract::Contract;
 pub struct UnknownType;
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ContractResult {
+    Default = 0,
+    Success = 1,
+    Revert = 2,
+    BadJumpDestination = 3,
+    OutOfMemory = 4,
+    PrecompiledContract = 5,
+    StackTooSmall = 6,
+    StackTooLarge = 7,
+    IllegalOperation = 8,
+    StackOverflow = 9,
+    OutOfEnergy = 10,
+    OutOfTime = 11,
+    JvmStackOverFlow = 12,
+    Unknown = 13,
+    TransferFailed = 14,
+    InvalidCode = 15,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransactionResult {
     pub fee: i64,
     pub ret: i32,
-    pub contract_ret: i32,
+    pub contract_ret: ContractResult,
     pub asset_issue_id: String,
     pub withdraw_amount: i64,
     pub unfreeze_amount: i64,

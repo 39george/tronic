@@ -373,20 +373,6 @@ impl From<WithdrawExpireUnfreezeContract>
     }
 }
 
-impl From<ResourceCode> for domain::contract::ResourceCode {
-    fn from(value: ResourceCode) -> Self {
-        match value {
-            ResourceCode::Bandwidth => {
-                domain::contract::ResourceCode::Bandwidth
-            }
-            ResourceCode::Energy => domain::contract::ResourceCode::Energy,
-            ResourceCode::TronPower => {
-                domain::contract::ResourceCode::TronPower
-            }
-        }
-    }
-}
-
 impl From<DelegateResourceContract>
     for domain::contract::DelegateResourceContract
 {
@@ -622,47 +608,25 @@ impl From<smart_contract::abi::entry::Param> for domain::contract::Param {
     }
 }
 
-impl From<smart_contract::abi::entry::EntryType>
-    for domain::contract::EntryType
-{
-    fn from(value: smart_contract::abi::entry::EntryType) -> Self {
-        match value {
-            smart_contract::abi::entry::EntryType::UnknownEntryType => {
-                domain::contract::EntryType::UnknownEntryType
-            }
-            smart_contract::abi::entry::EntryType::Constructor => {
-                domain::contract::EntryType::Constructor
-            }
-            smart_contract::abi::entry::EntryType::Function => {
-                domain::contract::EntryType::Function
-            }
-            smart_contract::abi::entry::EntryType::Event => {
-                domain::contract::EntryType::Event
-            }
-            smart_contract::abi::entry::EntryType::Fallback => {
-                domain::contract::EntryType::Fallback
-            }
-            smart_contract::abi::entry::EntryType::Receive => {
-                domain::contract::EntryType::Receive
-            }
-            smart_contract::abi::entry::EntryType::Error => {
-                domain::contract::EntryType::Error
-            }
-        }
+impl_enum_conversions! {
+    smart_contract::abi::entry::EntryType => domain::contract::EntryType {
+        UnknownEntryType,
+        Constructor,
+        Function,
+        Event,
+        Fallback,
+        Receive,
+        Error
     }
 }
 
-impl From<smart_contract::abi::entry::StateMutabilityType>
-    for domain::contract::StateMutabilityType
-{
-    fn from(value: smart_contract::abi::entry::StateMutabilityType) -> Self {
-        match value {
-            smart_contract::abi::entry::StateMutabilityType::UnknownMutabilityType => domain::contract::StateMutabilityType::UnknownMutabilityType,
-            smart_contract::abi::entry::StateMutabilityType::Pure => domain::contract::StateMutabilityType::Pure,
-            smart_contract::abi::entry::StateMutabilityType::View => domain::contract::StateMutabilityType::View,
-            smart_contract::abi::entry::StateMutabilityType::Nonpayable => domain::contract::StateMutabilityType::Nonpayable,
-            smart_contract::abi::entry::StateMutabilityType::Payable => domain::contract::StateMutabilityType::Payable,
-        }
+impl_enum_conversions! {
+    smart_contract::abi::entry::StateMutabilityType => domain::contract::StateMutabilityType {
+        UnknownMutabilityType,
+        Pure,
+        View,
+        Nonpayable,
+        Payable
     }
 }
 

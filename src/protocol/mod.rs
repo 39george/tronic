@@ -5,7 +5,12 @@
 use k256::ecdsa::{RecoveryId, Signature};
 pub use protocol::*;
 
-use crate::domain::{self, RecoverableSignature, address::TronAddress};
+use crate::{
+    domain::{
+        self, RecoverableSignature, address::TronAddress, permission::Ops,
+    },
+    impl_enum_conversions,
+};
 
 // #[path = "google.api.rs"]
 // mod google_api;
@@ -18,12 +23,33 @@ pub const TRON_PROTOCOL_FILE_DESCRIPTOR_SET: &[u8] =
 
 // ────────────────────────────── Transaction ─────────────────────────────── //
 
+impl_enum_conversions! {
+  transaction::result::ContractResult => domain::transaction::ContractResult {
+        Default,
+        Success,
+        Revert,
+        BadJumpDestination,
+        OutOfMemory,
+        PrecompiledContract,
+        StackTooSmall,
+        StackTooLarge,
+        IllegalOperation,
+        StackOverflow,
+        OutOfEnergy,
+        OutOfTime,
+        JvmStackOverFlow,
+        Unknown,
+        TransferFailed,
+        InvalidCode,
+    }
+}
+
 impl From<transaction::Result> for domain::transaction::TransactionResult {
     fn from(r: transaction::Result) -> Self {
         domain::transaction::TransactionResult {
             fee: r.fee,
             ret: r.ret,
-            contract_ret: r.contract_ret,
+            contract_ret: r.contract_ret().into(),
             asset_issue_id: r.asset_issue_id,
             withdraw_amount: r.withdraw_amount,
             unfreeze_amount: r.unfreeze_amount,
@@ -47,7 +73,10 @@ impl From<domain::transaction::TransactionResult> for transaction::Result {
         transaction::Result {
             fee: r.fee,
             ret: r.ret,
-            contract_ret: r.contract_ret,
+            contract_ret: transaction::result::ContractResult::from(
+                r.contract_ret,
+            )
+            .into(),
             asset_issue_id: r.asset_issue_id,
             withdraw_amount: r.withdraw_amount,
             unfreeze_amount: r.unfreeze_amount,
@@ -160,7 +189,7 @@ impl From<domain::transaction::TransactionExtention> for TransactionExtention {
 
 // ──────────────────────────────── Account ───────────────────────────────── //
 
-impl From<Key> for crate::domain::account::Key {
+impl From<Key> for crate::domain::permission::Key {
     fn from(k: Key) -> Self {
         Self {
             address: TronAddress::try_from(&k.address)
@@ -170,8 +199,8 @@ impl From<Key> for crate::domain::account::Key {
     }
 }
 
-impl From<crate::domain::account::Key> for Key {
-    fn from(k: crate::domain::account::Key) -> Self {
+impl From<crate::domain::permission::Key> for Key {
+    fn from(k: crate::domain::permission::Key) -> Self {
         Self {
             address: k.address.as_bytes().to_vec(),
             weight: k.weight,
@@ -179,49 +208,23 @@ impl From<crate::domain::account::Key> for Key {
     }
 }
 
-impl From<AccountType> for domain::account::AccountType {
-    fn from(value: AccountType) -> Self {
-        match value {
-            AccountType::Normal => domain::account::AccountType::Normal,
-            AccountType::AssetIssue => domain::account::AccountType::AssetIssue,
-            AccountType::Contract => domain::account::AccountType::Contract,
-        }
+impl_enum_conversions! {
+    AccountType => domain::account::AccountType {
+        Normal,
+        AssetIssue,
+        Contract
     }
 }
 
-impl From<domain::account::AccountType> for AccountType {
-    fn from(value: domain::account::AccountType) -> Self {
-        match value {
-            domain::account::AccountType::Normal => AccountType::Normal,
-            domain::account::AccountType::AssetIssue => AccountType::AssetIssue,
-            domain::account::AccountType::Contract => AccountType::Contract,
-        }
+impl_enum_conversions! {
+    permission::PermissionType => domain::permission::PermissionType {
+        Owner,
+        Witness,
+        Active
     }
 }
 
-impl From<permission::PermissionType> for domain::account::PermissionType {
-    fn from(i: permission::PermissionType) -> Self {
-        match i {
-            permission::PermissionType::Owner => {
-                domain::account::PermissionType::Owner
-            }
-            permission::PermissionType::Witness => {
-                domain::account::PermissionType::Witness
-            }
-            permission::PermissionType::Active => {
-                domain::account::PermissionType::Active
-            }
-        }
-    }
-}
-
-impl From<crate::domain::account::PermissionType> for i32 {
-    fn from(p: crate::domain::account::PermissionType) -> Self {
-        p as i32
-    }
-}
-
-impl From<Permission> for crate::domain::account::Permission {
+impl From<Permission> for crate::domain::permission::Permission {
     fn from(p: Permission) -> Self {
         Self {
             permission_type: p.r#type().into(),
@@ -229,21 +232,21 @@ impl From<Permission> for crate::domain::account::Permission {
             permission_name: p.permission_name,
             threshold: p.threshold,
             parent_id: p.parent_id,
-            operations: p.operations,
+            operations: Ops::decode_ops(&p.operations),
             keys: p.keys.into_iter().map(Into::into).collect(),
         }
     }
 }
 
-impl From<crate::domain::account::Permission> for Permission {
-    fn from(p: crate::domain::account::Permission) -> Self {
+impl From<crate::domain::permission::Permission> for Permission {
+    fn from(p: crate::domain::permission::Permission) -> Self {
         Self {
-            r#type: p.permission_type.into(),
+            r#type: permission::PermissionType::from(p.permission_type).into(),
             id: p.id,
             permission_name: p.permission_name,
             threshold: p.threshold,
             parent_id: p.parent_id,
-            operations: p.operations,
+            operations: Ops::encode_ops(&p.operations),
             keys: p.keys.into_iter().map(Into::into).collect(),
         }
     }
@@ -270,7 +273,7 @@ impl From<crate::domain::account::Frozen> for account::Frozen {
 impl From<account::FreezeV2> for crate::domain::account::FreezeV2 {
     fn from(f: account::FreezeV2) -> Self {
         Self {
-            freeze_type: f.r#type,
+            freeze_type: f.r#type().into(),
             amount: f.amount.into(),
         }
     }
@@ -279,7 +282,7 @@ impl From<account::FreezeV2> for crate::domain::account::FreezeV2 {
 impl From<crate::domain::account::FreezeV2> for account::FreezeV2 {
     fn from(f: crate::domain::account::FreezeV2) -> Self {
         Self {
-            r#type: f.freeze_type,
+            r#type: ResourceCode::from(f.freeze_type).into(),
             amount: f.amount.to_sun(),
         }
     }
@@ -331,7 +334,9 @@ impl From<account::AccountResource> for domain::account::AccountResource {
             frozen_balance_for_energy: r
                 .frozen_balance_for_energy
                 .map(Into::into),
-            latest_consume_time_for_energy: r.latest_consume_time_for_energy,
+            latest_consume_time_for_energy: tron_to_datetime(
+                r.latest_consume_time_for_energy,
+            ),
             acquired_delegated_frozen_balance_for_energy: r
                 .acquired_delegated_frozen_balance_for_energy,
             delegated_frozen_balance_for_energy: r
@@ -356,7 +361,9 @@ impl From<domain::account::AccountResource> for account::AccountResource {
             frozen_balance_for_energy: r
                 .frozen_balance_for_energy
                 .map(Into::into),
-            latest_consume_time_for_energy: r.latest_consume_time_for_energy,
+            latest_consume_time_for_energy: datetime_to_tron(
+                r.latest_consume_time_for_energy,
+            ),
             acquired_delegated_frozen_balance_for_energy: r
                 .acquired_delegated_frozen_balance_for_energy,
             delegated_frozen_balance_for_energy: r
@@ -387,16 +394,18 @@ impl From<Account> for domain::account::Account {
             frozen: a.frozen.into_iter().map(Into::into).collect(),
             net_usage: a.net_usage,
             acquired_delegated_frozen_balance_for_bandwidth: a
-                .acquired_delegated_frozen_balance_for_bandwidth,
+                .acquired_delegated_frozen_balance_for_bandwidth
+                .into(),
             delegated_frozen_balance_for_bandwidth: a
-                .delegated_frozen_balance_for_bandwidth,
+                .delegated_frozen_balance_for_bandwidth
+                .into(),
             old_tron_power: a.old_tron_power,
             tron_power: a.tron_power.map(Into::into),
             asset_optimized: a.asset_optimized,
             create_time: tron_to_datetime(a.create_time),
             latest_opration_time: tron_to_datetime(a.latest_opration_time),
             allowance: a.allowance,
-            latest_withdraw_time: a.latest_withdraw_time,
+            latest_withdraw_time: tron_to_datetime(a.latest_withdraw_time),
             code: a.code,
             is_witness: a.is_witness,
             is_committee: a.is_committee,
@@ -412,8 +421,10 @@ impl From<Account> for domain::account::Account {
             free_net_usage: a.free_net_usage,
             free_asset_net_usage: a.free_asset_net_usage,
             free_asset_net_usage_v2: a.free_asset_net_usage_v2,
-            latest_consume_time: a.latest_consume_time,
-            latest_consume_free_time: a.latest_consume_free_time,
+            latest_consume_time: tron_to_datetime(a.latest_consume_time),
+            latest_consume_free_time: tron_to_datetime(
+                a.latest_consume_free_time,
+            ),
             account_id: a.account_id,
             net_window_size: a.net_window_size,
             net_window_optimized: a.net_window_optimized,
@@ -426,10 +437,7 @@ impl From<Account> for domain::account::Account {
                 .owner_permission
                 .map(Into::into)
                 .unwrap_or_default(),
-            witness_permission: a
-                .witness_permission
-                .map(Into::into)
-                .unwrap_or_default(),
+            witness_permission: a.witness_permission.map(Into::into),
             active_permission: a
                 .active_permission
                 .into_iter()
@@ -460,16 +468,18 @@ impl From<domain::account::Account> for Account {
             frozen: a.frozen.into_iter().map(Into::into).collect(),
             net_usage: a.net_usage,
             acquired_delegated_frozen_balance_for_bandwidth: a
-                .acquired_delegated_frozen_balance_for_bandwidth,
+                .acquired_delegated_frozen_balance_for_bandwidth
+                .into(),
             delegated_frozen_balance_for_bandwidth: a
-                .delegated_frozen_balance_for_bandwidth,
+                .delegated_frozen_balance_for_bandwidth
+                .into(),
             old_tron_power: a.old_tron_power,
             tron_power: a.tron_power.map(Into::into),
             asset_optimized: a.asset_optimized,
             create_time: datetime_to_tron(a.create_time),
             latest_opration_time: datetime_to_tron(a.latest_opration_time),
             allowance: a.allowance,
-            latest_withdraw_time: a.latest_withdraw_time,
+            latest_withdraw_time: datetime_to_tron(a.latest_withdraw_time),
             code: a.code,
             is_witness: a.is_witness,
             is_committee: a.is_committee,
@@ -485,15 +495,17 @@ impl From<domain::account::Account> for Account {
             free_net_usage: a.free_net_usage,
             free_asset_net_usage: a.free_asset_net_usage,
             free_asset_net_usage_v2: a.free_asset_net_usage_v2,
-            latest_consume_time: a.latest_consume_time,
-            latest_consume_free_time: a.latest_consume_free_time,
+            latest_consume_time: datetime_to_tron(a.latest_consume_time),
+            latest_consume_free_time: datetime_to_tron(
+                a.latest_consume_free_time,
+            ),
             account_id: a.account_id,
             net_window_size: a.net_window_size,
             net_window_optimized: a.net_window_optimized,
             account_resource: Some(a.account_resource.into()),
             code_hash: a.code_hash,
             owner_permission: Some(a.owner_permission.into()),
-            witness_permission: Some(a.witness_permission.into()),
+            witness_permission: a.witness_permission.map(Into::into),
             active_permission: a
                 .active_permission
                 .into_iter()
@@ -604,6 +616,14 @@ impl From<domain::block::BlockExtention> for BlockExtention {
             block_header: p.block_header.map(Into::into),
             blockid: p.blockid.into(),
         }
+    }
+}
+
+impl_enum_conversions! {
+    ResourceCode => domain::contract::ResourceCode {
+        Bandwidth,
+        Energy,
+        TronPower
     }
 }
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use time::OffsetDateTime;
 
 use super::account::AccountType;
-use crate::domain::{account::Permission, address::TronAddress, trx::Trx};
+use crate::domain::{address::TronAddress, permission::Permission, trx::Trx};
 
 use super::HexMessage;
 use super::Message;
@@ -292,10 +292,12 @@ pub struct WithdrawExpireUnfreezeContract {
     pub owner_address: TronAddress,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub enum ResourceCode {
+    #[default]
     Bandwidth = 0,
     Energy = 1,
+    #[doc = "Deprecated in FreezeV2. Use `tron_power` field instead."]
     TronPower = 2,
 }
 
