@@ -96,15 +96,16 @@ pub struct UnFreezeV2 {
     pub unfreeze_expire_time: OffsetDateTime,
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Derivative, Clone, PartialEq)]
+#[derivative(Default)]
 pub struct Account {
     /// account nick name
     pub account_name: Message,
     pub account_type: AccountType,
     /// the create address
-    pub address: ::prost::alloc::vec::Vec<u8>,
+    pub address: TronAddress,
     /// the trx balance
-    pub balance: i64,
+    pub balance: Trx,
     /// the votes
     pub votes: ::prost::alloc::vec::Vec<Vote>,
     /// the other asset owned by this account
@@ -123,15 +124,17 @@ pub struct Account {
     pub tron_power: Option<Frozen>,
     pub asset_optimized: bool,
     /// this account create time
-    pub create_time: i64,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub create_time: OffsetDateTime,
     /// this last operation time, including transfer, voting and so on. //FIXME fix grammar
-    pub latest_opration_time: i64,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub latest_opration_time: OffsetDateTime,
     /// witness block producing allowance
     pub allowance: i64,
     /// last withdraw time
     pub latest_withdraw_time: i64,
     /// not used so far
-    pub code: ::prost::alloc::vec::Vec<u8>,
+    pub code: Vec<u8>,
     pub is_witness: bool,
     pub is_committee: bool,
     /// frozen asset(for asset issuer)
@@ -150,13 +153,13 @@ pub struct Account {
     pub account_id: Vec<u8>,
     pub net_window_size: i64,
     pub net_window_optimized: bool,
-    pub account_resource: Option<AccountResource>,
+    pub account_resource: AccountResource,
     pub code_hash: Vec<u8>,
-    pub owner_permission: Option<Permission>,
-    pub witness_permission: Option<Permission>,
+    pub owner_permission: Permission,
+    pub witness_permission: Permission,
     pub active_permission: Vec<Permission>,
     pub frozen_v2: Vec<FreezeV2>,
     pub unfrozen_v2: Vec<UnFreezeV2>,
-    pub delegated_frozen_v2_balance_for_bandwidth: i64,
-    pub acquired_delegated_frozen_v2_balance_for_bandwidth: i64,
+    pub delegated_frozen_v2_balance_for_bandwidth: Trx,
+    pub acquired_delegated_frozen_v2_balance_for_bandwidth: Trx,
 }

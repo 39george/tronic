@@ -79,11 +79,11 @@ impl From<transaction::Raw> for domain::transaction::RawTransaction {
             ref_block_bytes: r.ref_block_bytes.try_into().unwrap(),
             ref_block_num: r.ref_block_num,
             ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
-            expiration: time_unix_millis(r.expiration),
+            expiration: tron_to_datetime(r.expiration),
             data: r.data.into(),
             contract: r.contract.pop().map(Into::into),
             scripts: r.scripts,
-            timestamp: time_unix_millis(r.timestamp),
+            timestamp: tron_to_datetime(r.timestamp),
             fee_limit: r.fee_limit.into(),
         }
     }
@@ -95,11 +95,11 @@ impl From<domain::transaction::RawTransaction> for transaction::Raw {
             ref_block_bytes: r.ref_block_bytes.into(),
             ref_block_num: r.ref_block_num,
             ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
-            expiration: r.expiration.unix_timestamp(),
+            expiration: datetime_to_tron(r.expiration),
             data: r.data.into(),
             contract: r.contract.map(|c| vec![c.into()]).unwrap_or_default(),
             scripts: r.scripts,
-            timestamp: r.timestamp.unix_timestamp(),
+            timestamp: datetime_to_tron(r.timestamp),
             fee_limit: r.fee_limit.into(),
             auths: Default::default(),
         }
@@ -253,7 +253,7 @@ impl From<account::Frozen> for crate::domain::account::Frozen {
     fn from(f: account::Frozen) -> Self {
         Self {
             frozen_balance: domain::trx::Trx::from(f.frozen_balance),
-            expire_time: time_unix_millis(f.expire_time),
+            expire_time: tron_to_datetime(f.expire_time),
         }
     }
 }
@@ -262,7 +262,7 @@ impl From<crate::domain::account::Frozen> for account::Frozen {
     fn from(f: crate::domain::account::Frozen) -> Self {
         Self {
             frozen_balance: f.frozen_balance.to_sun(),
-            expire_time: f.expire_time.unix_timestamp(),
+            expire_time: datetime_to_tron(f.expire_time),
         }
     }
 }
@@ -290,7 +290,7 @@ impl From<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
         Self {
             unfreeze_type: f.r#type,
             unfreeze_amount: f.unfreeze_amount.into(),
-            unfreeze_expire_time: time_unix_millis(f.unfreeze_expire_time),
+            unfreeze_expire_time: tron_to_datetime(f.unfreeze_expire_time),
         }
     }
 }
@@ -300,7 +300,7 @@ impl From<crate::domain::account::UnFreezeV2> for account::UnFreezeV2 {
         Self {
             r#type: f.unfreeze_type,
             unfreeze_amount: f.unfreeze_amount.to_sun(),
-            unfreeze_expire_time: f.unfreeze_expire_time.unix_timestamp(),
+            unfreeze_expire_time: datetime_to_tron(f.unfreeze_expire_time),
         }
     }
 }
@@ -379,8 +379,8 @@ impl From<Account> for domain::account::Account {
         Self {
             account_type: a.r#type().into(),
             account_name: a.account_name.into(),
-            address: a.address,
-            balance: a.balance,
+            address: a.address.as_slice().try_into().unwrap_or_default(),
+            balance: a.balance.into(),
             votes: a.votes.into_iter().map(Into::into).collect(),
             asset: a.asset,
             asset_v2: a.asset_v2,
@@ -393,8 +393,8 @@ impl From<Account> for domain::account::Account {
             old_tron_power: a.old_tron_power,
             tron_power: a.tron_power.map(Into::into),
             asset_optimized: a.asset_optimized,
-            create_time: a.create_time,
-            latest_opration_time: a.latest_opration_time,
+            create_time: tron_to_datetime(a.create_time),
+            latest_opration_time: tron_to_datetime(a.latest_opration_time),
             allowance: a.allowance,
             latest_withdraw_time: a.latest_withdraw_time,
             code: a.code,
@@ -417,10 +417,19 @@ impl From<Account> for domain::account::Account {
             account_id: a.account_id,
             net_window_size: a.net_window_size,
             net_window_optimized: a.net_window_optimized,
-            account_resource: a.account_resource.map(Into::into),
+            account_resource: a
+                .account_resource
+                .map(Into::into)
+                .unwrap_or_default(),
             code_hash: a.code_hash,
-            owner_permission: a.owner_permission.map(Into::into),
-            witness_permission: a.witness_permission.map(Into::into),
+            owner_permission: a
+                .owner_permission
+                .map(Into::into)
+                .unwrap_or_default(),
+            witness_permission: a
+                .witness_permission
+                .map(Into::into)
+                .unwrap_or_default(),
             active_permission: a
                 .active_permission
                 .into_iter()
@@ -429,9 +438,11 @@ impl From<Account> for domain::account::Account {
             frozen_v2: a.frozen_v2.into_iter().map(Into::into).collect(),
             unfrozen_v2: a.unfrozen_v2.into_iter().map(Into::into).collect(),
             delegated_frozen_v2_balance_for_bandwidth: a
-                .delegated_frozen_v2_balance_for_bandwidth,
+                .delegated_frozen_v2_balance_for_bandwidth
+                .into(),
             acquired_delegated_frozen_v2_balance_for_bandwidth: a
-                .acquired_delegated_frozen_v2_balance_for_bandwidth,
+                .acquired_delegated_frozen_v2_balance_for_bandwidth
+                .into(),
         }
     }
 }
@@ -441,8 +452,8 @@ impl From<domain::account::Account> for Account {
         Self {
             account_name: a.account_name.as_bytes().to_vec(),
             r#type: AccountType::from(a.account_type).into(),
-            address: a.address,
-            balance: a.balance,
+            address: a.address.as_bytes().to_vec(),
+            balance: a.balance.into(),
             votes: a.votes.into_iter().map(Into::into).collect(),
             asset: a.asset,
             asset_v2: a.asset_v2,
@@ -455,8 +466,8 @@ impl From<domain::account::Account> for Account {
             old_tron_power: a.old_tron_power,
             tron_power: a.tron_power.map(Into::into),
             asset_optimized: a.asset_optimized,
-            create_time: a.create_time,
-            latest_opration_time: a.latest_opration_time,
+            create_time: datetime_to_tron(a.create_time),
+            latest_opration_time: datetime_to_tron(a.latest_opration_time),
             allowance: a.allowance,
             latest_withdraw_time: a.latest_withdraw_time,
             code: a.code,
@@ -479,10 +490,10 @@ impl From<domain::account::Account> for Account {
             account_id: a.account_id,
             net_window_size: a.net_window_size,
             net_window_optimized: a.net_window_optimized,
-            account_resource: a.account_resource.map(Into::into),
+            account_resource: Some(a.account_resource.into()),
             code_hash: a.code_hash,
-            owner_permission: a.owner_permission.map(Into::into),
-            witness_permission: a.witness_permission.map(Into::into),
+            owner_permission: Some(a.owner_permission.into()),
+            witness_permission: Some(a.witness_permission.into()),
             active_permission: a
                 .active_permission
                 .into_iter()
@@ -491,9 +502,11 @@ impl From<domain::account::Account> for Account {
             frozen_v2: a.frozen_v2.into_iter().map(Into::into).collect(),
             unfrozen_v2: a.unfrozen_v2.into_iter().map(Into::into).collect(),
             delegated_frozen_v2_balance_for_bandwidth: a
-                .delegated_frozen_v2_balance_for_bandwidth,
+                .delegated_frozen_v2_balance_for_bandwidth
+                .into(),
             acquired_delegated_frozen_v2_balance_for_bandwidth: a
-                .acquired_delegated_frozen_v2_balance_for_bandwidth,
+                .acquired_delegated_frozen_v2_balance_for_bandwidth
+                .into(),
         }
     }
 }
@@ -503,7 +516,7 @@ impl From<domain::account::Account> for Account {
 impl From<block_header::Raw> for domain::block::RawBlockHeader {
     fn from(p: block_header::Raw) -> Self {
         Self {
-            timestamp: time_unix_millis(p.timestamp),
+            timestamp: tron_to_datetime(p.timestamp),
             tx_trie_root: p.tx_trie_root.try_into().unwrap_or_default(),
             parent_hash: p.parent_hash.try_into().unwrap_or_default(),
             number: p.number,
@@ -522,7 +535,7 @@ impl From<block_header::Raw> for domain::block::RawBlockHeader {
 impl From<domain::block::RawBlockHeader> for block_header::Raw {
     fn from(r: domain::block::RawBlockHeader) -> Self {
         Self {
-            timestamp: r.timestamp.unix_timestamp(),
+            timestamp: datetime_to_tron(r.timestamp),
             tx_trie_root: r.tx_trie_root.into(),
             parent_hash: r.parent_hash.into(),
             number: r.number,
@@ -596,7 +609,7 @@ impl From<domain::block::BlockExtention> for BlockExtention {
 
 // ──────────────────────────────── Helpers ───────────────────────────────── //
 
-fn time_unix_millis(time: i64) -> time::OffsetDateTime {
+fn tron_to_datetime(time: i64) -> time::OffsetDateTime {
     time::OffsetDateTime::from_unix_timestamp_nanos(time as i128 * 1_000_000)
         .inspect_err(|e| {
             tracing::error!(
@@ -604,4 +617,8 @@ fn time_unix_millis(time: i64) -> time::OffsetDateTime {
             )
         })
         .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH)
+}
+
+fn datetime_to_tron(dt: time::OffsetDateTime) -> i64 {
+    (dt.unix_timestamp_nanos() / 1_000_000) as i64
 }

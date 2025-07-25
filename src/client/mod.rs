@@ -116,3 +116,10 @@ where
         listener.run().await
     }
 }
+
+impl<P, S> std::ops::Deref for Client<P, S> {
+    type Target = P;
+    fn deref(&self) -> &Self::Target {
+        &self.provider
+    }
+}

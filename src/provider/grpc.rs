@@ -166,6 +166,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         };
         let account: domain::account::Account =
             node.get_account(account).await?.into_inner().into();
+        // let a = node.get_account_resource(account).await.unwrap().into_inner();
         Ok(account)
     }
     async fn trigger_constant_contract<A: AbiEncode + Send>(
