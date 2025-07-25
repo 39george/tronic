@@ -12,7 +12,7 @@ use crate::domain::trx;
 use crate::error::Error;
 use crate::protocol;
 use crate::protocol::wallet_client::WalletClient;
-use crate::providers::grpc::middleware::auth_channel;
+use crate::provider::grpc::middleware::auth_channel;
 
 #[derive(Clone)]
 pub struct GrpcProvider {
@@ -66,7 +66,7 @@ impl GrpcProvider {
 }
 
 #[async_trait::async_trait]
-impl crate::client::TronProvider for GrpcProvider {
+impl crate::provider::TronProvider for GrpcProvider {
     async fn trasnfer_contract(
         &self,
         owner: domain::address::TronAddress,

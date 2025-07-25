@@ -10,7 +10,7 @@ use tronic::{
     domain::transaction::Transaction,
     extractor::DynamicTrc20Extractor,
     listener::subscriber::{filters::AddressFilter, tx_sub::TxSubscriber},
-    providers::grpc::GrpcProvider,
+    provider::grpc::GrpcProvider,
     signer::LocalSigner,
 };
 

@@ -10,7 +10,7 @@ pub mod domain;
 pub mod error;
 pub mod extractor;
 pub mod listener;
-pub mod providers;
+pub mod provider;
 pub mod signer;
 
 type Result<T> = std::result::Result<T, error::Error>;

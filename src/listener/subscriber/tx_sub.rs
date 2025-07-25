@@ -1,11 +1,10 @@
 use std::future::Future;
 
 use crate::Filter;
-use crate::client::{Client, TronProvider};
-use crate::domain::{
-    block::BlockExtention,
-    transaction::{Transaction, TransactionExtention},
-};
+use crate::client::Client;
+use crate::domain::block::BlockExtention;
+use crate::domain::transaction::{Transaction, TransactionExtention};
+use crate::provider::TronProvider;
 
 use super::BlockSubscriber;
 
