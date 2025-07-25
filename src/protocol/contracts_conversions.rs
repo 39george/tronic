@@ -162,6 +162,19 @@ impl From<AccountPermissionUpdateContract>
     }
 }
 
+impl From<domain::contract::AccountPermissionUpdateContract>
+    for AccountPermissionUpdateContract
+{
+    fn from(value: domain::contract::AccountPermissionUpdateContract) -> Self {
+        AccountPermissionUpdateContract {
+            owner_address: value.owner_address.as_bytes().to_vec(),
+            owner: value.owner.map(Into::into),
+            witness: value.witness.map(Into::into),
+            actives: value.actives.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
 impl From<WitnessCreateContract> for domain::contract::WitnessCreateContract {
     fn from(value: WitnessCreateContract) -> Self {
         domain::contract::WitnessCreateContract {

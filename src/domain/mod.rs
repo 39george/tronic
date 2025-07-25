@@ -11,11 +11,105 @@ pub mod permission;
 pub mod transaction;
 pub mod trx;
 
+#[macro_export]
+macro_rules! define_fixed_string {
+    ($name:ident, $len:expr, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+        pub struct $name([u8; $len]);
+
+        impl $name {
+            /// Creates a new instance from bytes, trimming null bytes
+            pub fn new(value: &[u8]) -> Result<Self, String> {
+                let trimmed = value
+                    .iter()
+                    .take_while(|&&b| b != 0)
+                    .copied()
+                    .collect::<Vec<_>>();
+
+                if trimmed.len() > $len {
+                    return Err(format!(
+                        "invalid {} length: got {}, expected {}",
+                        stringify!($name),
+                        trimmed.len(),
+                        $len
+                    ));
+                }
+
+                let mut array = [0u8; $len];
+                array[..trimmed.len()].copy_from_slice(&trimmed);
+                Ok(Self(array))
+            }
+        }
+
+        impl std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{:?}", self.as_str())
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", self.as_str())
+            }
+        }
+
+        impl TryFrom<&str> for $name {
+            type Error = String;
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+                Self::new(value.as_bytes())
+            }
+        }
+
+        impl TryFrom<String> for $name {
+            type Error = String;
+            fn try_from(value: String) -> Result<Self, Self::Error> {
+                Self::try_from(value.as_str())
+            }
+        }
+
+        impl TryFrom<Vec<u8>> for $name {
+            type Error = String;
+            fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+                Self::new(&value)
+            }
+        }
+
+        impl From<$name> for String {
+            fn from(value: $name) -> Self {
+                value.as_str().to_string()
+            }
+        }
+
+        impl $name {
+            /// Get the string representation (trimming null bytes)
+            pub fn as_str(&self) -> &str {
+                let len =
+                    self.0.iter().position(|&b| b == 0).unwrap_or(self.0.len());
+                std::str::from_utf8(&self.0[..len]).unwrap_or_default()
+            }
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self([0u8; $len])
+            }
+        }
+
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                self.as_str()
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! define_fixed_hash {
     ($name:ident, $len:expr, $doc:literal) => {
         #[doc = $doc]
         #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-        pub struct $name(pub [u8; $len]);
+        pub struct $name([u8; $len]);
 
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

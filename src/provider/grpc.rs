@@ -183,12 +183,12 @@ impl crate::provider::TronProvider for GrpcProvider {
         };
 
         let mut node = self.wallet_client();
-        let reply = node
+        let txext = node
             .trigger_constant_contract(contract)
             .await
             .map(|r| r.into_inner())?;
-        Self::return_to_result(reply.result.clone())?;
-        Ok(reply.into())
+        Self::return_to_result(txext.result.clone())?;
+        Ok(txext.into())
     }
     async fn get_now_block(&self) -> Result<domain::block::BlockExtention> {
         let mut node = self.wallet_client();
@@ -197,6 +197,18 @@ impl crate::provider::TronProvider for GrpcProvider {
             .await?
             .into_inner();
         Ok(now_block.into())
+    }
+    async fn account_permission_update(
+        &self,
+        contract: domain::contract::AccountPermissionUpdateContract,
+    ) -> Result<domain::transaction::TransactionExtention> {
+        let mut node = self.wallet_client();
+        let contract: protocol::AccountPermissionUpdateContract =
+            contract.into();
+        let txext =
+            node.account_permission_update(contract).await?.into_inner();
+        Self::return_to_result(txext.result.clone())?;
+        Ok(txext.into())
     }
 }
 

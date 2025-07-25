@@ -229,7 +229,7 @@ impl From<Permission> for crate::domain::permission::Permission {
         Self {
             permission_type: p.r#type().into(),
             id: p.id,
-            permission_name: p.permission_name,
+            permission_name: p.permission_name.try_into().unwrap_or_default(),
             threshold: p.threshold,
             parent_id: p.parent_id,
             operations: Ops::decode_ops(&p.operations),
@@ -243,7 +243,7 @@ impl From<crate::domain::permission::Permission> for Permission {
         Self {
             r#type: permission::PermissionType::from(p.permission_type).into(),
             id: p.id,
-            permission_name: p.permission_name,
+            permission_name: p.permission_name.into(),
             threshold: p.threshold,
             parent_id: p.parent_id,
             operations: Ops::encode_ops(&p.operations),

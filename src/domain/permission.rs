@@ -1,6 +1,8 @@
 use bitvec::{bitvec, view::BitView};
 
-use crate::domain::address::TronAddress;
+use crate::{
+    define_fixed_hash, define_fixed_string, domain::address::TronAddress,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, strum_macros::FromRepr)]
 #[repr(usize)]
@@ -103,9 +105,11 @@ pub struct Permission {
     pub permission_type: PermissionType,
     /// Owner id=0, Witness id=1, Active id start by 2
     pub id: i32,
-    pub permission_name: String,
+    pub permission_name: PermissionName,
     pub threshold: i64,
     pub parent_id: i32,
     pub operations: Vec<Ops>,
     pub keys: Vec<Key>,
 }
+
+define_fixed_string!(PermissionName, 32, "TRON permission name (max 32 bytes)");

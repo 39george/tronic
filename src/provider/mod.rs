@@ -41,6 +41,10 @@ pub trait TronProvider {
         call: A,
     ) -> Result<domain::transaction::TransactionExtention>;
     async fn get_now_block(&self) -> Result<domain::block::BlockExtention>;
+    async fn account_permission_update(
+        &self,
+        contract: domain::contract::AccountPermissionUpdateContract,
+    ) -> Result<domain::transaction::TransactionExtention>;
     // async fn get_account_resources(
     //     &self,
     //     address: TronAddress,
