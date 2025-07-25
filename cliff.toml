@@ -1,0 +1,22 @@
+[changelog]
+header = """
+# Changelog\n
+"""
+body = """
+## [{{ version }}] - {{ timestamp | date(format="%Y-%m-%d") }}\n
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | upper_first }}\n
+{% for commit in commits %}
+- {{ commit.message | upper_first }} ({{ commit.id | truncate(length=7, end="") }})\n
+{% endfor %}
+{% endfor %}
+"""
+
+[git]
+conventional_commits = true
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^docs", group = "Documentation" },
+    { message = "^chore", group = "Miscellaneous" },
+]
