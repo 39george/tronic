@@ -25,9 +25,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # gRPC
-tonic = "0.13"
-prost = "0.13.5" # Tonic 0.13 requires old prost
-prost-types = "0.13.5"
+tonic = { git = "https://github.com/hyperium/tonic" }
+prost = "0.14" # Tonic 0.13 requires old prost
+prost-types = "0.14"
 
 # Misc
 anyhow = "1.0"
