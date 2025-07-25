@@ -12,6 +12,7 @@ pub mod extractor;
 pub mod listener;
 pub mod provider;
 pub mod signer;
+pub(crate) mod utility;
 
 type Result<T> = std::result::Result<T, error::Error>;
 

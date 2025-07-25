@@ -113,7 +113,7 @@ macro_rules! define_fixed_hash {
 
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "0x{}", hex::encode(&self.0))
+                write!(f, "{}", hex::encode(&self.0))
             }
         }
 

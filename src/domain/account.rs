@@ -177,3 +177,17 @@ pub struct Account {
     pub delegated_frozen_v2_balance_for_bandwidth: Trx,
     pub acquired_delegated_frozen_v2_balance_for_bandwidth: Trx,
 }
+
+impl Account {
+    pub fn permission_by_id(&self, permission_id: i32) -> Option<Permission> {
+        match permission_id {
+            0 => Some(self.owner_permission.clone()),
+            1 => self.witness_permission.clone(),
+            id => self
+                .active_permission
+                .iter()
+                .find(|p| p.id.eq(&id))
+                .cloned(),
+        }
+    }
+}

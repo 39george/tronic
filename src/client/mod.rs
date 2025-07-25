@@ -1,8 +1,8 @@
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use bon::Builder;
+use prost::Message;
 use secrecy::SecretString;
 
-use crate::Result;
 use crate::client::builder::PermissionHandler;
 use crate::contracts;
 use crate::contracts::token::Token;
@@ -16,6 +16,7 @@ use crate::error::Error;
 use crate::listener::ListenerHandle;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
+use crate::{Result, protocol, utility};
 
 pub mod builder;
 
@@ -55,6 +56,33 @@ where
             .await?;
 
         Ok(txid.to_owned())
+    }
+    pub async fn estimate_bandwidth(&self) -> Result<i64> {
+        let raw = self
+            .txext
+            .transaction
+            .as_ref()
+            .context("no transaction found")?
+            .raw
+            .as_ref()
+            .context("transaction raw part is empty")?
+            .clone();
+        let contract = raw.contract.first().context("no contract")?;
+        let permission_id = contract.permission_id;
+        let signature_count = self
+            .client
+            .get_account(self.client.signer.address().ok_or(
+                Error::InvalidInput(
+                    "no signer to check permissions for".into(),
+                ),
+            )?)
+            .await?
+            .permission_by_id(permission_id)
+            .context("no permission found")?
+            .required_signatures()
+            .context("insufficient keys for threshold")?;
+        let txlen = protocol::transaction::Raw::from(raw).encode_to_vec().len();
+        Ok(utility::estimate_bandwidth(txlen as i64, signature_count))
     }
 }
 

@@ -176,4 +176,33 @@ impl Permission {
             })
             .collect()
     }
+    /// Returns the minimum number of signatures needed (greedy selection)
+    pub(crate) fn required_signatures(&self) -> Option<i64> {
+        if self.threshold <= 0 || self.keys.is_empty() {
+            return Some(0);
+        }
+
+        let mut weights: Vec<i64> =
+            self.keys.iter().map(|k| k.weight).collect();
+        weights.sort_by(|a, b| b.cmp(a)); // Descending
+
+        let mut remaining = self.threshold;
+        let mut count = 0;
+
+        for &w in &weights {
+            remaining -= w;
+            count += 1;
+            if remaining <= 0 {
+                return Some(count);
+            }
+        }
+        // If we get here, the threshold isn't met even with all signatures
+        None
+    }
+
+    /// Checks if ANY combination of keys meets the threshold (combinatorial)
+    pub(crate) fn can_meet_threshold(&self) -> bool {
+        let total_weight: i64 = self.keys.iter().map(|k| k.weight).sum();
+        total_weight >= self.threshold
+    }
 }
