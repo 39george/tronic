@@ -8,6 +8,7 @@ use crate::domain::account::Account;
 use crate::domain::address::TronAddress;
 use crate::domain::contract::AccountPermissionUpdateContract;
 use crate::domain::permission::Permission;
+use crate::domain::permission::PermissionParams;
 use crate::domain::trx::Trx;
 use crate::error::Error;
 use crate::signer::PrehashSigner;
@@ -200,23 +201,30 @@ where
             },
         })
     }
-    pub fn owner(&self) -> &Permission {
-        &self.account.owner_permission
+    pub fn owner(&self) -> PermissionParams {
+        self.account.owner_permission.clone().into()
     }
-    pub fn witness(&self) -> Option<&Permission> {
-        self.account.witness_permission.as_ref()
+    pub fn witness(&self) -> Option<PermissionParams> {
+        self.account.witness_permission.clone().map(Into::into)
     }
-    pub fn actives(&self) -> &[Permission] {
-        &self.account.active_permission
+    pub fn actives(&self) -> Vec<PermissionParams> {
+        self.account
+            .active_permission
+            .clone()
+            .into_iter()
+            .map(Into::into)
+            .collect()
     }
-    pub fn set_owner(&mut self, p: Permission) {
-        self.permission_update.owner = Some(p);
+    pub fn set_owner(&mut self, p: PermissionParams) {
+        self.permission_update.owner =
+            Some(Permission::owner().params(p).call());
     }
-    pub fn set_witness(&mut self, p: Permission) {
-        self.permission_update.witness = Some(p);
+    pub fn set_witness(&mut self, p: PermissionParams) {
+        self.permission_update.witness =
+            Some(Permission::witness().params(p).call());
     }
-    pub fn set_actives(&mut self, p: Vec<Permission>) {
-        self.permission_update.actives = p;
+    pub fn set_actives(&mut self, p: Vec<PermissionParams>) {
+        self.permission_update.actives = Permission::actives().params(p).call();
     }
     pub async fn update_permission(
         self,

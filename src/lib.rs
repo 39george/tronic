@@ -2,7 +2,7 @@
 // #![feature(error_generic_member_access)]
 
 #[allow(warnings)]
-pub mod protocol;
+pub(crate) mod protocol;
 
 pub mod client;
 pub mod contracts;

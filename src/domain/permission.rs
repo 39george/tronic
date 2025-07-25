@@ -1,8 +1,6 @@
 use bitvec::{bitvec, view::BitView};
 
-use crate::{
-    define_fixed_hash, define_fixed_string, domain::address::TronAddress,
-};
+use crate::{define_fixed_string, domain::address::TronAddress};
 
 #[derive(Debug, Clone, Copy, PartialEq, strum_macros::FromRepr)]
 #[repr(usize)]
@@ -100,11 +98,22 @@ pub enum PermissionType {
     Active = 2,
 }
 
+define_fixed_string!(PermissionName, 32, "TRON permission name (max 32 bytes)");
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Permission {
-    pub permission_type: PermissionType,
+    pub(crate) permission_type: PermissionType,
     /// Owner id=0, Witness id=1, Active id start by 2
-    pub id: i32,
+    pub(crate) id: i32,
+    pub(crate) permission_name: PermissionName,
+    pub(crate) threshold: i64,
+    pub(crate) parent_id: i32,
+    pub(crate) operations: Vec<Ops>,
+    pub(crate) keys: Vec<Key>,
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct PermissionParams {
     pub permission_name: PermissionName,
     pub threshold: i64,
     pub parent_id: i32,
@@ -112,4 +121,58 @@ pub struct Permission {
     pub keys: Vec<Key>,
 }
 
-define_fixed_string!(PermissionName, 32, "TRON permission name (max 32 bytes)");
+impl From<Permission> for PermissionParams {
+    fn from(value: Permission) -> Self {
+        PermissionParams {
+            permission_name: value.permission_name,
+            threshold: value.threshold,
+            parent_id: value.parent_id,
+            operations: value.operations.clone(),
+            keys: value.keys.clone(),
+        }
+    }
+}
+
+#[bon::bon]
+impl Permission {
+    #[builder]
+    pub(crate) fn owner(params: PermissionParams) -> Self {
+        Permission {
+            permission_type: PermissionType::Owner,
+            id: 0,
+            permission_name: params.permission_name,
+            threshold: params.threshold,
+            parent_id: params.parent_id,
+            operations: params.operations,
+            keys: params.keys,
+        }
+    }
+    #[builder]
+    pub(crate) fn witness(params: PermissionParams) -> Self {
+        Permission {
+            permission_type: PermissionType::Witness,
+            id: 1,
+            permission_name: params.permission_name,
+            threshold: params.threshold,
+            parent_id: params.parent_id,
+            operations: params.operations,
+            keys: params.keys,
+        }
+    }
+    #[builder]
+    pub(crate) fn actives(params: Vec<PermissionParams>) -> Vec<Permission> {
+        params
+            .into_iter()
+            .enumerate()
+            .map(|(idx, p)| Permission {
+                permission_type: PermissionType::Active,
+                id: idx as i32 + 2,
+                permission_name: p.permission_name,
+                threshold: p.threshold,
+                parent_id: p.parent_id,
+                operations: p.operations,
+                keys: p.keys,
+            })
+            .collect()
+    }
+}
