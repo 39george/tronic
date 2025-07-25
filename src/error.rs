@@ -25,6 +25,8 @@ pub enum Error {
     BadHeaderValue(#[from] http::header::InvalidHeaderValue),
     #[error("signature failure: {0}")]
     Signature(#[from] k256::ecdsa::signature::Error),
+    #[error("invalid input: {0}")]
+    InvalidInput(String),
 }
 
 crate::impl_debug!(Error);

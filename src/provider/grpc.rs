@@ -166,8 +166,20 @@ impl crate::provider::TronProvider for GrpcProvider {
         };
         let account: domain::account::Account =
             node.get_account(account).await?.into_inner().into();
-        // let a = node.get_account_resource(account).await.unwrap().into_inner();
         Ok(account)
+    }
+    async fn get_account_resources(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::account::AccountResourceUsage> {
+        let mut node = self.wallet_client();
+        let account = protocol::Account {
+            address: address.as_bytes().to_vec(),
+            ..Default::default()
+        };
+        let account_resource =
+            node.get_account_resource(account).await?.into_inner();
+        Ok(account_resource.into())
     }
     async fn trigger_constant_contract<A: AbiEncode + Send>(
         &self,

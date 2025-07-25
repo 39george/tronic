@@ -1,9 +1,13 @@
 use anyhow::anyhow;
+use derivative::Derivative;
 
 use crate::Result;
 use crate::contracts;
 use crate::contracts::token::Token;
+use crate::domain::account::Account;
 use crate::domain::address::TronAddress;
+use crate::domain::contract::AccountPermissionUpdateContract;
+use crate::domain::permission::Permission;
 use crate::domain::trx::Trx;
 use crate::error::Error;
 use crate::signer::PrehashSigner;
@@ -37,7 +41,7 @@ where
 
         let account = self.client.provider.get_account(address).await?;
 
-        Ok(account.balance.into())
+        Ok(account.balance)
     }
 }
 
@@ -163,5 +167,98 @@ where
         };
 
         Ok(balance.to())
+    }
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct PermissionHandler<'a, P, S> {
+    #[derivative(Debug = "ignore")]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) account: Account,
+    pub(super) permission_update: AccountPermissionUpdateContract,
+}
+
+impl<'a, P, S> PermissionHandler<'a, P, S>
+where
+    P: TronProvider,
+    S: PrehashSigner + Clone,
+{
+    pub(super) async fn new(
+        client: &'a Client<P, S>,
+        owner_address: TronAddress,
+    ) -> Result<Self> {
+        let account = client.get_account(owner_address).await?;
+        Ok(PermissionHandler {
+            client,
+            account,
+            permission_update: AccountPermissionUpdateContract {
+                owner_address,
+                owner: None,
+                witness: None,
+                actives: Vec::new(),
+            },
+        })
+    }
+    pub fn owner(&self) -> &Permission {
+        &self.account.owner_permission
+    }
+    pub fn witness(&self) -> Option<&Permission> {
+        self.account.witness_permission.as_ref()
+    }
+    pub fn actives(&self) -> &[Permission] {
+        &self.account.active_permission
+    }
+    pub fn set_owner(&mut self, p: Permission) {
+        self.permission_update.owner = Some(p);
+    }
+    pub fn set_witness(&mut self, p: Permission) {
+        self.permission_update.witness = Some(p);
+    }
+    pub fn set_actives(&mut self, p: Vec<Permission>) {
+        self.permission_update.actives = p;
+    }
+    pub async fn update_permission(
+        self,
+    ) -> Result<PendingTransaction<'a, P, S>> {
+        // Validate that at least one permission is being modified
+        let has_changes = {
+            let current_owner = self.account.owner_permission.clone();
+            let current_witness = self.account.witness_permission.clone();
+            let current_actives = self.account.active_permission.clone();
+
+            // Check if any permission differs from current state
+            (self.permission_update.owner.as_ref() != Some(&current_owner))
+                || (self.permission_update.witness != current_witness)
+                || (self.permission_update.actives != current_actives)
+        };
+
+        if !has_changes {
+            return Err(Error::InvalidInput(
+                "No permission changes detected".into(),
+            ));
+        }
+
+        // Validate required fields (TRON rules)
+        if self.permission_update.owner.is_none() {
+            return Err(Error::InvalidInput(
+                "Owner permission must be specified".into(),
+            ));
+        }
+
+        if self.permission_update.actives.is_empty() {
+            return Err(Error::InvalidInput(
+                "At least one active permission must be specified".into(),
+            ));
+        }
+
+        let txext = self
+            .client
+            .account_permission_update(self.permission_update)
+            .await?;
+        Ok(PendingTransaction {
+            client: self.client,
+            txext,
+        })
     }
 }

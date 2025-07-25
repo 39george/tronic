@@ -58,6 +58,40 @@ pub struct AccountResource {
     pub energy_window_optimized: bool,
 }
 
+pub struct AccountResourceUsage {
+    /// Used free bandwidth
+    pub free_net_used: i64,
+    /// Free bandwidth limit (daily)
+    pub free_net_limit: i64,
+    /// Used total bandwidth
+    pub net_used: i64,
+    /// Total bandwidth limit
+    pub net_limit: i64,
+    /// Bandwidth used per token (key: token ID)
+    pub asset_net_used: HashMap<String, i64>,
+    /// Bandwidth limit per token
+    pub asset_net_limit: HashMap<String, i64>,
+    /// Network-wide bandwidth pool
+    pub total_net_limit: i64,
+    /// Staking-based bandwidth allocation ratio
+    pub total_net_weight: i64,
+    pub total_tron_power_weight: i64,
+    pub tron_power_used: i64,
+    pub tron_power_limit: i64,
+    /// Used for smart contract execution
+    pub energy_used: i64,
+    /// Max allocatable energy
+    pub energy_limit: i64,
+    /// Network-wide energy pool
+    pub total_energy_limit: i64,
+    /// Staking-based energy allocation ratio
+    pub total_energy_weight: i64,
+    #[doc = "Deprecated"]
+    pub storage_used: i64,
+    #[doc = "Deprecated"]
+    pub storage_limit: i64,
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct FreezeV2 {
     pub freeze_type: ResourceCode,

@@ -381,6 +381,30 @@ impl From<domain::account::AccountResource> for account::AccountResource {
     }
 }
 
+impl From<AccountResourceMessage> for domain::account::AccountResourceUsage {
+    fn from(r: AccountResourceMessage) -> Self {
+        domain::account::AccountResourceUsage {
+            free_net_used: r.free_net_used,
+            free_net_limit: r.free_net_limit,
+            net_used: r.net_used,
+            net_limit: r.net_limit,
+            asset_net_used: r.asset_net_used,
+            asset_net_limit: r.asset_net_limit,
+            total_net_limit: r.total_net_limit,
+            total_net_weight: r.total_net_weight,
+            total_tron_power_weight: r.total_tron_power_weight,
+            tron_power_used: r.tron_power_used,
+            tron_power_limit: r.tron_power_limit,
+            energy_used: r.energy_used,
+            energy_limit: r.energy_limit,
+            total_energy_limit: r.total_energy_limit,
+            total_energy_weight: r.total_energy_weight,
+            storage_used: r.storage_used,
+            storage_limit: r.storage_limit,
+        }
+    }
+}
+
 impl From<Account> for domain::account::Account {
     fn from(a: Account) -> Self {
         Self {

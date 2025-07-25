@@ -34,6 +34,10 @@ pub trait TronProvider {
         &self,
         address: TronAddress,
     ) -> Result<domain::account::Account>;
+    async fn get_account_resources(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::account::AccountResourceUsage>;
     async fn trigger_constant_contract<A: AbiEncode + Send>(
         &self,
         owner: TronAddress,
@@ -45,10 +49,6 @@ pub trait TronProvider {
         &self,
         contract: domain::contract::AccountPermissionUpdateContract,
     ) -> Result<domain::transaction::TransactionExtention>;
-    // async fn get_account_resources(
-    //     &self,
-    //     address: TronAddress,
-    // ) -> Result<AccountResources>;
 
     // async fn get_transaction_by_id(
     //     &self,

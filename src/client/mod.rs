@@ -3,6 +3,7 @@ use bon::Builder;
 use secrecy::SecretString;
 
 use crate::Result;
+use crate::client::builder::PermissionHandler;
 use crate::contracts;
 use crate::contracts::token::Token;
 use crate::domain;
@@ -114,6 +115,12 @@ where
     pub async fn listener(&self) -> ListenerHandle {
         let listener = crate::listener::Listener::new(self.to_owned());
         listener.run().await
+    }
+    pub async fn account_permissions(
+        &self,
+        address: TronAddress,
+    ) -> Result<PermissionHandler<'_, P, S>> {
+        PermissionHandler::new(self, address).await
     }
 }
 
