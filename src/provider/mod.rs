@@ -53,10 +53,10 @@ pub trait TronProvider {
         &self,
         txid: Hash32,
     ) -> Result<domain::transaction::Transaction>;
-    // async fn get_transaction_info(
-    //     &self,
-    //     tx_id: [u8; 32],
-    // ) -> Result<TransactionInfo>;
+    async fn get_transaction_info(
+        &self,
+        txid: Hash32,
+    ) -> Result<domain::transaction::TransactionInfo>;
 
     //     async fn get_contract_abi(
     //     &self,

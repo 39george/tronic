@@ -284,7 +284,7 @@ impl From<domain::transaction::ResourceReceipt> for ResourceReceipt {
             origin_energy_usage: value.origin_energy_usage,
             energy_usage_total: value.energy_usage_total,
             net_usage: value.net_usage,
-            net_fee: value.net_fee,
+            net_fee: value.net_fee.into(),
             result: transaction::result::ContractResult::from(value.result)
                 .into(),
             energy_penalty_total: value.energy_penalty_total,
@@ -300,7 +300,7 @@ impl From<ResourceReceipt> for domain::transaction::ResourceReceipt {
             origin_energy_usage: value.origin_energy_usage,
             energy_usage_total: value.energy_usage_total,
             net_usage: value.net_usage,
-            net_fee: value.net_fee,
+            net_fee: value.net_fee.into(),
             result: value.result().into(),
             energy_penalty_total: value.energy_penalty_total,
         }

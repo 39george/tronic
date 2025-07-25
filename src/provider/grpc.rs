@@ -233,6 +233,17 @@ impl crate::provider::TronProvider for GrpcProvider {
             .into_inner();
         Ok(transaction.into())
     }
+    async fn get_transaction_info(
+        &self,
+        txid: Hash32,
+    ) -> Result<domain::transaction::TransactionInfo> {
+        let mut node = self.wallet_client();
+        let transaction = node
+            .get_transaction_info_by_id(protocol::BytesMessage::from(txid))
+            .await?
+            .into_inner();
+        Ok(transaction.into())
+    }
 }
 
 pub mod middleware {

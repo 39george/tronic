@@ -101,23 +101,26 @@ pub struct TransactionExtention {
     pub energy_penalty: i64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Log {
     pub address: Vec<u8>,
     pub topics: Vec<Vec<u8>>,
     pub data: Vec<u8>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct ResourceReceipt {
     pub energy_usage: i64,
     pub energy_fee: i64,
     pub origin_energy_usage: i64,
     pub energy_usage_total: i64,
     pub net_usage: i64,
-    pub net_fee: i64,
+    pub net_fee: Trx,
     pub result: ContractResult,
     pub energy_penalty_total: i64,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct CallValueInfo {
     /// trx (TBD: or token) value
     pub call_value: i64,
@@ -125,6 +128,7 @@ pub struct CallValueInfo {
     pub token_id: String,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct InternalTransaction {
     /// internalTransaction identity, the root InternalTransaction hash
     /// should equals to root transaction id.
@@ -139,11 +143,13 @@ pub struct InternalTransaction {
     pub extra: String,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum TxCode {
     Sucess = 0,
     Failed = 1,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct TransactionInfo {
     pub id: Hash32,
     pub fee: Trx,
