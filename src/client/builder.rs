@@ -176,7 +176,7 @@ where
     S: PrehashSigner + Clone,
     T: Token,
 {
-    pub async fn get(self) -> Result<u64> {
+    pub async fn get(self) -> Result<T> {
         let balance_of = self.build_internal();
         let owner = balance_of
             .owner
@@ -206,7 +206,7 @@ where
             return Err(anyhow::anyhow!("no constant result returned",).into());
         };
 
-        Ok(balance.to())
+        Ok(T::from(balance))
     }
 }
 
