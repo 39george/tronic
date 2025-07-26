@@ -123,11 +123,7 @@ where
             self.fut = Some(Box::pin(async move {
                 let block = client.provider.get_now_block().await.ok();
                 block.and_then(|b| {
-                    let number = b
-                        .block_header
-                        .as_ref()
-                        .and_then(|h| h.raw_data.as_ref())
-                        .map(|rd| rd.number)?;
+                    let number = b.block_header.raw_data.number;
 
                     if number <= last_block {
                         return None;

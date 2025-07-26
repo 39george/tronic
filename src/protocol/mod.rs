@@ -4,6 +4,7 @@
 
 use k256::ecdsa::{RecoveryId, Signature};
 pub use protocol::*;
+use time::OffsetDateTime;
 
 use crate::{
     domain::{
@@ -11,6 +12,7 @@ use crate::{
         permission::Ops,
     },
     impl_enum_conversions,
+    utility::TronOffsetDateTime,
 };
 
 // #[path = "google.api.rs"]
@@ -174,11 +176,11 @@ impl From<transaction::Raw> for domain::transaction::RawTransaction {
             ref_block_bytes: r.ref_block_bytes.try_into().unwrap(),
             ref_block_num: r.ref_block_num,
             ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
-            expiration: tron_to_datetime(r.expiration),
+            expiration: OffsetDateTime::from_tron(r.expiration),
             data: r.data.into(),
             contract: r.contract.into_iter().map(Into::into).collect(),
             scripts: r.scripts,
-            timestamp: tron_to_datetime(r.timestamp),
+            timestamp: OffsetDateTime::from_tron(r.timestamp),
             fee_limit: r.fee_limit.into(),
             auths: r.auths.into_iter().map(Into::into).collect(),
         }
@@ -191,11 +193,11 @@ impl From<domain::transaction::RawTransaction> for transaction::Raw {
             ref_block_bytes: r.ref_block_bytes.into(),
             ref_block_num: r.ref_block_num,
             ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
-            expiration: datetime_to_tron(r.expiration),
+            expiration: r.expiration.to_tron(),
             data: r.data.into(),
             contract: r.contract.into_iter().map(Into::into).collect(),
             scripts: r.scripts,
-            timestamp: datetime_to_tron(r.timestamp),
+            timestamp: r.timestamp.to_tron(),
             fee_limit: r.fee_limit.into(),
             auths: r.auths.into_iter().map(Into::into).collect(),
         }
@@ -205,7 +207,7 @@ impl From<domain::transaction::RawTransaction> for transaction::Raw {
 impl From<Transaction> for domain::transaction::Transaction {
     fn from(t: Transaction) -> Self {
         domain::transaction::Transaction {
-            raw: t.raw_data.map(Into::into),
+            raw: t.raw_data.unwrap_or_default().into(),
             signature: t
                 .signature
                 .into_iter()
@@ -222,7 +224,7 @@ impl From<Transaction> for domain::transaction::Transaction {
 impl From<domain::transaction::Transaction> for Transaction {
     fn from(t: domain::transaction::Transaction) -> Self {
         Transaction {
-            raw_data: t.raw.map(Into::into),
+            raw_data: Some(t.raw.into()),
             signature: t.signature.into_iter().map(Into::into).collect(),
             ret: t.result.into_iter().map(Into::into).collect(),
         }
@@ -394,7 +396,7 @@ impl From<domain::transaction::TransactionInfo> for TransactionInfo {
             id: value.id.try_into().unwrap_or_default(),
             fee: value.fee.into(),
             block_number: value.block_number,
-            block_time_stamp: datetime_to_tron(value.block_time_stamp),
+            block_time_stamp: value.block_time_stamp.to_tron(),
             contract_result: value.contract_result,
             // TODO: abc
             contract_address: value.contract_address.as_bytes().into(),
@@ -441,7 +443,7 @@ impl From<TransactionInfo> for domain::transaction::TransactionInfo {
             id: value.id.try_into().unwrap_or_default(),
             fee: value.fee.into(),
             block_number: value.block_number,
-            block_time_stamp: tron_to_datetime(value.block_time_stamp),
+            block_time_stamp: OffsetDateTime::from_tron(value.block_time_stamp),
             contract_result: value.contract_result,
             // TODO: abc
             contract_address: value
@@ -553,7 +555,7 @@ impl From<account::Frozen> for crate::domain::account::Frozen {
     fn from(f: account::Frozen) -> Self {
         Self {
             frozen_balance: domain::trx::Trx::from(f.frozen_balance),
-            expire_time: tron_to_datetime(f.expire_time),
+            expire_time: OffsetDateTime::from_tron(f.expire_time),
         }
     }
 }
@@ -562,7 +564,7 @@ impl From<crate::domain::account::Frozen> for account::Frozen {
     fn from(f: crate::domain::account::Frozen) -> Self {
         Self {
             frozen_balance: f.frozen_balance.to_sun(),
-            expire_time: datetime_to_tron(f.expire_time),
+            expire_time: f.expire_time.to_tron(),
         }
     }
 }
@@ -590,7 +592,9 @@ impl From<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
         Self {
             unfreeze_type: f.r#type,
             unfreeze_amount: f.unfreeze_amount.into(),
-            unfreeze_expire_time: tron_to_datetime(f.unfreeze_expire_time),
+            unfreeze_expire_time: OffsetDateTime::from_tron(
+                f.unfreeze_expire_time,
+            ),
         }
     }
 }
@@ -600,7 +604,7 @@ impl From<crate::domain::account::UnFreezeV2> for account::UnFreezeV2 {
         Self {
             r#type: f.unfreeze_type,
             unfreeze_amount: f.unfreeze_amount.to_sun(),
-            unfreeze_expire_time: datetime_to_tron(f.unfreeze_expire_time),
+            unfreeze_expire_time: f.unfreeze_expire_time.to_tron(),
         }
     }
 }
@@ -631,7 +635,7 @@ impl From<account::AccountResource> for domain::account::AccountResource {
             frozen_balance_for_energy: r
                 .frozen_balance_for_energy
                 .map(Into::into),
-            latest_consume_time_for_energy: tron_to_datetime(
+            latest_consume_time_for_energy: OffsetDateTime::from_tron(
                 r.latest_consume_time_for_energy,
             ),
             acquired_delegated_frozen_balance_for_energy: r
@@ -658,9 +662,9 @@ impl From<domain::account::AccountResource> for account::AccountResource {
             frozen_balance_for_energy: r
                 .frozen_balance_for_energy
                 .map(Into::into),
-            latest_consume_time_for_energy: datetime_to_tron(
-                r.latest_consume_time_for_energy,
-            ),
+            latest_consume_time_for_energy: r
+                .latest_consume_time_for_energy
+                .to_tron(),
             acquired_delegated_frozen_balance_for_energy: r
                 .acquired_delegated_frozen_balance_for_energy,
             delegated_frozen_balance_for_energy: r
@@ -723,10 +727,14 @@ impl From<Account> for domain::account::Account {
             old_tron_power: a.old_tron_power,
             tron_power: a.tron_power.map(Into::into),
             asset_optimized: a.asset_optimized,
-            create_time: tron_to_datetime(a.create_time),
-            latest_opration_time: tron_to_datetime(a.latest_opration_time),
+            create_time: OffsetDateTime::from_tron(a.create_time),
+            latest_opration_time: OffsetDateTime::from_tron(
+                a.latest_opration_time,
+            ),
             allowance: a.allowance,
-            latest_withdraw_time: tron_to_datetime(a.latest_withdraw_time),
+            latest_withdraw_time: OffsetDateTime::from_tron(
+                a.latest_withdraw_time,
+            ),
             code: a.code,
             is_witness: a.is_witness,
             is_committee: a.is_committee,
@@ -742,8 +750,10 @@ impl From<Account> for domain::account::Account {
             free_net_usage: a.free_net_usage,
             free_asset_net_usage: a.free_asset_net_usage,
             free_asset_net_usage_v2: a.free_asset_net_usage_v2,
-            latest_consume_time: tron_to_datetime(a.latest_consume_time),
-            latest_consume_free_time: tron_to_datetime(
+            latest_consume_time: OffsetDateTime::from_tron(
+                a.latest_consume_time,
+            ),
+            latest_consume_free_time: OffsetDateTime::from_tron(
                 a.latest_consume_free_time,
             ),
             account_id: a.account_id,
@@ -797,10 +807,10 @@ impl From<domain::account::Account> for Account {
             old_tron_power: a.old_tron_power,
             tron_power: a.tron_power.map(Into::into),
             asset_optimized: a.asset_optimized,
-            create_time: datetime_to_tron(a.create_time),
-            latest_opration_time: datetime_to_tron(a.latest_opration_time),
+            create_time: a.create_time.to_tron(),
+            latest_opration_time: a.latest_opration_time.to_tron(),
             allowance: a.allowance,
-            latest_withdraw_time: datetime_to_tron(a.latest_withdraw_time),
+            latest_withdraw_time: a.latest_withdraw_time.to_tron(),
             code: a.code,
             is_witness: a.is_witness,
             is_committee: a.is_committee,
@@ -816,10 +826,8 @@ impl From<domain::account::Account> for Account {
             free_net_usage: a.free_net_usage,
             free_asset_net_usage: a.free_asset_net_usage,
             free_asset_net_usage_v2: a.free_asset_net_usage_v2,
-            latest_consume_time: datetime_to_tron(a.latest_consume_time),
-            latest_consume_free_time: datetime_to_tron(
-                a.latest_consume_free_time,
-            ),
+            latest_consume_time: a.latest_consume_time.to_tron(),
+            latest_consume_free_time: a.latest_consume_free_time.to_tron(),
             account_id: a.account_id,
             net_window_size: a.net_window_size,
             net_window_optimized: a.net_window_optimized,
@@ -849,7 +857,7 @@ impl From<domain::account::Account> for Account {
 impl From<block_header::Raw> for domain::block::RawBlockHeader {
     fn from(p: block_header::Raw) -> Self {
         Self {
-            timestamp: tron_to_datetime(p.timestamp),
+            timestamp: OffsetDateTime::from_tron(p.timestamp),
             tx_trie_root: p.tx_trie_root.try_into().unwrap_or_default(),
             parent_hash: p.parent_hash.try_into().unwrap_or_default(),
             number: p.number,
@@ -868,7 +876,7 @@ impl From<block_header::Raw> for domain::block::RawBlockHeader {
 impl From<domain::block::RawBlockHeader> for block_header::Raw {
     fn from(r: domain::block::RawBlockHeader) -> Self {
         Self {
-            timestamp: datetime_to_tron(r.timestamp),
+            timestamp: r.timestamp.to_tron(),
             tx_trie_root: r.tx_trie_root.into(),
             parent_hash: r.parent_hash.into(),
             number: r.number,
@@ -883,7 +891,7 @@ impl From<domain::block::RawBlockHeader> for block_header::Raw {
 impl From<BlockHeader> for domain::block::BlockHeader {
     fn from(p: BlockHeader) -> Self {
         Self {
-            raw_data: p.raw_data.map(Into::into),
+            raw_data: p.raw_data.unwrap_or_default().into(),
             witness_signature: p
                 .witness_signature
                 .as_slice()
@@ -896,7 +904,7 @@ impl From<BlockHeader> for domain::block::BlockHeader {
 impl From<domain::block::BlockHeader> for BlockHeader {
     fn from(d: domain::block::BlockHeader) -> Self {
         Self {
-            raw_data: d.raw_data.map(Into::into),
+            raw_data: Some(d.raw_data.into()),
             witness_signature: d.witness_signature.into(),
         }
     }
@@ -924,7 +932,7 @@ impl From<BlockExtention> for domain::block::BlockExtention {
     fn from(p: BlockExtention) -> Self {
         Self {
             transactions: p.transactions.into_iter().map(Into::into).collect(),
-            block_header: p.block_header.map(Into::into),
+            block_header: p.block_header.unwrap_or_default().into(),
             blockid: p.blockid.try_into().unwrap_or_default(),
         }
     }
@@ -934,7 +942,7 @@ impl From<domain::block::BlockExtention> for BlockExtention {
     fn from(p: domain::block::BlockExtention) -> Self {
         Self {
             transactions: p.transactions.into_iter().map(Into::into).collect(),
-            block_header: p.block_header.map(Into::into),
+            block_header: Some(p.block_header.into()),
             blockid: p.blockid.into(),
         }
     }
@@ -946,20 +954,4 @@ impl_enum_conversions! {
         Energy,
         TronPower
     }
-}
-
-// ──────────────────────────────── Helpers ───────────────────────────────── //
-
-fn tron_to_datetime(time: i64) -> time::OffsetDateTime {
-    time::OffsetDateTime::from_unix_timestamp_nanos(time as i128 * 1_000_000)
-        .inspect_err(|e| {
-            tracing::error!(
-                "failed to create OffsetDateTime from unix_timestamp: {e}"
-            )
-        })
-        .unwrap_or_else(|_| time::OffsetDateTime::UNIX_EPOCH)
-}
-
-fn datetime_to_tron(dt: time::OffsetDateTime) -> i64 {
-    (dt.unix_timestamp_nanos() / 1_000_000) as i64
 }

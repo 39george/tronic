@@ -117,6 +117,12 @@ macro_rules! define_fixed_hash {
             }
         }
 
+        impl From<[u8; $len]> for $name {
+            fn from(value: [u8; $len]) -> Self {
+                Self(value)
+            }
+        }
+
         impl TryFrom<Vec<u8>> for $name {
             type Error = String;
             fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
@@ -125,6 +131,20 @@ macro_rules! define_fixed_hash {
                         "invalid {} length: got {}, expected {}",
                         stringify!($name),
                         v.len(),
+                        $len
+                    )
+                })
+            }
+        }
+
+        impl TryFrom<&[u8]> for $name {
+            type Error = String;
+            fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+                value.try_into().map(Self).map_err(|_| {
+                    format!(
+                        "invalid {} length: got {}, expected {}",
+                        stringify!($name),
+                        value.len(),
                         $len
                     )
                 })
@@ -159,7 +179,7 @@ define_fixed_hash!(AccountStateRoot, 32, "32-byte root hash of account state");
 define_fixed_hash!(TxTrieRoot, 32, "32-byte transaction trie root");
 define_fixed_hash!(ParentHash, 32, "32-byte parent block hash");
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct HexMessage(String);
 
 impl From<Vec<u8>> for HexMessage {

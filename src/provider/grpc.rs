@@ -129,20 +129,6 @@ impl crate::provider::TronProvider for GrpcProvider {
         Self::return_to_result(msg.result.clone())?;
         Ok(msg.energy_required)
     }
-    // async fn energy_price(&self) -> Result<domain::trx::Trx> {
-    //     let chain_parameters = self.chain_parameters().await?;
-    //     let energy_price = chain_parameters
-    //         .get("getEnergyFee")
-    //         .ok_or(anyhow!("not found getTransactionFee"))?;
-    //     Ok((*energy_price).into())
-    // }
-    // async fn bandwidth_price(&self) -> Result<domain::trx::Trx> {
-    //     let chain_parameters = self.chain_parameters().await?;
-    //     let bandwidth_unit_price = chain_parameters
-    //         .get("getTransactionFee")
-    //         .ok_or(anyhow!("not found getTransactionFee"))?;
-    //     Ok((*bandwidth_unit_price).into())
-    // }
     async fn get_account(
         &self,
         address: TronAddress,

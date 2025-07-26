@@ -1,9 +1,11 @@
-use std::{collections::HashMap, mem};
+use std::collections::HashMap;
 
+use derivative::Derivative;
 use time::OffsetDateTime;
 
 use crate::domain::Message;
 use crate::domain::address::TronAddress;
+use crate::domain::block::BlockExtention;
 use crate::domain::trx::Trx;
 
 use super::Hash32;
@@ -71,23 +73,26 @@ pub struct Authority {
     pub permission_name: Message,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Derivative, Debug, Clone, PartialEq)]
+#[derivative(Default)]
 pub struct RawTransaction {
     pub ref_block_bytes: RefBlockBytes,
     pub ref_block_num: i64,
     pub ref_block_hash: RefBlockHash,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
     pub expiration: OffsetDateTime,
     pub data: Message,
     pub contract: Vec<Contract>,
     pub scripts: Vec<u8>,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
     pub timestamp: OffsetDateTime,
     pub fee_limit: Trx,
     pub auths: Vec<Authority>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Transaction {
-    pub raw: Option<RawTransaction>,
+    pub raw: RawTransaction,
     pub signature: Vec<RecoverableSignature>,
     pub result: Vec<TransactionResult>,
 }
@@ -179,7 +184,18 @@ pub struct TransactionInfo {
 
 impl Transaction {
     pub fn get_contract(&self) -> Option<Contract> {
-        self.raw.as_ref().and_then(|r| r.contract.clone().pop())
+        self.raw.contract.last().cloned()
+    }
+    pub fn new(
+        contract: Contract,
+        latest_block: &BlockExtention,
+        memo: Message,
+    ) -> Self {
+        let mut transaction = Transaction::default();
+        transaction.raw.data = memo;
+        transaction.raw.contract.push(contract);
+        latest_block.fill_header_info_in_transaction(&mut transaction);
+        transaction
     }
 }
 

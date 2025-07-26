@@ -1,6 +1,6 @@
 use bitvec::{bitvec, view::BitView};
 
-use crate::{define_fixed_string, domain::address::TronAddress};
+use crate::{define_fixed_string, domain::address::TronAddress, error::Error};
 
 #[derive(Debug, Clone, Copy, PartialEq, strum_macros::FromRepr)]
 #[repr(usize)]
@@ -201,8 +201,18 @@ impl Permission {
     }
 
     /// Checks if ANY combination of keys meets the threshold (combinatorial)
-    pub(crate) fn can_meet_threshold(&self) -> bool {
+    pub(crate) fn can_meet_threshold(&self) -> crate::Result<()> {
         let total_weight: i64 = self.keys.iter().map(|k| k.weight).sum();
-        total_weight >= self.threshold
+        if total_weight >= self.threshold {
+            Ok(())
+        } else {
+            Err(Error::InvalidInput(
+                "insufficient key weight for threshold".into(),
+            ))
+        }
+    }
+
+    pub fn id(&self) -> i32 {
+        self.id
     }
 }
