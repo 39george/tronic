@@ -41,7 +41,6 @@ where
     pub fn trx_balance(&self) -> builder::TrxBalanceBuilder<'_, P, S> {
         builder::TrxBalance::with_client(self)
     }
-    // TODO: return token value
     pub fn trc20_balance_of<T: Token>(
         &self,
     ) -> builder::Trc20BalanceOfBuilder<'_, P, S, T> {
