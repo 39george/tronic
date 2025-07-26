@@ -51,10 +51,11 @@ async fn main() -> anyhow::Result<()> {
                     Trc20Call::<Usdt>::try_from_data(&trg.data.to_vec())
             {
                 if let Trc20Call::Transfer(transfer_call) = trc20 {
-                    let message = t
-                        .raw
-                        .and_then(|r| (!r.data.is_empty()).then_some(r.data))
-                        .unwrap_or_else(|| "None".into());
+                    let message = if !t.raw.data.is_empty() {
+                        t.raw.data
+                    } else {
+                        "None".into()
+                    };
 
                     println!(
                         "\n  USDT Transfer Detected:\n\
