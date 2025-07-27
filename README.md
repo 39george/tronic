@@ -64,6 +64,14 @@ let txid = client
     .await?;
 ```
 
+## 📖 Learn by Example
+
+Explore practical usage scenarios in our [examples directory](https://github.com/39george/tronic/tree/main/examples):
+
+- [`Multisig`](https://github.com/39george/tronic/blob/main/examples/usdt_with_multisig.rs) - Multi-signature USDT transfer
+- [`Event listener`](https://github.com/39george/tronic/blob/main/examples/listener.rs) - Real-time USDT transfer monitoring
+- [`Trx transfer`](https://github.com/39george/tronic/blob/main/examples/send_trx.rs) - Simple trx transfer example
+
 ## TODO
 
 - [ ] Implement batching
