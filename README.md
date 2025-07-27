@@ -40,3 +40,4 @@ let tx = client.send_trx(from, to, trx!(2 TRX)).await?;
 - [ ] Implement batching
 - [ ] Unit & integration testing
 - [ ] More examples
+- [ ] Prepare documentation
