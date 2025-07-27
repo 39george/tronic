@@ -1,3 +1,15 @@
+//! TRON USDT Transfer Listener Example
+//!
+//! When running, it will:
+//! - Connect to TRON Grid's public GRPC endpoint
+//! - Monitor transactions for the specified address
+//! - Print formatted USDT transfer details including:
+//!   - Sender/Receiver addresses
+//!   - Transfer amount
+//!   - Optional message data
+//!
+//! Press Ctrl+C to exit.
+
 use std::collections::HashMap;
 
 use tronic::{
@@ -16,6 +28,7 @@ use tronic::{
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
+    // Create a Tronic client with GRPC provider
     let client = Client::builder()
         .provider(
             GrpcProvider::new(
@@ -27,6 +40,8 @@ async fn main() -> anyhow::Result<()> {
         .signer(LocalSigner::rand())
         .build();
     let listener_handle = client.listener().await;
+
+    // Set up an in-memory token registry with USDT contract
     let registry = InMemoryTokenRegistry::from(
         vec![(
             "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t".parse().unwrap(),
@@ -35,6 +50,8 @@ async fn main() -> anyhow::Result<()> {
         .into_iter()
         .collect::<HashMap<_, _>>(),
     );
+
+    // Configure an address filter to watch specific accounts
     let filter = AddressFilter::new(|| async move {
         Some(
             vec!["TDqSquXBgUCLYvYC4XZgrprLK589dkhSCf".parse().unwrap()]
@@ -44,6 +61,8 @@ async fn main() -> anyhow::Result<()> {
     })
     .with_extractor::<DynamicTrc20Extractor>()
     .with_registry(registry);
+
+    // Subscribe to transactions and decode TRC-20 transfers
     let subscriber = TxSubscriber::new(&client, |t: Transaction| async move {
         if let Some(c) = t.get_contract() {
             if let Some(trg) = c.trigger_smart_contract()
