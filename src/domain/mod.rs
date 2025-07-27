@@ -9,6 +9,7 @@ pub mod account;
 pub mod address;
 pub mod block;
 pub mod contract;
+pub mod estimate;
 pub mod permission;
 pub mod transaction;
 pub mod trx;

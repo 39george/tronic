@@ -30,8 +30,6 @@ pub trait TronProvider {
         &self,
         contract: domain::contract::TriggerSmartContract,
     ) -> Result<i64>;
-    // async fn energy_price(&self) -> Result<domain::trx::Trx>;
-    // async fn bandwidth_price(&self) -> Result<domain::trx::Trx>;
     async fn get_account(
         &self,
         address: TronAddress,
@@ -40,11 +38,9 @@ pub trait TronProvider {
         &self,
         address: TronAddress,
     ) -> Result<domain::account::AccountResourceUsage>;
-    async fn trigger_constant_contract<A: AbiEncode + Send>(
+    async fn trigger_constant_contract(
         &self,
-        owner: TronAddress,
-        contract: TronAddress,
-        call: A,
+        contract: domain::contract::TriggerSmartContract,
     ) -> Result<domain::transaction::TransactionExtention>;
     async fn get_now_block(&self) -> Result<domain::block::BlockExtention>;
     async fn account_permission_update(

@@ -4,6 +4,7 @@ use secrecy::SecretString;
 
 use crate::Result;
 use crate::contracts::token::Token;
+use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::listener::ListenerHandle;
@@ -28,9 +29,8 @@ pub struct Client<P, S> {
 
 impl<P, S> Client<P, S>
 where
-    P: TronProvider + Clone + Send + Sync + 'static,
-    S: PrehashSigner + Clone + Send + Sync + 'static,
-    S::Error: std::fmt::Debug,
+    P: TronProvider,
+    S: PrehashSigner,
 {
     pub fn signer_address(&self) -> Option<TronAddress> {
         self.signer.address()
@@ -51,7 +51,12 @@ where
     ) -> builder::Trc20TransferBuilder<'_, P, S, T> {
         builder::Trc20Transfer::with_client(self)
     }
-    pub async fn listener(&self) -> ListenerHandle {
+    pub async fn listener(&self) -> ListenerHandle
+    where
+        P: Clone + Send + Sync + 'static,
+        S: Clone + Send + Sync + 'static,
+        S::Error: std::fmt::Debug,
+    {
         let listener = crate::listener::Listener::new(self.to_owned());
         listener.run().await
     }
@@ -77,6 +82,13 @@ where
             .get("getTransactionFee")
             .ok_or(anyhow!("not found getTransactionFee"))?;
         Ok((*bandwidth_unit_price).into())
+    }
+    pub async fn check_account(
+        &self,
+        address: TronAddress,
+    ) -> Result<AccountStatus> {
+        let account = self.get_account(address).await?;
+        Ok(account.status())
     }
 }
 

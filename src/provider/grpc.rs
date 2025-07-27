@@ -42,11 +42,16 @@ impl GrpcProvider {
     pub fn return_to_result(ret: Option<protocol::Return>) -> Result<()> {
         if let Some(protocol::Return {
             result: false,
-            code: _,
+            code,
             message,
         }) = ret
         {
-            Err(anyhow!("failed: {}", String::from_utf8_lossy(&message)).into())
+            Err(anyhow!(
+                "failed: {}, code: {:#?}",
+                String::from_utf8_lossy(&message),
+                protocol::r#return::ResponseCode::try_from(code).unwrap(),
+            )
+            .into())
         } else {
             Ok(())
         }
@@ -155,20 +160,12 @@ impl crate::provider::TronProvider for GrpcProvider {
             node.get_account_resource(account).await?.into_inner();
         Ok(account_resource.into())
     }
-    async fn trigger_constant_contract<A: AbiEncode + Send>(
+    async fn trigger_constant_contract(
         &self,
-        owner: TronAddress,
-        contract: TronAddress,
-        call: A,
+        contract: domain::contract::TriggerSmartContract,
     ) -> Result<domain::transaction::TransactionExtention> {
-        let contract = protocol::TriggerSmartContract {
-            owner_address: owner.as_bytes().to_vec(),
-            contract_address: contract.as_bytes().to_vec(),
-            data: call.encode(),
-            ..Default::default()
-        };
-
         let mut node = self.wallet_client();
+        let contract: protocol::TriggerSmartContract = contract.into();
         let txext = node
             .trigger_constant_contract(contract)
             .await

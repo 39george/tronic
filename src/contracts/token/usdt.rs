@@ -83,10 +83,10 @@ impl fmt::Debug for Usdt {
 #[macro_export]
 macro_rules! usdt {
     ($val:literal USDT) => {{
-        $crate::domain::usdt::Usdt::from_decimal($val)
+        $crate::contracts::token::usdt::Usdt::from_decimal($val)
             .expect("Invalid USDT amount")
     }};
     ($val:literal MICRO_USDT) => {
-        $crate::domain::usdt::Usdt::from_base_units(U256::from($val))
+        $crate::contracts::token::usdt::Usdt::from_base_units(U256::from($val))
     };
 }

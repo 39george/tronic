@@ -252,12 +252,9 @@ impl<T: Token> Trc20Contract<T> {
     pub fn transfer(
         &self,
         recipient: TronAddress,
-        amount: u64,
+        amount: T,
     ) -> Trc20::transferCall<T> {
-        Trc20::transferCall {
-            recipient,
-            amount: U256::from(amount).into(),
-        }
+        Trc20::transferCall { recipient, amount }
     }
 
     /// Check the token balance of a given account

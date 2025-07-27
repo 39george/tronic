@@ -2397,6 +2397,7 @@ dependencies = [
  "bon",
  "bs58",
  "derivative",
+ "derive_more",
  "futures",
  "hex",
  "http",

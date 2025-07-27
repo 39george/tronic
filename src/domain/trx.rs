@@ -1,9 +1,25 @@
 use std::fmt;
 
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
+use derive_more::{Add, AddAssign, Mul, Sub, Sum};
+
+#[derive(
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Add,
+    Sub,
+    AddAssign,
+    Mul,
+    Sum,
+)]
 pub struct Trx(i64);
 
 impl Trx {
+    pub const ZERO: Trx = Trx(0);
     pub fn from_sun(sat: i64) -> Self {
         Self(sat)
     }
@@ -53,10 +69,23 @@ impl fmt::Debug for Trx {
 
 #[macro_export]
 macro_rules! trx {
-    ($val:literal TRX) => {
-        $crate::domain::trx::Trx::from(($val as i64) * 1_000_000)
-    };
+    // Handle decimal TRX (converts to SUN)
+    ($val:literal TRX) => {{
+        const SUN_PER_TRX: i64 = 1_000_000;
+        // Compile-time decimal to integer conversion
+        const fn to_sun(trx: f64) -> i64 {
+            (trx * SUN_PER_TRX as f64) as i64
+        }
+        $crate::domain::trx::Trx::from(to_sun($val))
+    }};
+
+    // Handle integer SUN
     ($val:literal SUN) => {
-        $crate::domain::trx::Trx::from($val as i64)
+        $crate::domain::trx::Trx::from($val)
+    };
+
+    // Handle zero case explicitly
+    (0) => {
+        $crate::domain::trx::Trx::ZERO
     };
 }

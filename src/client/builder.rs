@@ -7,6 +7,7 @@ use crate::contracts::AbiEncode;
 use crate::contracts::token::Token;
 use crate::domain::Message;
 use crate::domain::account::Account;
+use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
 use crate::domain::contract::AccountPermissionUpdateContract;
 use crate::domain::contract::Contract;
@@ -18,6 +19,7 @@ use crate::domain::transaction::Transaction;
 use crate::domain::trx::Trx;
 use crate::error::Error;
 use crate::signer::PrehashSigner;
+use crate::trx;
 
 use super::Client;
 use super::TronProvider;
@@ -36,7 +38,7 @@ impl<'a, P, S, State: trx_balance_builder::IsComplete>
     TrxBalanceBuilder<'a, P, S, State>
 where
     P: TronProvider,
-    S: PrehashSigner + Clone,
+    S: PrehashSigner,
 {
     pub async fn get(self) -> Result<Trx> {
         let trx_balance = self.build_internal();
@@ -63,13 +65,14 @@ pub struct Transfer<'a, P, S> {
     pub(super) amount: Trx,
     pub(super) owner: Option<TronAddress>,
     pub(super) memo: Option<Message>,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
 }
 
 impl<'a, P, S, State: transfer_builder::IsComplete>
     TransferBuilder<'a, P, S, State>
 where
     P: TronProvider,
-    S: PrehashSigner + Clone,
+    S: PrehashSigner,
     Error: From<S::Error>,
 {
     pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
@@ -80,7 +83,7 @@ where
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
-        let latest_block = transfer.client.get_now_block().await.unwrap();
+        let latest_block = transfer.client.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -96,7 +99,20 @@ where
             &latest_block,
             transfer.memo.unwrap_or_default(),
         );
-        PendingTransaction::new(transfer.client, transaction, owner).await
+        let check = transfer.client.check_account(transfer.to).await?;
+        let additional_fee = if matches!(check, AccountStatus::NotExists) {
+            trx!(0.1 TRX)
+        } else {
+            Trx::ZERO
+        };
+        PendingTransaction::new(
+            transfer.client,
+            transaction,
+            owner,
+            additional_fee,
+            transfer.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
     }
 }
 
@@ -108,21 +124,22 @@ pub struct Trc20Transfer<'a, P, S, T> {
     pub(super) client: &'a Client<P, S>,
     pub(super) contract: contracts::trc20::Trc20Contract<T>,
     pub(super) to: TronAddress,
-    pub(super) amount: u64,
+    pub(super) amount: T,
     pub(super) owner: Option<TronAddress>,
     pub(super) memo: Option<Message>,
     pub(super) call_value: Option<Trx>,
     pub(super) call_token_value: Option<Trx>,
     pub(super) token_id: Option<i64>,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
 }
 
 impl<'a, P, S, T, State: trc20_transfer_builder::IsComplete>
     Trc20TransferBuilder<'a, P, S, T, State>
 where
     P: TronProvider,
-    S: PrehashSigner + Clone,
+    S: PrehashSigner,
     Error: From<S::Error>,
-    T: Token + Send,
+    T: Token,
 {
     pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
         let transfer = self.build_internal();
@@ -134,6 +151,7 @@ where
             })?;
         let latest_block = transfer.client.get_now_block().await.unwrap();
         let call = transfer.contract.transfer(transfer.to, transfer.amount);
+        // TODO: check trc20 balance before call
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -154,8 +172,20 @@ where
             &latest_block,
             transfer.memo.unwrap_or_default(),
         );
-
-        PendingTransaction::new(transfer.client, transaction, owner).await
+        let check = transfer.client.check_account(transfer.to).await?;
+        let additional_fee = if matches!(check, AccountStatus::NotExists) {
+            trx!(0.1 TRX)
+        } else {
+            Trx::ZERO
+        };
+        PendingTransaction::new(
+            transfer.client,
+            transaction,
+            owner,
+            additional_fee,
+            transfer.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
     }
 }
 
@@ -173,7 +203,7 @@ impl<'a, P, S, T, State: trc20_balance_of_builder::IsComplete>
     Trc20BalanceOfBuilder<'a, P, S, T, State>
 where
     P: TronProvider,
-    S: PrehashSigner + Clone,
+    S: PrehashSigner,
     T: Token,
 {
     pub async fn get(self) -> Result<T> {
@@ -186,15 +216,14 @@ where
             })?;
 
         let call = balance_of.contract.balance_of(owner);
-        let mut extention = balance_of
-            .client
-            .provider
-            .trigger_constant_contract(
-                owner,
-                balance_of.contract.address(),
-                call,
-            )
-            .await?;
+        let trigger = TriggerSmartContract {
+            owner_address: owner,
+            contract_address: balance_of.contract.address(),
+            data: call.encode().into(),
+            ..Default::default()
+        };
+        let mut extention =
+            balance_of.client.trigger_constant_contract(trigger).await?;
         let balance = if let Some(result) = extention.constant_result.pop() {
             if result.len() == 32 {
                 let balance_bytes: [u8; 32] = result.try_into().unwrap(); // We sure in length
@@ -223,7 +252,7 @@ pub struct PermissionHandler<'a, P, S> {
 impl<'a, P, S> PermissionHandler<'a, P, S>
 where
     P: TronProvider,
-    S: PrehashSigner + Clone,
+    S: PrehashSigner,
     Error: From<S::Error>,
 {
     pub(super) async fn new(
@@ -327,6 +356,13 @@ where
             Message::default(),
         );
 
-        PendingTransaction::new(self.client, transaction, self.owner).await
+        PendingTransaction::new(
+            self.client,
+            transaction,
+            self.owner,
+            trx!(100.0 TRX),
+            true,
+        )
+        .await
     }
 }

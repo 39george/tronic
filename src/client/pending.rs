@@ -8,12 +8,15 @@ use time::ext::NumericalDuration;
 use crate::domain;
 use crate::domain::Hash32;
 use crate::domain::address::TronAddress;
+use crate::domain::estimate::{ResourceRequirements, ResourceState};
 use crate::domain::permission::Permission;
 use crate::domain::transaction::Transaction;
+use crate::domain::trx::Trx;
 use crate::error;
 use crate::error::Error;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
+use crate::trx;
 use crate::utility::generate_txid;
 use crate::{Result, protocol, utility};
 
@@ -28,18 +31,22 @@ pub struct PendingTransaction<'a, P, S, M = AutoSigning> {
     pub(super) txid: Hash32,
     pub(super) _mode: PhantomData<M>,
     pub(super) owner: TronAddress,
+    pub(super) additional_fee: Trx,
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, M> PendingTransaction<'a, P, S, M>
 where
     P: TronProvider,
-    S: PrehashSigner + Clone,
+    S: PrehashSigner,
     error::Error: From<S::Error>,
 {
     pub async fn new(
         client: &'a Client<P, S>,
         transaction: Transaction,
         owner: TronAddress,
+        additional_fee: Trx,
+        can_spend_trx_for_fee: bool,
     ) -> Result<Self> {
         let mut pending_transaction = Self {
             client,
@@ -47,7 +54,13 @@ where
             txid: Default::default(),
             _mode: PhantomData,
             owner,
+            additional_fee,
+            can_spend_trx_for_fee,
         };
+        let energy = pending_transaction.estimate_energy().await?;
+        let energy_price = client.energy_price().await?;
+        pending_transaction.transaction.raw.fee_limit =
+            (((energy as f64) * 1.5) as i64 * energy_price.to_sun()).into();
         pending_transaction.refresh_txid().await?;
         Ok(pending_transaction)
     }
@@ -81,13 +94,87 @@ where
         let txlen = protocol::transaction::Raw::from(raw).encode_to_vec().len();
         Ok(utility::estimate_bandwidth(txlen as i64, signature_count))
     }
+    pub async fn estimate_energy(&self) -> Result<i64> {
+        if let Some(contract) = self.transaction.raw.contract.first() {
+            if let domain::contract::ContractType::TriggerSmartContract(
+                ref contract,
+            ) = contract.contract_type
+            {
+                let txext = self
+                    .client
+                    .trigger_constant_contract(contract.clone())
+                    .await?;
+                return Ok(txext.energy_used);
+            }
+        }
+        Ok(0)
+    }
+    pub async fn estimate_transaction(&self) -> Result<ResourceState> {
+        let resources = self.client.get_account_resources(self.owner).await?;
+        let balance =
+            self.client.trx_balance().address(self.owner).get().await?;
+        let required = ResourceRequirements {
+            bandwidth: self.estimate_bandwidth().await?,
+            energy: self.estimate_energy().await?,
+            trx: self.additional_fee,
+        };
+        ResourceState::estimate(self.client, &resources, required, balance)
+            .await
+    }
+    pub(crate) async fn validate_transaction(&self) -> Result<()> {
+        let txid = self.txid;
+        let signers = self
+            .transaction
+            .signature
+            .iter()
+            .map(|s| s.recover_address(&txid))
+            .collect::<Result<Vec<_>>>()?;
+        if !self.extract_permission().await?.enough_sign_weight(signers) {
+            return Err(Error::PreconditionFailed("not enough weight".into()));
+        }
+        if self.transaction.raw.expiration < OffsetDateTime::now_utc() {
+            return Err(Error::Expired(self.transaction.raw.expiration));
+        }
+        let resource_state = self.estimate_transaction().await?;
+        if let ResourceState::Insufficient {
+            missing,
+            suggested_trx_topup,
+            account_balance,
+        } = &resource_state
+        {
+            if self.can_spend_trx_for_fee
+                && missing.len() == suggested_trx_topup.len()
+                && suggested_trx_topup.iter().map(|(_, trx)| *trx).sum::<Trx>()
+                    < *account_balance
+            {
+                return Ok(());
+            }
+            return Err(Error::InsufficientResources(resource_state));
+        }
+        Ok(())
+    }
+    async fn extract_permission(&self) -> Result<Permission> {
+        let permission = self
+            .client
+            .account_permissions(self.owner)
+            .await?
+            .permission_by_id(
+                self.transaction
+                    .raw
+                    .contract
+                    .first()
+                    .context("no contract found")?
+                    .permission_id,
+            )
+            .context("no permission found")?;
+        Ok(permission)
+    }
 }
 
 impl<'a, P, S> PendingTransaction<'a, P, S, AutoSigning>
 where
-    P: TronProvider + Clone + Send + Sync + 'static,
-    S: PrehashSigner + Clone + Send + Sync + 'static,
-    S::Error: std::fmt::Debug,
+    P: TronProvider,
+    S: PrehashSigner + Clone,
     error::Error: From<S::Error>,
 {
     pub async fn broadcast(mut self, ctx: &S::Ctx) -> Result<Hash32> {
@@ -97,6 +184,8 @@ where
             domain::RecoverableSignature::new(signature, recovery_id);
 
         self.transaction.signature.push(recoverable_signature);
+
+        self.validate_transaction().await?;
 
         self.client
             .provider
@@ -109,9 +198,8 @@ where
 
 impl<'a, P, S> PendingTransaction<'a, P, S, ManualSigning>
 where
-    P: TronProvider + Clone + Send + Sync + 'static,
-    S: PrehashSigner + Clone + Send + Sync + 'static,
-    S::Error: std::fmt::Debug,
+    P: TronProvider,
+    S: PrehashSigner + Clone,
     error::Error: From<S::Error>,
 {
     pub async fn set_permission(&mut self, id: i32) -> Result<()> {
@@ -166,19 +254,9 @@ where
     }
     pub async fn broadcast(self) -> Result<Hash32> {
         let txid = self.txid;
-        let signers = self
-            .transaction
-            .signature
-            .iter()
-            .map(|s| s.recover_address(&txid))
-            .collect::<Result<Vec<_>>>()?;
-        if !self.extract_permission().await?.enough_sign_weight(signers) {
-            return Err(Error::PreconditionFailed("not enough weight".into()));
-        }
-        if self.transaction.raw.expiration < OffsetDateTime::now_utc() {
-            return Err(Error::Expired(self.transaction.raw.expiration));
-        }
-        // SETUP FEELIMIT, energy handle
+
+        self.validate_transaction().await?;
+
         self.client
             .provider
             .broadcast_transaction(self.transaction)
@@ -206,27 +284,38 @@ where
         let transaction = protocol::Transaction::from(self.transaction.clone())
             .encode_to_vec();
         let tron_address = self.owner.as_bytes();
-        let mut txid = Vec::<u8>::from(self.txid);
-        txid.extend_from_slice(tron_address);
-        txid.extend_from_slice(&transaction);
-        txid
+        let fee_bytes = self.additional_fee.to_sun().to_le_bytes().to_vec();
+
+        let mut serialized =
+            Vec::with_capacity(32 + 21 + size_of::<Trx>() + transaction.len());
+        serialized.extend_from_slice(self.txid.as_ref()); // 32 bytes
+        serialized.extend_from_slice(tron_address); // 21 bytes
+        serialized.extend_from_slice(&fee_bytes); // 8 bytes
+        serialized.push(self.can_spend_trx_for_fee as u8); // 1 byte
+        serialized.extend_from_slice(&transaction); // Variable length
+        serialized
     }
     pub fn try_deserialize(
         client: &'a Client<P, S>,
         data: Vec<u8>,
     ) -> Option<Self> {
-        // Minimum data length: 32 (txid) + 21 (TronAddress) + 1 (minimal protobuf message)
-        if data.len() < 54 {
+        // Minimum data length: 32 (txid) + 21 (address) + 8 (Trx) + 1 (min protobuf)
+        if data.len() < 62 {
             return None;
         }
 
         let (txid_bytes, remaining) = data.split_at(32);
-        let (address_bytes, transaction_data) = remaining.split_at(21);
+        let (address_bytes, remaining) = remaining.split_at(21);
+        let (fee_bytes, remaining) = remaining.split_at(8);
+        let (can_spend_byte, transaction_data) = remaining.split_at(1);
 
         let txid: Hash32 = txid_bytes.try_into().ok()?;
         let owner =
             TronAddress::new(*<&[u8; 21]>::try_from(address_bytes).ok()?)
                 .ok()?;
+        let additional_fee =
+            i64::from_le_bytes(fee_bytes.try_into().ok()?).into();
+        let can_spend_trx_for_fee = can_spend_byte[0] != 0;
 
         let transaction: domain::transaction::Transaction =
             protocol::Transaction::decode(transaction_data).ok()?.into();
@@ -236,23 +325,9 @@ where
             txid,
             owner,
             transaction,
+            additional_fee,
             _mode: PhantomData,
+            can_spend_trx_for_fee,
         })
-    }
-    async fn extract_permission(&self) -> Result<Permission> {
-        let permission = self
-            .client
-            .account_permissions(self.owner)
-            .await?
-            .permission_by_id(
-                self.transaction
-                    .raw
-                    .contract
-                    .first()
-                    .context("no contract found")?
-                    .permission_id,
-            )
-            .context("no permission found")?;
-        Ok(permission)
     }
 }

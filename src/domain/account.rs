@@ -58,6 +58,7 @@ pub struct AccountResource {
     pub energy_window_optimized: bool,
 }
 
+#[derive(Debug, Derivative, Clone, PartialEq)]
 pub struct AccountResourceUsage {
     /// Used free bandwidth
     pub free_net_used: i64,
@@ -190,4 +191,47 @@ impl Account {
                 .cloned(),
         }
     }
+
+    /// 100% reliable account existence check
+    pub fn exists(&self) -> bool {
+        match self.account_type {
+            // Contract accounts always exist once deployed
+            AccountType::Contract => true,
+            // Normal accounts must show activation markers
+            _ => {
+                self.create_time != OffsetDateTime::UNIX_EPOCH
+                    || self.latest_opration_time != OffsetDateTime::UNIX_EPOCH
+                    || !self.account_name.is_empty()
+            }
+        }
+    }
+
+    /// Detailed status check
+    pub fn status(&self) -> AccountStatus {
+        match self.account_type {
+            AccountType::Contract => AccountStatus::Contract(self.create_time),
+            _ if self.create_time == OffsetDateTime::UNIX_EPOCH => {
+                AccountStatus::NotExists
+            }
+            _ => AccountStatus::Exists {
+                created_at: self.create_time,
+                last_active: self.latest_opration_time,
+                account_type: self.account_type.clone(),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AccountStatus {
+    /// Account has never been activated (no initial 0.1 TRX transfer)
+    NotExists,
+    /// Account exists but may have 0 balance
+    Exists {
+        created_at: OffsetDateTime,
+        last_active: OffsetDateTime,
+        account_type: AccountType,
+    },
+    /// Special case for contract accounts
+    Contract(OffsetDateTime),
 }

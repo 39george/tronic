@@ -1,6 +1,7 @@
 use time::OffsetDateTime;
 
 use crate::domain::address::TronAddress;
+use crate::domain::estimate::ResourceState;
 use crate::protocol::transaction::result::ContractResult;
 
 #[derive(thiserror::Error)]
@@ -33,6 +34,8 @@ pub enum Error {
     PreconditionFailed(String),
     #[error("expired at: {0}")]
     Expired(OffsetDateTime),
+    #[error("insufficient resources: {0:#?}")]
+    InsufficientResources(ResourceState),
 }
 
 crate::impl_debug!(Error);

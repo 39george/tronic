@@ -23,7 +23,7 @@ impl From<domain::contract::TriggerSmartContract> for TriggerSmartContract {
             owner_address: value.owner_address.as_bytes().to_vec(),
             contract_address: value.contract_address.as_bytes().to_vec(),
             call_value: value.call_value.into(),
-            data: value.data.as_bytes().to_vec(),
+            data: value.data.to_vec(),
             call_token_value: value.call_token_value.into(),
             token_id: value.token_id,
         }

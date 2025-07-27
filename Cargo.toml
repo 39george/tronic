@@ -39,6 +39,7 @@ derivative = "2.2"
 bitvec = "1.0"
 strum = "0.27"
 strum_macros = "0.27"
+derive_more = { version = "2.0.1", features = ["mul", "sum"] }
 
 # Crypto
 k256 = "0.13"
