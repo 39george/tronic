@@ -67,6 +67,7 @@ impl fmt::Debug for Trx {
     }
 }
 
+// TODO: add possibility to use integer literal with TRX label
 #[macro_export]
 macro_rules! trx {
     // Handle decimal TRX (converts to SUN)

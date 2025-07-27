@@ -96,8 +96,10 @@ impl ResourceState {
                 },
             })
         } else {
-            let energy_price = client.energy_price().await?;
-            let bandwidth_price = client.bandwidth_price().await?;
+            let (energy_price, bandwidth_price) = tokio::try_join!(
+                client.energy_price(),
+                client.bandwidth_price()
+            )?;
             Ok(ResourceState::Insufficient {
                 suggested_trx_topup: calculate_topup(
                     &missing,

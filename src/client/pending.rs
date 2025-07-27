@@ -7,6 +7,7 @@ use time::ext::NumericalDuration;
 
 use crate::domain;
 use crate::domain::Hash32;
+use crate::domain::account::AccountResourceUsage;
 use crate::domain::address::TronAddress;
 use crate::domain::estimate::{ResourceRequirements, ResourceState};
 use crate::domain::permission::Permission;
@@ -23,6 +24,19 @@ use super::Client;
 
 pub struct AutoSigning;
 pub struct ManualSigning;
+
+// Todo: it's possible to implement PendingTransactionCache
+// here to reduce api calls count, and make interaction faster.
+// But expiration for entries is required. For example, for a BlockExtention
+// 1-2 seconds should be enough.
+#[allow(dead_code)]
+struct Cache {
+    estimated_energy: Trx,
+    bandwidth_price: Trx,
+    energy_price: Trx,
+    account_balance: Trx,
+    account_resources: AccountResourceUsage,
+}
 
 pub struct PendingTransaction<'a, P, S, M = AutoSigning> {
     pub(super) client: &'a Client<P, S>,
@@ -109,12 +123,15 @@ where
         Ok(0)
     }
     pub async fn estimate_transaction(&self) -> Result<ResourceState> {
-        let resources = self.client.get_account_resources(self.owner).await?;
-        let balance =
-            self.client.trx_balance().address(self.owner).get().await?;
+        let (resources, balance, bandwidth, energy) = tokio::try_join!(
+            self.client.get_account_resources(self.owner),
+            self.client.trx_balance().address(self.owner).get(),
+            self.estimate_bandwidth(),
+            self.estimate_energy()
+        )?;
         let required = ResourceRequirements {
-            bandwidth: self.estimate_bandwidth().await?,
-            energy: self.estimate_energy().await?,
+            bandwidth,
+            energy,
             trx: self.additional_fee,
         };
         ResourceState::estimate(self.client, &resources, required, balance)
