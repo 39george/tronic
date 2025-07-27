@@ -1,5 +1,10 @@
 # 🦀 tronic
 
+[![Crates.io](https://img.shields.io/crates/v/tronic)](https://crates.io/crates/tronic)
+[![docs](https://docs.rs/tronic/badge.svg)](https://docs.rs/tronic/)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/39george/tronic/blob/main/LICENSE)
+[![Crates.io](https://img.shields.io/crates/d/tronic)](https://crates.io/crates/tronic)
+
 > A modular, type-safe, async-first Rust client for the Tron blockchain — inspired by Alloy and built for real-world smart contract interaction.
 
 ---
