@@ -1,6 +1,103 @@
 # Changelog
 
-## [0.1.1] - 2025-07-25
+## [v0.2.1] - 2025-07-27
+
+
+### Bug Fixes
+
+
+- Fix example (e2a8b38)
+
+
+- Now expiration works (f5d012f)
+
+
+- Fix bandwidth estimation logic (813365a)
+
+
+
+### Documentation
+
+
+- Update changelog for 0.1.1 (cd8f97d)
+
+
+
+### Features
+
+
+- Implement bandwidth estimation (604ae87)
+
+
+- Return token type (44884c7)
+
+
+- Implement fee estimation && checks (d553667)
+
+
+- Add balance check to trc20 transfer builder (2f0cada)
+
+
+- Add trx transfer balance check (44d89f0)
+
+
+- Make api faster with parallel calls with try_join macro call (b825c14)
+
+
+- Add send_trx example (71c6be4)
+
+
+- Implement usdt_with_multisig example, better fee estimation (3ada4a3)
+
+
+
+### Miscellaneous
+
+
+- Remove unused comment (fc294de)
+
+
+- Downgrade tonic&prost back (b2e35c4)
+
+
+- Update Cargo.lock (937840a)
+
+
+- Clean (5439e99)
+
+
+- Update README (2f2fd43)
+
+
+- Add CONTRIBUTING.md (f9f5950)
+
+
+- Update README (cb8e0d9)
+
+
+- Update README (3919cac)
+
+
+- Update README (b197347)
+
+
+- Add doc comments for listener example (074b774)
+
+
+- Update README (5c3b219)
+
+
+- Bump version (43cb1ae)
+
+
+
+### Refactor
+
+
+- Move energy/bandwidth prices methods to client (39a58b1)
+
+
+## [v0.1.1] - 2025-07-25
 
 
 ### Bug Fixes
