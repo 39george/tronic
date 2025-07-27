@@ -48,7 +48,9 @@ where
                 trx_balance.client.signer.as_ref().and_then(|s| s.address())
             })
             .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing `from` address"))
+                Error::Unexpected(anyhow!(
+                    "missing address to check trx balance for"
+                ))
             })?;
 
         let account = trx_balance.client.provider.get_account(address).await?;
@@ -85,7 +87,7 @@ where
                 transfer.client.signer.as_ref().and_then(|s| s.address())
             })
             .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing `from` address"))
+                Error::Unexpected(anyhow!("missing owner address"))
             })?;
 
         // Check balance
@@ -166,7 +168,7 @@ where
                 transfer.client.signer.as_ref().and_then(|s| s.address())
             })
             .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing `from` address"))
+                Error::Unexpected(anyhow!("missing owner address"))
             })?;
         let call = transfer.contract.transfer(transfer.to, transfer.amount);
         let contract_address = transfer.contract.address();
@@ -250,7 +252,9 @@ where
                 balance_of.client.signer.as_ref().and_then(|s| s.address())
             })
             .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing `owner` address"))
+                Error::Unexpected(anyhow!(
+                    "missing address to check trc20 balance for"
+                ))
             })?;
 
         let call = balance_of.contract.balance_of(owner);
