@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use bon::Builder;
 use secrecy::SecretString;
 
 use crate::Result;
@@ -21,10 +20,10 @@ pub enum Auth {
     None,
 }
 
-#[derive(Builder, Clone)]
+#[derive(bon::Builder, Clone)]
 pub struct Client<P, S> {
     pub(crate) provider: P,
-    signer: S,
+    signer: Option<S>,
 }
 
 impl<P, S> Client<P, S>
@@ -33,7 +32,7 @@ where
     S: PrehashSigner,
 {
     pub fn signer_address(&self) -> Option<TronAddress> {
-        self.signer.address()
+        self.signer.as_ref().and_then(|s| s.address())
     }
     pub fn send_trx(&self) -> builder::TransferBuilder<'_, P, S> {
         builder::Transfer::with_client(self)

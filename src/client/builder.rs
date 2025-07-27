@@ -44,7 +44,9 @@ where
         let trx_balance = self.build_internal();
         let address = trx_balance
             .address
-            .or_else(|| trx_balance.client.signer.address())
+            .or_else(|| {
+                trx_balance.client.signer.as_ref().and_then(|s| s.address())
+            })
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
@@ -79,7 +81,9 @@ where
         let transfer = self.build_internal();
         let owner = transfer
             .owner
-            .or_else(|| transfer.client.signer.address())
+            .or_else(|| {
+                transfer.client.signer.as_ref().and_then(|s| s.address())
+            })
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
@@ -158,7 +162,9 @@ where
         let transfer = self.build_internal();
         let owner = transfer
             .owner
-            .or_else(|| transfer.client.signer.address())
+            .or_else(|| {
+                transfer.client.signer.as_ref().and_then(|s| s.address())
+            })
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
@@ -240,7 +246,9 @@ where
         let balance_of = self.build_internal();
         let owner = balance_of
             .owner
-            .or_else(|| balance_of.client.signer.address())
+            .or_else(|| {
+                balance_of.client.signer.as_ref().and_then(|s| s.address())
+            })
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!("missing `owner` address"))
             })?;

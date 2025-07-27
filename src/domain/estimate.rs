@@ -22,31 +22,32 @@ pub enum MissingResource {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct ResourceRequirements {
+pub struct Resource {
     pub bandwidth: i64,
     pub energy: i64,
     pub trx: Trx,
 }
 
 #[derive(Debug)]
-pub enum ResourceState {
-    Sufficient {
-        will_consume: ResourceRequirements,
-        remaining: ResourceRequirements,
-    },
-    Insufficient {
-        missing: Vec<MissingResource>,
-        /// Suggested TRX fee to cover deficits
-        suggested_trx_topup: Vec<(MissingResource, Trx)>,
-        account_balance: Trx,
-    },
+pub struct ResourceState {
+    pub will_consume: Resource,
+    pub remaining: Resource,
+    pub insufficient: Option<InsufficientResource>,
+}
+
+#[derive(Debug)]
+pub struct InsufficientResource {
+    pub missing: Vec<MissingResource>,
+    /// Suggested TRX fee to cover deficits
+    pub suggested_trx_topup: Vec<(MissingResource, Trx)>,
+    pub account_balance: Trx,
 }
 
 impl ResourceState {
     pub async fn estimate<P, S>(
         client: &Client<P, S>,
         resources: &AccountResourceUsage,
-        required: ResourceRequirements,
+        required: Resource,
         balance: Trx,
     ) -> crate::Result<Self>
     where
@@ -72,14 +73,15 @@ impl ResourceState {
             });
         }
 
-        if available_energy < required.energy {
+        let sufficient_energy = available_energy > required.energy;
+        if !sufficient_energy {
             missing.push(MissingResource::Energy {
                 available: available_energy,
                 required: required.energy,
             });
         }
-
-        if balance < required.trx {
+        let sufficient_balance = balance < required.trx;
+        if sufficient_balance {
             missing.push(MissingResource::Trx {
                 available: balance,
                 required: required.trx,
@@ -87,29 +89,60 @@ impl ResourceState {
         }
 
         if missing.is_empty() {
-            Ok(ResourceState::Sufficient {
+            Ok(ResourceState {
                 will_consume: required,
-                remaining: ResourceRequirements {
+                remaining: Resource {
                     bandwidth: staked_b.max(free_b) - required.bandwidth,
                     energy: available_energy - required.energy,
                     trx: balance - required.trx,
                 },
+                insufficient: None,
             })
         } else {
             let (energy_price, bandwidth_price) = tokio::try_join!(
                 client.energy_price(),
                 client.bandwidth_price()
             )?;
-            Ok(ResourceState::Insufficient {
-                suggested_trx_topup: calculate_topup(
-                    &missing,
-                    energy_price,
-                    bandwidth_price,
-                ),
-                missing,
-                account_balance: balance,
+            let remaining_energy = if sufficient_energy {
+                available_energy - required.energy
+            } else {
+                available_energy
+            };
+            let remaining_balance = if sufficient_balance {
+                balance - required.trx
+            } else {
+                balance
+            };
+            Ok(ResourceState {
+                will_consume: required,
+                remaining: Resource {
+                    bandwidth: staked_b.max(free_b),
+                    energy: remaining_energy,
+                    trx: remaining_balance,
+                },
+                insufficient: Some(InsufficientResource {
+                    suggested_trx_topup: calculate_topup(
+                        &missing,
+                        energy_price,
+                        bandwidth_price,
+                    ),
+                    missing,
+                    account_balance: balance,
+                }),
             })
         }
+    }
+
+    pub fn trx_required(&self) -> Trx {
+        let mut total_trx = self.will_consume.trx;
+        if let Some(ref insufficinet) = self.insufficient {
+            total_trx += insufficinet
+                .suggested_trx_topup
+                .iter()
+                .map(|(_, trx)| *trx)
+                .sum();
+        }
+        total_trx
     }
 }
 

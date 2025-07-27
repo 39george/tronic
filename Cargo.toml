@@ -64,6 +64,10 @@ path = "examples/listener.rs"
 name = "send_trx"
 path = "examples/send_trx.rs"
 
+[[example]]
+name = "usdt_with_multisig"
+path = "examples/usdt_with_multisig.rs"
+
 [dev-dependencies]
 tokio = { version = "1.47", features = ["signal", "rt-multi-thread"] }
 

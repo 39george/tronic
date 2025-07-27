@@ -5,11 +5,10 @@ use prost::Message;
 use time::OffsetDateTime;
 use time::ext::NumericalDuration;
 
-use crate::domain;
 use crate::domain::Hash32;
 use crate::domain::account::AccountResourceUsage;
 use crate::domain::address::TronAddress;
-use crate::domain::estimate::{ResourceRequirements, ResourceState};
+use crate::domain::estimate::{InsufficientResource, Resource, ResourceState};
 use crate::domain::permission::Permission;
 use crate::domain::transaction::Transaction;
 use crate::domain::trx::Trx;
@@ -19,6 +18,7 @@ use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
 use crate::utility::generate_txid;
 use crate::{Result, protocol, utility};
+use crate::{domain, trx};
 
 use super::Client;
 
@@ -129,7 +129,7 @@ where
             self.estimate_bandwidth(),
             self.estimate_energy()
         )?;
-        let required = ResourceRequirements {
+        let required = Resource {
             bandwidth,
             energy,
             trx: self.additional_fee,
@@ -152,11 +152,11 @@ where
             return Err(Error::Expired(self.transaction.raw.expiration));
         }
         let resource_state = self.estimate_transaction().await?;
-        if let ResourceState::Insufficient {
+        if let Some(InsufficientResource {
             missing,
             suggested_trx_topup,
             account_balance,
-        } = &resource_state
+        }) = &resource_state.insufficient
         {
             if self.can_spend_trx_for_fee
                 && missing.len() == suggested_trx_topup.len()
@@ -194,8 +194,15 @@ where
     error::Error: From<S::Error>,
 {
     pub async fn broadcast(mut self, ctx: &S::Ctx) -> Result<Hash32> {
+        let signer =
+            self.client
+                .signer
+                .as_ref()
+                .ok_or(Error::PreconditionFailed(
+                    "no signer set for automatic signing".into(),
+                ))?;
         let (signature, recovery_id) =
-            self.client.signer.sign_recoverable(&self.txid, ctx).await?;
+            signer.sign_recoverable(&self.txid, ctx).await?;
         let recoverable_signature =
             domain::RecoverableSignature::new(signature, recovery_id);
 
@@ -219,7 +226,7 @@ where
     error::Error: From<S::Error>,
 {
     pub async fn set_permission(&mut self, id: i32) -> Result<()> {
-        let _ = self
+        let permission = self
             .client
             .get_account(self.owner)
             .await?
@@ -232,6 +239,12 @@ where
             .context("no contract part found")?
             .permission_id = id;
         self.refresh_txid().await?;
+
+        if permission.keys.len() > 1 {
+            // Multisig fee
+            self.additional_fee += trx!(1.0 TRX);
+        }
+
         Ok(())
     }
     pub async fn sign(&mut self, signer: &S, ctx: &S::Ctx) -> Result<()> {
