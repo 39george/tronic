@@ -65,7 +65,7 @@ impl ResourceState {
         let available_energy = resources.energy_limit - resources.energy_used;
 
         // Validate each resource
-        if staked_b < required.bandwidth || free_b < required.bandwidth {
+        if staked_b < required.bandwidth && free_b < required.bandwidth {
             missing.push(MissingResource::Bandwidth {
                 available: staked_b.max(free_b),
                 required: required.bandwidth,
