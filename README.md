@@ -18,21 +18,34 @@
 
 ```rust
 use tronic::client::Client;
-use tronic::trx;
-use tronic::address::TronAddress;
+use tronic::client::pending::AutoSigning;
+use tronic::domain::address::TronAddress;
+use tronic::provider::grpc::GrpcProvider;
 use tronic::signer::LocalSigner;
-
-// Connect to full node and prepare provider
-let provider = GrpcProvider::new("https://api.trongrid.io".parse()?, Auth::None).await?;
+use tronic::trx;
 
 // Construct a client with a signing backend
 let client = Client::builder()
-    .provider(provider)
+    .provider(
+        // Build grpc provider
+        GrpcProvider::new(
+            "https://grpc.trongrid.io:50051".parse()?,
+            tronic::client::Auth::None,
+        )
+        .await?,
+    )
     .signer(LocalSigner::rand())
-    .build()?;
+    .build();
 
-// Send TRX
-let tx = client.send_trx(from, to, trx!(2 TRX)).await?;
+// Send transaction
+let txid = client
+    .send_trx()
+    .to(TronAddress::rand())
+    .amount(trx!(1.0 TRX))
+    .build::<AutoSigning>() // Uses automatic signing strategy
+    .await?
+    .broadcast(&())
+    .await?;
 ```
 
 ## TODO
