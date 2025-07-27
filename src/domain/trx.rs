@@ -28,6 +28,14 @@ impl Trx {
     }
 }
 
+impl From<f64> for Trx {
+    fn from(trx: f64) -> Self {
+        const SUN_PER_TRX: f64 = 1_000_000.0;
+        let sun = (trx * SUN_PER_TRX).round() as i64;
+        Trx(sun)
+    }
+}
+
 impl From<i64> for Trx {
     fn from(value: i64) -> Self {
         Trx(value)

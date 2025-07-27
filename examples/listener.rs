@@ -26,7 +26,7 @@ use tronic::{
     signer::LocalSigner,
 };
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Create a Tronic client with GRPC provider
     let client = Client::builder()

@@ -35,7 +35,7 @@ impl LocalSigner {
             signing_key: Arc::new(SigningKey::from_slice(buf)?),
         })
     }
-    pub fn tron_address(&self) -> TronAddress {
+    pub fn address(&self) -> TronAddress {
         self.signing_key
             .verifying_key()
             .try_into()
@@ -66,6 +66,6 @@ impl PrehashSigner for LocalSigner {
         Ok((signature, recovery_id))
     }
     fn address(&self) -> Option<TronAddress> {
-        Some(self.tron_address())
+        Some(self.address())
     }
 }
