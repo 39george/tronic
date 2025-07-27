@@ -83,6 +83,19 @@ where
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
+
+        // Check balance
+        {
+            let balance =
+                transfer.client.trx_balance().address(owner).get().await?;
+            if transfer.amount > balance {
+                return Err(Error::InsufficientBalance {
+                    balance,
+                    need: transfer.amount,
+                });
+            }
+        }
+
         let latest_block = transfer.client.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {

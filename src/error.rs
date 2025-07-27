@@ -3,6 +3,7 @@ use time::OffsetDateTime;
 
 use crate::domain::address::TronAddress;
 use crate::domain::estimate::ResourceState;
+use crate::domain::trx::Trx;
 use crate::protocol::transaction::result::ContractResult;
 
 #[derive(thiserror::Error)]
@@ -45,6 +46,8 @@ pub enum Error {
         need: U256,
         token: &'static str,
     },
+    #[error("insufficient balance: {balance}, but need: {need}")]
+    InsufficientBalance { balance: Trx, need: Trx },
 }
 
 crate::impl_debug!(Error);
