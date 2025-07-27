@@ -6,13 +6,29 @@
 
 ## ✨ Features
 
-- 🧱 **Typed Smart Contract Calls** — Powered by `alloy-sol-types` macros
-- 📡 **gRPC Provider** — Built on `tonic` for high-performance communication with full nodes
-- 🔐 **Signer Abstraction** — Supports pluggable async signing backends
-- 🔗 **TRC-20 & Native TRX Support** — Transfer tokens and interact with contracts safely
-- ⚙️ **Extendable** — Build your own providers, signers, and integrations
+### Core Infrastructure
+- 🧱 **Typed Smart Contract Calls** — Powered by `alloy-sol-types` macros for compile-time safety
+- 📡 **Dual Protocol Support** — Both gRPC (via `tonic`) and JSON-RPC providers (WIP)
+- 🔐 **Pluggable Signers** — Local, or custom async signing backends
+- ⚡ **Async-First** — Built on Tokio for high-performance blockchain interaction
+
+### Account Management
+- 🔑 **Multi-Signature Support** — Complete workflow for threshold signatures
+- 🏦 **Permission Management** — Modify account permissions programmatically
+- ❄️ **Resource Delegation** — Handle bandwidth/energy freezing/unfreezing (WIP)
+
+### Smart Contract Interaction
+- 📝 **TRC-20** — Type-safe token transfers with `alloy`-style builders
+- 📜 **Contract ABI Codegen** — Generate types from Solidity ABIs (need to implement a wrapper by hand currently)
+- 🔍 **Event Filtering** — Rich event subscription and historical querying
+- 🧮 **Transaction Estimation** — Precise energy & bandwidth calculation with fallback modes
+
+### Advanced Transaction Features
+- 🚦 **Transaction Batching** — Group multiple operations atomically (WIP)
+- ⏱️ **Deadline Handling** — Automatic/manual transaction expiration management
 
 ---
+
 
 ## 🚀 Quickstart
 
