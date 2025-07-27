@@ -8,7 +8,7 @@
 
 - 🧱 **Typed Smart Contract Calls** — Powered by `alloy-sol-types` macros
 - 📡 **gRPC Provider** — Built on `tonic` for high-performance communication with full nodes
-- 🔐 **Signer Abstraction** — Supports pluggable signing backends
+- 🔐 **Signer Abstraction** — Supports pluggable async signing backends
 - 🔗 **TRC-20 & Native TRX Support** — Transfer tokens and interact with contracts safely
 - ⚙️ **Extendable** — Build your own providers, signers, and integrations
 
@@ -33,3 +33,8 @@ let client = Client::builder()
 
 // Send TRX
 let tx = client.send_trx(from, to, trx!(2 TRX)).await?;
+```
+
+## TODO
+
+- [ ] Implement batching
