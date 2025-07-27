@@ -215,4 +215,25 @@ impl Permission {
     pub fn id(&self) -> i32 {
         self.id
     }
+
+    pub fn contains(&self, address: TronAddress) -> bool {
+        self.keys.iter().any(|k| k.address.eq(&address))
+    }
+
+    pub fn enough_sign_weight(&self, addresses: Vec<TronAddress>) -> bool {
+        if self.threshold <= 0 {
+            return true;
+        }
+
+        // Calculate total weight of the provided addresses
+        let total_weight: i64 = self
+            .keys
+            .iter()
+            .filter(|key| addresses.contains(&key.address))
+            .map(|key| key.weight)
+            .sum();
+
+        // Check if the combined weight meets or exceeds threshold
+        total_weight >= self.threshold
+    }
 }

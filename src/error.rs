@@ -1,3 +1,5 @@
+use time::OffsetDateTime;
+
 use crate::domain::address::TronAddress;
 use crate::protocol::transaction::result::ContractResult;
 
@@ -27,6 +29,10 @@ pub enum Error {
     Signature(#[from] k256::ecdsa::signature::Error),
     #[error("invalid input: {0}")]
     InvalidInput(String),
+    #[error("precondigion failed: {0}")]
+    PreconditionFailed(String),
+    #[error("expired at: {0}")]
+    Expired(OffsetDateTime),
 }
 
 crate::impl_debug!(Error);

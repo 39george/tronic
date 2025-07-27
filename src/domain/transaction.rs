@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use derivative::Derivative;
 use time::OffsetDateTime;
+use time::ext::NumericalDuration;
 
 use crate::domain::Message;
 use crate::domain::address::TronAddress;
@@ -195,6 +196,9 @@ impl Transaction {
         transaction.raw.data = memo;
         transaction.raw.contract.push(contract);
         latest_block.fill_header_info_in_transaction(&mut transaction);
+        // Setup default expiration
+        transaction.raw.expiration =
+            transaction.raw.timestamp.saturating_add(60.seconds());
         transaction
     }
 }

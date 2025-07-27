@@ -1,7 +1,9 @@
 use std::ops::Deref;
 
 use anyhow::{Context, anyhow};
-use k256::ecdsa::{RecoveryId, Signature};
+use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
+
+use crate::domain::address::TronAddress;
 
 pub mod account;
 pub mod address;
@@ -110,19 +112,16 @@ macro_rules! define_fixed_hash {
         #[doc = $doc]
         #[derive(Clone, Copy, PartialEq, Eq, Hash)]
         pub struct $name([u8; $len]);
-
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", hex::encode(&self.0))
             }
         }
-
         impl From<[u8; $len]> for $name {
             fn from(value: [u8; $len]) -> Self {
                 Self(value)
             }
         }
-
         impl TryFrom<Vec<u8>> for $name {
             type Error = String;
             fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
@@ -136,7 +135,6 @@ macro_rules! define_fixed_hash {
                 })
             }
         }
-
         impl TryFrom<&[u8]> for $name {
             type Error = String;
             fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
@@ -150,20 +148,23 @@ macro_rules! define_fixed_hash {
                 })
             }
         }
-
+        impl TryFrom<&str> for $name {
+            type Error = String;
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+                hex::decode(value).map_err(|e| e.to_string())?.try_into()
+            }
+        }
         impl From<$name> for Vec<u8> {
             fn from(value: $name) -> Self {
                 value.0.to_vec()
             }
         }
-
         impl Default for $name {
             fn default() -> Self {
                 tracing::warn!("default {} value", stringify!($name));
                 Self([0u8; $len])
             }
         }
-
         impl AsRef<[u8]> for $name {
             fn as_ref(&self) -> &[u8] {
                 &self.0
@@ -256,6 +257,21 @@ impl RecoverableSignature {
             signature,
             recovery_id,
         }
+    }
+    pub fn recover_address(
+        &self,
+        prehash: &Hash32,
+    ) -> crate::Result<TronAddress> {
+        let key = VerifyingKey::recover_from_prehash(
+            prehash.as_ref(),
+            &self.signature,
+            self.recovery_id,
+        )
+        .context("failed to recover address from prehash")?;
+
+        let addr = TronAddress::try_from(&key)
+            .context("failed to build tron address from VerifyingKey")?;
+        Ok(addr)
     }
 }
 

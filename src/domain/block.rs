@@ -52,7 +52,6 @@ impl BlockExtention {
         transaction.raw.ref_block_bytes = self.calculate_ref_block_bytes();
         transaction.raw.ref_block_hash = self.calculate_ref_block_hash();
         transaction.raw.timestamp = timestamp;
-        transaction.raw.expiration = timestamp.saturating_add(60.seconds());
         transaction.raw.ref_block_num = self.block_header.raw_data.number;
     }
 }

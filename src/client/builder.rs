@@ -252,6 +252,16 @@ where
     pub fn actives(&self) -> Vec<Permission> {
         self.account.active_permission.clone()
     }
+    pub fn permission_by_id(&self, id: i32) -> Option<Permission> {
+        match id {
+            0 => Some(self.owner()),
+            1 => self.witness(),
+            id => {
+                let active_idx = (id - 2) as usize;
+                self.actives().get(active_idx).cloned()
+            }
+        }
+    }
     pub fn set_owner(&mut self, p: PermissionParams) -> Result<()> {
         let permission = Permission::owner().params(p).call();
         permission.can_meet_threshold()?;
