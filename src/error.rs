@@ -1,3 +1,4 @@
+use alloy_primitives::U256;
 use time::OffsetDateTime;
 
 use crate::domain::address::TronAddress;
@@ -36,6 +37,14 @@ pub enum Error {
     Expired(OffsetDateTime),
     #[error("insufficient resources: {0:#?}")]
     InsufficientResources(ResourceState),
+    #[error(
+        "insufficient token balance: {balance}, but need: {need} for {token}"
+    )]
+    InsufficientTokenBalance {
+        balance: U256,
+        need: U256,
+        token: &'static str,
+    },
 }
 
 crate::impl_debug!(Error);

@@ -16,7 +16,6 @@ use crate::error;
 use crate::error::Error;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
-use crate::trx;
 use crate::utility::generate_txid;
 use crate::{Result, protocol, utility};
 

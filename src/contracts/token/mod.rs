@@ -15,7 +15,15 @@ pub enum TokenError {
 }
 
 pub trait Token:
-    Sized + fmt::Display + fmt::Debug + Into<U256> + From<U256>
+    Sized
+    + fmt::Display
+    + fmt::Debug
+    + Into<U256>
+    + From<U256>
+    + PartialEq
+    + PartialOrd
+    + Clone
+    + Copy
 {
     fn symbol() -> &'static str;
     fn decimals() -> u32;

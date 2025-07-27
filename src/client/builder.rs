@@ -149,16 +149,33 @@ where
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!("missing `from` address"))
             })?;
-        let latest_block = transfer.client.get_now_block().await.unwrap();
         let call = transfer.contract.transfer(transfer.to, transfer.amount);
-        // TODO: check trc20 balance before call
+        let contract_address = transfer.contract.address();
+
+        // Check balance
+        {
+            let balance = Trc20BalanceOf::with_client(transfer.client)
+                .contract(transfer.contract)
+                .owner(owner)
+                .get()
+                .await?;
+            if transfer.amount > balance {
+                return Err(Error::InsufficientTokenBalance {
+                    balance: balance.into(),
+                    need: transfer.amount.into(),
+                    token: T::symbol(),
+                });
+            }
+        }
+
+        let latest_block = transfer.client.get_now_block().await.unwrap();
         let transaction = Transaction::new(
             Contract {
                 contract_type:
                     crate::domain::contract::ContractType::TriggerSmartContract(
                         TriggerSmartContract {
                             owner_address: owner,
-                            contract_address: transfer.contract.address(),
+                            contract_address,
                             call_value: transfer.call_value.unwrap_or_default(),
                             data: call.encode().into(),
                             call_token_value: transfer

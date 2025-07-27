@@ -1,5 +1,4 @@
 use time::OffsetDateTime;
-use time::ext::NumericalDuration;
 
 use crate::domain::{
     Hash32, RecoverableSignature, RefBlockBytes, RefBlockHash,
