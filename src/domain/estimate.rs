@@ -73,15 +73,15 @@ impl ResourceState {
             });
         }
 
-        let sufficient_energy = available_energy > required.energy;
+        let sufficient_energy = available_energy >= required.energy;
         if !sufficient_energy {
             missing.push(MissingResource::Energy {
                 available: available_energy,
                 required: required.energy,
             });
         }
-        let sufficient_balance = balance < required.trx;
-        if sufficient_balance {
+        let sufficient_balance = balance >= required.trx;
+        if !sufficient_balance {
             missing.push(MissingResource::Trx {
                 available: balance,
                 required: required.trx,
