@@ -48,11 +48,11 @@ where
     S: PrehashSigner + Clone + Send + Sync + 'static,
     S::Error: std::fmt::Debug,
 {
-    pub fn new(client: Client<P, S>) -> Self {
+    pub fn new(client: Client<P, S>, block_poll_interval: Duration) -> Self {
         Self {
             client,
             last_block_number: -1,
-            interval: Duration::from_secs(3),
+            interval: block_poll_interval,
         }
     }
     pub async fn run(self) -> ListenerHandle {

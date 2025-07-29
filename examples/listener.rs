@@ -10,7 +10,7 @@
 //!
 //! Press Ctrl+C to exit.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use tronic::{
     client::Client,
@@ -39,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .signer(LocalSigner::rand())
         .build();
-    let listener_handle = client.listener().await;
+    let listener_handle = client.listener(Duration::from_secs(2)).await;
 
     // Set up an in-memory token registry with USDT contract
     let registry = InMemoryTokenRegistry::from(

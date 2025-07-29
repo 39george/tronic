@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use anyhow::anyhow;
 use secrecy::SecretString;
 
@@ -50,13 +52,19 @@ where
     ) -> builder::Trc20TransferBuilder<'_, P, S, T> {
         builder::Trc20Transfer::with_client(self)
     }
-    pub async fn listener(&self) -> ListenerHandle
+    pub async fn listener(
+        &self,
+        block_poll_interval: Duration,
+    ) -> ListenerHandle
     where
         P: Clone + Send + Sync + 'static,
         S: Clone + Send + Sync + 'static,
         S::Error: std::fmt::Debug,
     {
-        let listener = crate::listener::Listener::new(self.to_owned());
+        let listener = crate::listener::Listener::new(
+            self.to_owned(),
+            block_poll_interval,
+        );
         listener.run().await
     }
     pub async fn account_permissions(
