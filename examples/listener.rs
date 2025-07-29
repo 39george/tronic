@@ -19,7 +19,7 @@ use tronic::{
         token::{InMemoryTokenRegistry, usdt::Usdt},
         trc20::Trc20Call,
     },
-    domain::transaction::Transaction,
+    domain::{Hash32, transaction::Transaction},
     extractor::DynamicTrc20Extractor,
     listener::subscriber::{filters::AddressFilter, tx_sub::TxSubscriber},
     provider::grpc::GrpcProvider,
@@ -63,39 +63,42 @@ async fn main() -> anyhow::Result<()> {
     .with_registry(registry);
 
     // Subscribe to transactions and decode TRC-20 transfers
-    let subscriber = TxSubscriber::new(&client, |t: Transaction| async move {
-        if let Some(c) = t.get_contract() {
-            if let Some(trg) = c.trigger_smart_contract()
-                && let Ok(trc20) =
-                    Trc20Call::<Usdt>::try_from_data(&trg.data.to_vec())
-            {
-                if let Trc20Call::Transfer(transfer_call) = trc20 {
-                    let message = if !t.raw.data.is_empty() {
-                        t.raw.data
-                    } else {
-                        "None".into()
-                    };
+    let subscriber =
+        TxSubscriber::new(&client, |t: Transaction, txid: Hash32| async move {
+            if let Some(c) = t.get_contract() {
+                if let Some(trg) = c.trigger_smart_contract()
+                    && let Ok(trc20) =
+                        Trc20Call::<Usdt>::try_from_data(&trg.data.to_vec())
+                {
+                    if let Trc20Call::Transfer(transfer_call) = trc20 {
+                        let message = if !t.raw.data.is_empty() {
+                            t.raw.data
+                        } else {
+                            "None".into()
+                        };
 
-                    println!(
-                        "\n  USDT Transfer Detected:\n\
+                        println!(
+                            "\n  USDT Transfer Detected:\n\
                               ├─ From:     {}\n\
                               ├─ To:       {}\n\
                               ├─ Amount:   {}\n\
                               ├─ Contract: {}\n\
-                              └─ Message:  {}",
-                        trg.owner_address,
-                        transfer_call.recipient,
-                        transfer_call.amount,
-                        trg.contract_address,
-                        message
-                    );
+                              ├─ Message:  {}\n\
+                              └─ Txid:     {:?}",
+                            trg.owner_address,
+                            transfer_call.recipient,
+                            transfer_call.amount,
+                            trg.contract_address,
+                            message,
+                            txid
+                        );
+                    }
+                } else {
+                    println!("\nTransaction: {t:?}");
                 }
-            } else {
-                println!("\nTransaction: {t:?}");
             }
-        }
-    })
-    .with_filter(filter);
+        })
+        .with_filter(filter);
     listener_handle.subscribe(subscriber);
     match tokio::signal::ctrl_c().await {
         Ok(()) => {

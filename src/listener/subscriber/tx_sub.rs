@@ -2,6 +2,7 @@ use std::future::Future;
 
 use crate::Filter;
 use crate::client::Client;
+use crate::domain::Hash32;
 use crate::domain::block::BlockExtention;
 use crate::domain::transaction::{Transaction, TransactionExtention};
 use crate::provider::TronProvider;
@@ -66,7 +67,7 @@ impl<P, S, F, H> TxSubscriber<P, S, F, H> {
 impl<P, S, F, H, Fut> BlockSubscriber for TxSubscriber<P, S, F, H>
 where
     F: Filter<TransactionExtention> + Send + Sync + Clone,
-    H: FnOnce(Transaction) -> Fut + Send + Sync + Clone,
+    H: FnOnce(Transaction, Hash32) -> Fut + Send + Sync + Clone,
     Fut: Future<Output = ()> + Send,
     P: TronProvider + Sync,
     S: Sync,
@@ -76,7 +77,7 @@ where
             if (self.filter.clone()).filter(txext.clone()).await
                 && let Some(tx) = txext.transaction
             {
-                (self.handler.clone())(tx).await;
+                (self.handler.clone())(tx, txext.txid).await;
             }
         }
     }
