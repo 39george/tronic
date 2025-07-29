@@ -178,7 +178,7 @@ macro_rules! define_fixed_hash {
         }
         impl Default for $name {
             fn default() -> Self {
-                tracing::warn!("default {} value", stringify!($name));
+                // tracing::warn!("default {} value", stringify!($name));
                 Self([0u8; $len])
             }
         }
