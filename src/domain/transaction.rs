@@ -46,7 +46,7 @@ pub enum ContractResult {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransactionResult {
     pub fee: i64,
-    pub ret: i32,
+    pub ret: TxCode,
     pub contract_ret: ContractResult,
     pub asset_issue_id: String,
     pub withdraw_amount: i64,

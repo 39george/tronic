@@ -117,7 +117,7 @@ impl From<transaction::Result> for domain::transaction::TransactionResult {
     fn from(r: transaction::Result) -> Self {
         domain::transaction::TransactionResult {
             fee: r.fee,
-            ret: r.ret,
+            ret: r.ret().into(),
             contract_ret: r.contract_ret().into(),
             asset_issue_id: r.asset_issue_id,
             withdraw_amount: r.withdraw_amount,
@@ -144,7 +144,7 @@ impl From<domain::transaction::TransactionResult> for transaction::Result {
     fn from(r: domain::transaction::TransactionResult) -> Self {
         transaction::Result {
             fee: r.fee,
-            ret: r.ret,
+            ret: transaction::result::Code::from(r.ret).into(),
             contract_ret: transaction::result::ContractResult::from(
                 r.contract_ret,
             )
@@ -385,6 +385,13 @@ impl From<InternalTransaction> for domain::transaction::InternalTransaction {
 
 impl_enum_conversions! {
     transaction_info::Code => domain::transaction::TxCode {
+        Sucess,
+        Failed
+    }
+}
+
+impl_enum_conversions! {
+    transaction::result::Code => domain::transaction::TxCode {
         Sucess,
         Failed
     }
