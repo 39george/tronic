@@ -208,3 +208,13 @@ impl TransactionExtention {
         self.transaction.as_ref().and_then(|t| t.get_contract())
     }
 }
+
+impl ContractResult {
+    /// Returns None if ok, and Some(BadResult) if not ok
+    pub fn is_err(&self) -> Option<ContractResult> {
+        match self {
+            ContractResult::Success => None,
+            err => Some(err.clone()),
+        }
+    }
+}

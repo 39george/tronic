@@ -26,6 +26,7 @@ impl<F> AddressFilter<F, InMemoryTokenRegistry, ()> {
 }
 
 impl<F, R, E> AddressFilter<F, R, E> {
+    /// Type to use as TriggerSmartContract calls extractor (from bytecode)
     pub fn with_extractor<NewE>(self) -> AddressFilter<F, R, NewE> {
         AddressFilter::<F, R, NewE> {
             fetch_addrs: self.fetch_addrs,
