@@ -18,7 +18,15 @@ pub mod trx;
 macro_rules! define_fixed_string {
     ($name:ident, $len:expr, $doc:literal) => {
         #[doc = $doc]
-        #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+        #[derive(
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            Hash,
+            serde::Serialize,
+            serde::Deserialize,
+        )]
         pub struct $name([u8; $len]);
 
         impl $name {
@@ -111,7 +119,15 @@ macro_rules! define_fixed_string {
 macro_rules! define_fixed_hash {
     ($name:ident, $len:expr, $doc:literal) => {
         #[doc = $doc]
-        #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+        #[derive(
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            Hash,
+            serde::Serialize,
+            serde::Deserialize,
+        )]
         pub struct $name([u8; $len]);
         impl std::fmt::Debug for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
