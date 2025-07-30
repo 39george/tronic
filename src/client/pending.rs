@@ -203,10 +203,8 @@ where
                 .ok_or(Error::PreconditionFailed(
                     "no signer set for automatic signing".into(),
                 ))?;
-        let (signature, recovery_id) =
-            signer.sign_recoverable(&self.txid, ctx).await?;
         let recoverable_signature =
-            domain::RecoverableSignature::new(signature, recovery_id);
+            signer.sign_recoverable(&self.txid, ctx).await?;
 
         self.transaction.signature.push(recoverable_signature);
 
@@ -253,10 +251,7 @@ where
     pub async fn sign(&mut self, signer: &S, ctx: &S::Ctx) -> Result<()> {
         let txid = &self.txid;
 
-        let (signature, recovery_id) =
-            signer.sign_recoverable(txid, ctx).await?;
-        let recoverable_signature =
-            domain::RecoverableSignature::new(signature, recovery_id);
+        let recoverable_signature = signer.sign_recoverable(txid, ctx).await?;
 
         // Check signatures
         let signing_addr = recoverable_signature.recover_address(txid)?;

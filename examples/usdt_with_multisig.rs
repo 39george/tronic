@@ -44,7 +44,6 @@ async fn main() -> anyhow::Result<()> {
     // Call trc20 transfer method
     let mut tx = client
         .trc20_transfer()
-        .await
         .contract(Trc20Contract::new(
             "TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf".parse().unwrap(),
         ))

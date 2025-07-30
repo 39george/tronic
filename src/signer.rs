@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use k256::ecdsa::{RecoveryId, Signature, SigningKey};
+use k256::ecdsa::SigningKey;
 
-use crate::domain::{Hash32, address::TronAddress};
+use crate::domain::{Hash32, RecoverableSignature, address::TronAddress};
 
 #[async_trait::async_trait]
 pub trait PrehashSigner {
@@ -12,7 +12,7 @@ pub trait PrehashSigner {
         &self,
         txid: &Hash32,
         ctx: &Self::Ctx,
-    ) -> Result<(Signature, RecoveryId), Self::Error>;
+    ) -> Result<RecoverableSignature, Self::Error>;
     fn address(&self) -> Option<TronAddress> {
         None
     }
@@ -59,11 +59,11 @@ impl PrehashSigner for LocalSigner {
         &self,
         txid: &Hash32,
         _: &Self::Ctx,
-    ) -> Result<(Signature, RecoveryId), Self::Error> {
+    ) -> Result<RecoverableSignature, Self::Error> {
         let (signature, recovery_id) = self
             .signing_key
             .sign_prehash_recoverable(&Vec::<u8>::from(*txid))?;
-        Ok((signature, recovery_id))
+        Ok(RecoverableSignature::new(signature, recovery_id))
     }
     fn address(&self) -> Option<TronAddress> {
         Some(self.address())
