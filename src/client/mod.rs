@@ -58,6 +58,16 @@ where
     pub fn freeze_balance(&self) -> builder::FreezeBalanceBuilder<'_, P, S> {
         builder::FreezeBalance::with_client(self)
     }
+    pub fn unfreeze_balance(
+        &self,
+    ) -> builder::UnfreezeBalanceBuilder<'_, P, S> {
+        builder::UnfreezeBalance::with_client(self)
+    }
+    pub fn cancel_all_unfreeze(
+        &self,
+    ) -> builder::CancelAllUnfreezeBuilder<'_, P, S> {
+        builder::CancelAllUnfreeze::with_client(self)
+    }
     pub async fn listener(
         &self,
         block_poll_interval: Duration,

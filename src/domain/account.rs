@@ -45,7 +45,7 @@ pub struct AccountResource {
     #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
     pub latest_consume_time_for_energy: OffsetDateTime,
     /// Frozen balance provided by other accounts to this account
-    pub acquired_delegated_frozen_balance_for_energy: i64,
+    pub acquired_delegated_frozen_balance_for_energy: Trx,
     /// Frozen balances provided to other accounts
     pub delegated_frozen_balance_for_energy: i64,
     /// storage resource, get from market
@@ -53,8 +53,8 @@ pub struct AccountResource {
     pub storage_usage: i64,
     pub latest_exchange_storage_time: i64,
     pub energy_window_size: i64,
-    pub delegated_frozen_v2_balance_for_energy: i64,
-    pub acquired_delegated_frozen_v2_balance_for_energy: i64,
+    pub delegated_frozen_v2_balance_for_energy: Trx,
+    pub acquired_delegated_frozen_v2_balance_for_energy: Trx,
     pub energy_window_optimized: bool,
 }
 
@@ -102,7 +102,7 @@ pub struct FreezeV2 {
 #[derive(Debug, Derivative, Clone, Copy, PartialEq)]
 #[derivative(Default)]
 pub struct UnFreezeV2 {
-    pub unfreeze_type: i32,
+    pub unfreeze_type: ResourceCode,
     pub unfreeze_amount: Trx,
     #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
     pub unfreeze_expire_time: OffsetDateTime,
@@ -174,6 +174,7 @@ pub struct Account {
     pub witness_permission: Option<Permission>,
     pub active_permission: Vec<Permission>,
     pub frozen_v2: Vec<FreezeV2>,
+    /// Trx waiting
     pub unfrozen_v2: Vec<UnFreezeV2>,
     pub delegated_frozen_v2_balance_for_bandwidth: Trx,
     pub acquired_delegated_frozen_v2_balance_for_bandwidth: Trx,

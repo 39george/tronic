@@ -597,7 +597,7 @@ impl From<crate::domain::account::FreezeV2> for account::FreezeV2 {
 impl From<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
     fn from(f: account::UnFreezeV2) -> Self {
         Self {
-            unfreeze_type: f.r#type,
+            unfreeze_type: f.r#type().into(),
             unfreeze_amount: f.unfreeze_amount.into(),
             unfreeze_expire_time: OffsetDateTime::from_tron(
                 f.unfreeze_expire_time,
@@ -609,7 +609,7 @@ impl From<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
 impl From<crate::domain::account::UnFreezeV2> for account::UnFreezeV2 {
     fn from(f: crate::domain::account::UnFreezeV2) -> Self {
         Self {
-            r#type: f.unfreeze_type,
+            r#type: ResourceCode::from(f.unfreeze_type).into(),
             unfreeze_amount: f.unfreeze_amount.to_sun(),
             unfreeze_expire_time: f.unfreeze_expire_time.to_tron(),
         }
@@ -646,7 +646,8 @@ impl From<account::AccountResource> for domain::account::AccountResource {
                 r.latest_consume_time_for_energy,
             ),
             acquired_delegated_frozen_balance_for_energy: r
-                .acquired_delegated_frozen_balance_for_energy,
+                .acquired_delegated_frozen_balance_for_energy
+                .into(),
             delegated_frozen_balance_for_energy: r
                 .delegated_frozen_balance_for_energy,
             storage_limit: r.storage_limit,
@@ -654,9 +655,11 @@ impl From<account::AccountResource> for domain::account::AccountResource {
             latest_exchange_storage_time: r.latest_exchange_storage_time,
             energy_window_size: r.energy_window_size,
             delegated_frozen_v2_balance_for_energy: r
-                .delegated_frozen_v2_balance_for_energy,
+                .delegated_frozen_v2_balance_for_energy
+                .into(),
             acquired_delegated_frozen_v2_balance_for_energy: r
-                .acquired_delegated_frozen_v2_balance_for_energy,
+                .acquired_delegated_frozen_v2_balance_for_energy
+                .into(),
             energy_window_optimized: r.energy_window_optimized,
         }
     }
@@ -673,7 +676,8 @@ impl From<domain::account::AccountResource> for account::AccountResource {
                 .latest_consume_time_for_energy
                 .to_tron(),
             acquired_delegated_frozen_balance_for_energy: r
-                .acquired_delegated_frozen_balance_for_energy,
+                .acquired_delegated_frozen_balance_for_energy
+                .into(),
             delegated_frozen_balance_for_energy: r
                 .delegated_frozen_balance_for_energy,
             storage_limit: r.storage_limit,
@@ -681,9 +685,11 @@ impl From<domain::account::AccountResource> for account::AccountResource {
             latest_exchange_storage_time: r.latest_exchange_storage_time,
             energy_window_size: r.energy_window_size,
             delegated_frozen_v2_balance_for_energy: r
-                .delegated_frozen_v2_balance_for_energy,
+                .delegated_frozen_v2_balance_for_energy
+                .into(),
             acquired_delegated_frozen_v2_balance_for_energy: r
-                .acquired_delegated_frozen_v2_balance_for_energy,
+                .acquired_delegated_frozen_v2_balance_for_energy
+                .into(),
             energy_window_optimized: r.energy_window_optimized,
         }
     }

@@ -10,11 +10,13 @@ use crate::domain::account::Account;
 use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
 use crate::domain::contract::AccountPermissionUpdateContract;
+use crate::domain::contract::CancelAllUnfreezeV2Contract;
 use crate::domain::contract::Contract;
 use crate::domain::contract::FreezeBalanceV2Contract;
 use crate::domain::contract::ResourceCode;
 use crate::domain::contract::TransferContract;
 use crate::domain::contract::TriggerSmartContract;
+use crate::domain::contract::UnfreezeBalanceV2Contract;
 use crate::domain::permission::Permission;
 use crate::domain::permission::PermissionParams;
 use crate::domain::transaction::Transaction;
@@ -466,6 +468,139 @@ where
             owner,
             freeze.amount,
             freeze.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct UnfreezeBalance<'a, P, S> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) amount: Trx,
+    pub(super) resource: ResourceCode,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+}
+
+impl<'a, P, S, State: unfreeze_balance_builder::IsComplete>
+    UnfreezeBalanceBuilder<'a, P, S, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+{
+    pub async fn build(self) -> Result<PendingTransaction<'a, P, S>> {
+        let unfreeze = self.build_internal();
+        let owner = unfreeze
+            .owner
+            .or_else(|| {
+                unfreeze.client.signer.as_ref().and_then(|s| s.address())
+            })
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+
+        let account = unfreeze.client.provider.get_account(owner).await?;
+        let frozen_sum: Trx = account
+            .frozen_v2
+            .iter()
+            .filter(|f| f.freeze_type.eq(&unfreeze.resource))
+            .map(|f| f.amount)
+            .sum();
+        if frozen_sum < unfreeze.amount {
+            return Err(Error::InsufficientFrozen {
+                frozen: frozen_sum,
+                trying_to_unfreeze: unfreeze.amount,
+            });
+        }
+
+        let latest_block =
+            unfreeze.client.provider.get_now_block().await.unwrap();
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::UnfreezeBalanceV2Contract(
+                        UnfreezeBalanceV2Contract {
+                            owner_address: owner,
+                            unfreeze_balance: unfreeze.amount,
+                            resource: unfreeze.resource,
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            Message::default()
+        );
+        PendingTransaction::new(
+            unfreeze.client,
+            transaction,
+            owner,
+            unfreeze.amount,
+            unfreeze.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct CancelAllUnfreeze<'a, P, S> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+}
+
+impl<'a, P, S, State: cancel_all_unfreeze_builder::IsComplete>
+    CancelAllUnfreezeBuilder<'a, P, S, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+{
+    pub async fn build(self) -> Result<PendingTransaction<'a, P, S>> {
+        let unfreeze = self.build_internal();
+        let owner = unfreeze
+            .owner
+            .or_else(|| {
+                unfreeze.client.signer.as_ref().and_then(|s| s.address())
+            })
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+
+        let account = unfreeze.client.provider.get_account(owner).await?;
+        if account.unfrozen_v2.is_empty() {
+            return Err(Error::PreconditionFailed(
+                "no unfreeze balance to cancel".into(),
+            ));
+        }
+
+        let latest_block =
+            unfreeze.client.provider.get_now_block().await.unwrap();
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::CancelAllUnfreezeV2Contract(
+                        CancelAllUnfreezeV2Contract {
+                            owner_address: owner,
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            Message::default()
+        );
+        PendingTransaction::new(
+            unfreeze.client,
+            transaction,
+            owner,
+            Trx::ZERO,
+            unfreeze.can_spend_trx_for_fee.unwrap_or_default(),
         )
         .await
     }

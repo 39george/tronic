@@ -48,6 +48,13 @@ pub enum Error {
     },
     #[error("insufficient balance: {balance}, but need: {need}")]
     InsufficientBalance { balance: Trx, need: Trx },
+    #[error(
+        "insufficient balance to unfreeze: {frozen}, but trying to unfreeze: {trying_to_unfreeze}"
+    )]
+    InsufficientFrozen {
+        frozen: Trx,
+        trying_to_unfreeze: Trx,
+    },
 }
 
 crate::impl_debug!(Error);
