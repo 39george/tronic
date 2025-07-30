@@ -36,10 +36,10 @@ impl GrpcProvider {
         );
         Ok(Self { channel })
     }
-    pub fn wallet_client(&self) -> WalletClient<middleware::AuthChannel> {
+    fn wallet_client(&self) -> WalletClient<middleware::AuthChannel> {
         WalletClient::new(self.channel.clone())
     }
-    pub fn return_to_result(ret: Option<protocol::Return>) -> Result<()> {
+    fn return_to_result(ret: Option<protocol::Return>) -> Result<()> {
         if let Some(protocol::Return {
             result: false,
             code,

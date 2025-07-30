@@ -77,6 +77,9 @@ where
     pub fn delegate(&self) -> builder::DelegateBuilder<'_, P, S> {
         builder::Delegate::with_client(self)
     }
+    pub fn undelegate(&self) -> builder::UndelegateBuilder<'_, P, S> {
+        builder::Undelegate::with_client(self)
+    }
     pub async fn listener(
         &self,
         block_poll_interval: Duration,

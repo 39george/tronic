@@ -17,6 +17,7 @@ use crate::domain::contract::FreezeBalanceV2Contract;
 use crate::domain::contract::ResourceCode;
 use crate::domain::contract::TransferContract;
 use crate::domain::contract::TriggerSmartContract;
+use crate::domain::contract::UnDelegateResourceContract;
 use crate::domain::contract::UnfreezeBalanceV2Contract;
 use crate::domain::permission::Permission;
 use crate::domain::permission::PermissionParams;
@@ -664,6 +665,84 @@ where
             owner,
             delegate.amount,
             delegate.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct Undelegate<'a, P, S> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) amount: Trx,
+    pub(super) receiver: TronAddress,
+    pub(super) resource: ResourceCode,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+}
+
+impl<'a, P, S, State: undelegate_builder::IsComplete>
+    UndelegateBuilder<'a, P, S, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+{
+    pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
+        let undelegate = self.build_internal();
+        let owner = undelegate
+            .owner
+            .or_else(|| {
+                undelegate.client.signer.as_ref().and_then(|s| s.address())
+            })
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+
+        let total_delegated: Trx = undelegate
+            .client
+            .provider
+            .get_delegated_resource(owner, undelegate.receiver)
+            .await?
+            .iter()
+            .map(|r| match undelegate.resource {
+                ResourceCode::Bandwidth => r.frozen_balance_for_bandwidth,
+                ResourceCode::Energy => r.frozen_balance_for_energy,
+                _ => Trx::ZERO,
+            })
+            .sum();
+        if total_delegated < undelegate.amount {
+            return Err(Error::PreconditionFailed(
+                "not enough delegated trx to undelegate".into(),
+            ));
+        }
+
+        let latest_block =
+            undelegate.client.provider.get_now_block().await.unwrap();
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::UnDelegateResourceContract(
+                        UnDelegateResourceContract {
+                            owner_address: owner,
+                            resource: undelegate.resource,
+                            balance: undelegate.amount,
+                            receiver_address: undelegate.receiver,
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            Message::default()
+        );
+        PendingTransaction::new(
+            undelegate.client,
+            transaction,
+            owner,
+            undelegate.amount,
+            undelegate.can_spend_trx_for_fee.unwrap_or_default(),
         )
         .await
     }
