@@ -33,6 +33,9 @@ where
     P: TronProvider,
     S: PrehashSigner,
 {
+    pub fn provider(&self) -> &P {
+        &self.provider
+    }
     pub fn signer_address(&self) -> Option<TronAddress> {
         self.signer.as_ref().and_then(|s| s.address())
     }
@@ -47,10 +50,13 @@ where
     ) -> builder::Trc20BalanceOfBuilder<'_, P, S, T> {
         builder::Trc20BalanceOf::with_client(self)
     }
-    pub async fn trc20_transfer<T: Token>(
+    pub fn trc20_transfer<T: Token>(
         &self,
     ) -> builder::Trc20TransferBuilder<'_, P, S, T> {
         builder::Trc20Transfer::with_client(self)
+    }
+    pub fn freeze_balance(&self) -> builder::FreezeBalanceBuilder<'_, P, S> {
+        builder::FreezeBalance::with_client(self)
     }
     pub async fn listener(
         &self,
@@ -94,14 +100,7 @@ where
         &self,
         address: TronAddress,
     ) -> Result<AccountStatus> {
-        let account = self.get_account(address).await?;
+        let account = self.provider.get_account(address).await?;
         Ok(account.status())
-    }
-}
-
-impl<P, S> std::ops::Deref for Client<P, S> {
-    type Target = P;
-    fn deref(&self) -> &Self::Target {
-        &self.provider
     }
 }

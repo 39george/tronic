@@ -83,7 +83,7 @@ where
                 "can't update txid for signed transaction".into(),
             ));
         }
-        let latest_block = self.client.get_now_block().await?;
+        let latest_block = self.client.provider.get_now_block().await?;
         latest_block.fill_header_info_in_transaction(&mut self.transaction);
         let txid = generate_txid(
             &protocol::transaction::Raw::from(self.transaction.raw.clone())
@@ -98,6 +98,7 @@ where
         let permission_id = contract.permission_id;
         let signature_count = self
             .client
+            .provider
             .get_account(self.owner)
             .await?
             .permission_by_id(permission_id)
@@ -115,6 +116,7 @@ where
             {
                 let txext = self
                     .client
+                    .provider
                     .trigger_constant_contract(contract.clone())
                     .await?;
                 return Ok(txext.energy_used);
@@ -124,7 +126,7 @@ where
     }
     pub async fn estimate_transaction(&self) -> Result<ResourceState> {
         let (resources, balance, bandwidth, energy) = tokio::try_join!(
-            self.client.get_account_resources(self.owner),
+            self.client.provider.get_account_resources(self.owner),
             self.client.trx_balance().address(self.owner).get(),
             self.estimate_bandwidth(),
             self.estimate_energy()
@@ -228,6 +230,7 @@ where
     pub async fn set_permission(&mut self, id: i32) -> Result<()> {
         let permission = self
             .client
+            .provider
             .get_account(self.owner)
             .await?
             .permission_by_id(id)

@@ -11,6 +11,8 @@ use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
 use crate::domain::contract::AccountPermissionUpdateContract;
 use crate::domain::contract::Contract;
+use crate::domain::contract::FreezeBalanceV2Contract;
+use crate::domain::contract::ResourceCode;
 use crate::domain::contract::TransferContract;
 use crate::domain::contract::TriggerSmartContract;
 use crate::domain::permission::Permission;
@@ -102,7 +104,7 @@ where
             }
         }
 
-        let latest_block = transfer.client.get_now_block().await?;
+        let latest_block = transfer.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -189,7 +191,8 @@ where
             }
         }
 
-        let latest_block = transfer.client.get_now_block().await.unwrap();
+        let latest_block =
+            transfer.client.provider.get_now_block().await.unwrap();
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -264,8 +267,11 @@ where
             data: call.encode().into(),
             ..Default::default()
         };
-        let mut extention =
-            balance_of.client.trigger_constant_contract(trigger).await?;
+        let mut extention = balance_of
+            .client
+            .provider
+            .trigger_constant_contract(trigger)
+            .await?;
         let balance = if let Some(result) = extention.constant_result.pop() {
             if result.len() == 32 {
                 let balance_bytes: [u8; 32] = result.try_into().unwrap(); // We sure in length
@@ -301,7 +307,7 @@ where
         client: &'a Client<P, S>,
         owner: TronAddress,
     ) -> Result<Self> {
-        let account = client.get_account(owner).await?;
+        let account = client.provider.get_account(owner).await?;
         Ok(PermissionHandler {
             client,
             permission_update: AccountPermissionUpdateContract {
@@ -385,7 +391,7 @@ where
             ));
         }
 
-        let latest_block = self.client.get_now_block().await.unwrap();
+        let latest_block = self.client.provider.get_now_block().await.unwrap();
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -404,6 +410,62 @@ where
             self.owner,
             trx!(100.0 TRX),
             true,
+        )
+        .await
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct FreezeBalance<'a, P, S> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) amount: Trx,
+    pub(super) resource: ResourceCode,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+}
+
+impl<'a, P, S, State: freeze_balance_builder::IsComplete>
+    FreezeBalanceBuilder<'a, P, S, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+{
+    pub async fn build(self) -> Result<PendingTransaction<'a, P, S>> {
+        let freeze = self.build_internal();
+        let owner = freeze
+            .owner
+            .or_else(|| freeze.client.signer.as_ref().and_then(|s| s.address()))
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+
+        let latest_block =
+            freeze.client.provider.get_now_block().await.unwrap();
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::FreezeBalanceV2Contract(
+                        FreezeBalanceV2Contract {
+                            owner_address: owner,
+                            frozen_balance: freeze.amount,
+                            resource: freeze.resource,
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            Message::default()
+        );
+        PendingTransaction::new(
+            freeze.client,
+            transaction,
+            owner,
+            freeze.amount,
+            freeze.can_spend_trx_for_fee.unwrap_or_default(),
         )
         .await
     }

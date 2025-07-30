@@ -859,6 +859,84 @@ impl From<domain::account::Account> for Account {
     }
 }
 
+impl From<DelegatedResourceAccountIndex>
+    for domain::account::DelegatedResourceAccountIndex
+{
+    fn from(value: DelegatedResourceAccountIndex) -> Self {
+        domain::account::DelegatedResourceAccountIndex {
+            account: value.account.as_slice().try_into().unwrap_or_default(),
+            from_accounts: value
+                .from_accounts
+                .into_iter()
+                .map(|a| a.as_slice().try_into().unwrap_or_default())
+                .collect(),
+            to_accounts: value
+                .to_accounts
+                .into_iter()
+                .map(|a| a.as_slice().try_into().unwrap_or_default())
+                .collect(),
+            timestamp: OffsetDateTime::from_tron(value.timestamp),
+        }
+    }
+}
+
+impl From<domain::account::DelegatedResourceAccountIndex>
+    for DelegatedResourceAccountIndex
+{
+    fn from(value: domain::account::DelegatedResourceAccountIndex) -> Self {
+        DelegatedResourceAccountIndex {
+            account: value.account.as_bytes().to_vec(),
+            from_accounts: value
+                .from_accounts
+                .into_iter()
+                .map(|a| a.as_bytes().to_vec())
+                .collect(),
+            to_accounts: value
+                .to_accounts
+                .into_iter()
+                .map(|a| a.as_bytes().to_vec())
+                .collect(),
+            timestamp: value.timestamp.to_tron(),
+        }
+    }
+}
+
+impl From<DelegatedResource> for domain::account::DelegatedResource {
+    fn from(value: DelegatedResource) -> Self {
+        domain::account::DelegatedResource {
+            from: value.from.as_slice().try_into().unwrap_or_default(),
+            to: value.to.as_slice().try_into().unwrap_or_default(),
+            frozen_balance_for_bandwidth: value
+                .frozen_balance_for_bandwidth
+                .into(),
+            frozen_balance_for_energy: value.frozen_balance_for_energy.into(),
+            expire_time_for_bandwidth: OffsetDateTime::from_tron(
+                value.expire_time_for_bandwidth,
+            ),
+            expire_time_for_energy: OffsetDateTime::from_tron(
+                value.expire_time_for_energy,
+            ),
+        }
+    }
+}
+
+impl From<domain::account::DelegatedResource> for DelegatedResource {
+    fn from(value: domain::account::DelegatedResource) -> Self {
+        DelegatedResource {
+            from: value.from.as_bytes().to_vec(),
+            to: value.to.as_bytes().to_vec(),
+            frozen_balance_for_bandwidth: value
+                .frozen_balance_for_bandwidth
+                .into(),
+            frozen_balance_for_energy: value.frozen_balance_for_energy.into(),
+            expire_time_for_bandwidth: value
+                .expire_time_for_bandwidth
+                .to_tron(),
+            expire_time_for_energy: value.expire_time_for_energy.to_tron(),
+        }
+    }
+}
+
 // ───────────────────────────────── Block ────────────────────────────────── //
 
 impl From<block_header::Raw> for domain::block::RawBlockHeader {

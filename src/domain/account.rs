@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use derivative::Derivative;
 use time::OffsetDateTime;
@@ -177,6 +177,29 @@ pub struct Account {
     pub unfrozen_v2: Vec<UnFreezeV2>,
     pub delegated_frozen_v2_balance_for_bandwidth: Trx,
     pub acquired_delegated_frozen_v2_balance_for_bandwidth: Trx,
+}
+
+#[derive(Debug, Derivative, Clone, PartialEq)]
+#[derivative(Default)]
+pub struct DelegatedResourceAccountIndex {
+    pub account: TronAddress,
+    pub from_accounts: HashSet<TronAddress>,
+    pub to_accounts: HashSet<TronAddress>,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub timestamp: OffsetDateTime,
+}
+
+#[derive(Debug, Derivative, Clone, PartialEq)]
+#[derivative(Default)]
+pub struct DelegatedResource {
+    pub from: TronAddress,
+    pub to: TronAddress,
+    pub frozen_balance_for_bandwidth: Trx,
+    pub frozen_balance_for_energy: Trx,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub expire_time_for_bandwidth: OffsetDateTime,
+    #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    pub expire_time_for_energy: OffsetDateTime,
 }
 
 impl Account {

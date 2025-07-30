@@ -7,7 +7,7 @@ use crate::Result;
 use crate::client::Auth;
 use crate::contracts::AbiEncode;
 use crate::domain::address::TronAddress;
-use crate::domain::trx;
+use crate::domain::trx::{self, Trx};
 use crate::domain::{self, Hash32};
 use crate::error::Error;
 use crate::protocol;
@@ -226,6 +226,65 @@ impl crate::provider::TronProvider for GrpcProvider {
             .map(|ch_p| (ch_p.key, ch_p.value))
             .collect::<HashMap<_, _>>();
         Ok(chain_parameters)
+    }
+    async fn freeze_balance(
+        &self,
+        contract: domain::contract::FreezeBalanceV2Contract,
+    ) -> Result<domain::transaction::TransactionExtention> {
+        let mut node = WalletClient::new(self.channel.clone());
+        let contract: protocol::FreezeBalanceV2Contract = contract.into();
+        let txext = node.freeze_balance_v2(contract).await?.into_inner();
+        Self::return_to_result(txext.result.clone())?;
+        Ok(txext.into())
+    }
+    async fn unfreeze_balance(
+        &self,
+        contract: domain::contract::UnfreezeBalanceV2Contract,
+    ) -> Result<domain::transaction::TransactionExtention> {
+        let mut node = WalletClient::new(self.channel.clone());
+        let contract: protocol::UnfreezeBalanceV2Contract = contract.into();
+        let txext = node.unfreeze_balance_v2(contract).await?.into_inner();
+        Self::return_to_result(txext.result.clone())?;
+        Ok(txext.into())
+    }
+    async fn get_reward(&self, address: TronAddress) -> Result<Trx> {
+        let mut node = WalletClient::new(self.channel.clone());
+        let number = node
+            .get_reward_info(protocol::BytesMessage {
+                value: address.as_bytes().to_vec(),
+            })
+            .await?
+            .into_inner();
+        Ok(number.num.into())
+    }
+    async fn get_delegated_resource(
+        &self,
+        from_address: TronAddress,
+        to_address: TronAddress,
+    ) -> Result<Vec<domain::account::DelegatedResource>> {
+        let mut node = WalletClient::new(self.channel.clone());
+        let list = node
+            .get_delegated_resource_v2(protocol::DelegatedResourceMessage {
+                from_address: from_address.as_bytes().to_vec(),
+                to_address: to_address.as_bytes().to_vec(),
+            })
+            .await?
+            .into_inner()
+            .delegated_resource;
+        Ok(list.into_iter().map(Into::into).collect())
+    }
+    async fn get_delegated_resource_account(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::account::DelegatedResourceAccountIndex> {
+        let mut node = WalletClient::new(self.channel.clone());
+        let index = node
+            .get_delegated_resource_account_index_v2(protocol::BytesMessage {
+                value: address.as_bytes().to_vec(),
+            })
+            .await?
+            .into_inner();
+        Ok(index.into())
     }
 }
 

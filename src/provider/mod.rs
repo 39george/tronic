@@ -56,6 +56,24 @@ pub trait TronProvider {
         txid: Hash32,
     ) -> Result<domain::transaction::TransactionInfo>;
     async fn chain_parameters(&self) -> Result<HashMap<String, i64>>;
+    async fn freeze_balance(
+        &self,
+        contract: domain::contract::FreezeBalanceV2Contract,
+    ) -> Result<domain::transaction::TransactionExtention>;
+    async fn unfreeze_balance(
+        &self,
+        contract: domain::contract::UnfreezeBalanceV2Contract,
+    ) -> Result<domain::transaction::TransactionExtention>;
+    async fn get_reward(&self, address: TronAddress) -> Result<Trx>;
+    async fn get_delegated_resource(
+        &self,
+        from_address: TronAddress,
+        to_address: TronAddress,
+    ) -> Result<Vec<domain::account::DelegatedResource>>;
+    async fn get_delegated_resource_account(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::account::DelegatedResourceAccountIndex>;
 
     // async fn calculate_fee(&self, transaction: &Transaction) -> Result<Fee>;
 
