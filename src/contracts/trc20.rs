@@ -231,6 +231,7 @@ pub mod Trc20 {
     impl_abi_encode_decode_new!(transferFromCall<T>, Erc20::transferFromCall);
 }
 
+#[derive(Debug, Clone)]
 pub struct Trc20Contract<T> {
     contract_address: TronAddress,
     _token: PhantomData<T>,

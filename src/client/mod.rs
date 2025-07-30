@@ -39,6 +39,12 @@ where
     pub fn signer_address(&self) -> Option<TronAddress> {
         self.signer.as_ref().and_then(|s| s.address())
     }
+    pub fn with_signer<NewS>(self, s: NewS) -> Client<P, NewS> {
+        Client::<P, NewS> {
+            provider: self.provider,
+            signer: Some(s),
+        }
+    }
     pub fn send_trx(&self) -> builder::TransferBuilder<'_, P, S> {
         builder::Transfer::with_client(self)
     }
@@ -67,6 +73,9 @@ where
         &self,
     ) -> builder::CancelAllUnfreezeBuilder<'_, P, S> {
         builder::CancelAllUnfreeze::with_client(self)
+    }
+    pub fn delegate(&self) -> builder::DelegateBuilder<'_, P, S> {
+        builder::Delegate::with_client(self)
     }
     pub async fn listener(
         &self,

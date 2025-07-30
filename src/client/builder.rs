@@ -12,6 +12,7 @@ use crate::domain::address::TronAddress;
 use crate::domain::contract::AccountPermissionUpdateContract;
 use crate::domain::contract::CancelAllUnfreezeV2Contract;
 use crate::domain::contract::Contract;
+use crate::domain::contract::DelegateResourceContract;
 use crate::domain::contract::FreezeBalanceV2Contract;
 use crate::domain::contract::ResourceCode;
 use crate::domain::contract::TransferContract;
@@ -124,7 +125,7 @@ where
         );
         let check = transfer.client.check_account(transfer.to).await?;
         let additional_fee = if matches!(check, AccountStatus::NotExists) {
-            trx!(0.1 TRX)
+            trx!(1.0 TRX)
         } else {
             Trx::ZERO
         };
@@ -436,7 +437,7 @@ where
     S: PrehashSigner,
     Error: From<S::Error>,
 {
-    pub async fn build(self) -> Result<PendingTransaction<'a, P, S>> {
+    pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
         let freeze = self.build_internal();
         let owner = freeze
             .owner
@@ -492,7 +493,7 @@ where
     S: PrehashSigner,
     Error: From<S::Error>,
 {
-    pub async fn build(self) -> Result<PendingTransaction<'a, P, S>> {
+    pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
         let unfreeze = self.build_internal();
         let owner = unfreeze
             .owner
@@ -562,7 +563,7 @@ where
     S: PrehashSigner,
     Error: From<S::Error>,
 {
-    pub async fn build(self) -> Result<PendingTransaction<'a, P, S>> {
+    pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
         let unfreeze = self.build_internal();
         let owner = unfreeze
             .owner
@@ -601,6 +602,68 @@ where
             owner,
             Trx::ZERO,
             unfreeze.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct Delegate<'a, P, S> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) amount: Trx,
+    pub(super) receiver: TronAddress,
+    pub(super) resource: ResourceCode,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+    pub(super) lock_period: Option<time::Duration>,
+}
+
+impl<'a, P, S, State: delegate_builder::IsComplete>
+    DelegateBuilder<'a, P, S, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+{
+    pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
+        let delegate = self.build_internal();
+        let owner = delegate
+            .owner
+            .or_else(|| {
+                delegate.client.signer.as_ref().and_then(|s| s.address())
+            })
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+
+        let latest_block =
+            delegate.client.provider.get_now_block().await.unwrap();
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::DelegateResourceContract(
+                        DelegateResourceContract {
+                            owner_address: owner,
+                            resource: delegate.resource,
+                            balance: delegate.amount,
+                            receiver_address: delegate.receiver,
+                            lock_period: delegate.lock_period,
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            Message::default()
+        );
+        PendingTransaction::new(
+            delegate.client,
+            transaction,
+            owner,
+            delegate.amount,
+            delegate.can_spend_trx_for_fee.unwrap_or_default(),
         )
         .await
     }

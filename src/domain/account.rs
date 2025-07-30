@@ -234,7 +234,10 @@ impl Account {
     pub fn status(&self) -> AccountStatus {
         match self.account_type {
             AccountType::Contract => AccountStatus::Contract(self.create_time),
-            _ if self.create_time == OffsetDateTime::UNIX_EPOCH => {
+            _ if self.account_name.0.is_empty()
+                && self.balance.eq(&Trx::ZERO)
+                && self.create_time == OffsetDateTime::UNIX_EPOCH =>
+            {
                 AccountStatus::NotExists
             }
             _ => AccountStatus::Exists {

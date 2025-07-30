@@ -327,8 +327,7 @@ pub struct DelegateResourceContract {
     pub resource: ResourceCode,
     pub balance: Trx,
     pub receiver_address: TronAddress,
-    pub lock: bool,
-    pub lock_period: i64,
+    pub lock_period: Option<time::Duration>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]

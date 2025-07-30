@@ -726,8 +726,9 @@ impl From<DelegateResourceContract>
                 .as_slice()
                 .try_into()
                 .unwrap(),
-            lock: value.lock,
-            lock_period: value.lock_period,
+            lock_period: value
+                .lock
+                .then_some(time::Duration::seconds(value.lock_period)),
         }
     }
 }
@@ -745,8 +746,8 @@ impl From<domain::contract::DelegateResourceContract>
                 .as_bytes()
                 .try_into()
                 .unwrap(),
-            lock: value.lock,
-            lock_period: value.lock_period,
+            lock: value.lock_period.is_some(),
+            lock_period: value.lock_period.unwrap_or_default().whole_seconds(),
         }
     }
 }

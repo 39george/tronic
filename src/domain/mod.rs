@@ -92,6 +92,12 @@ macro_rules! define_fixed_string {
             }
         }
 
+        impl From<[u8; $len]> for $name {
+            fn from(value: [u8; $len]) -> Self {
+                Self(value)
+            }
+        }
+
         impl $name {
             /// Get the string representation (trimming null bytes)
             pub fn as_str(&self) -> &str {
