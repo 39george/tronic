@@ -100,15 +100,21 @@ pub enum PermissionType {
 
 define_fixed_string!(PermissionName, 32, "TRON permission name (max 32 bytes)");
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, getset::Getters)]
 pub struct Permission {
     pub(crate) permission_type: PermissionType,
     /// Owner id=0, Witness id=1, Active id start by 2
+    #[getset(get)]
     pub(crate) id: i32,
+    #[getset(get)]
     pub(crate) permission_name: PermissionName,
+    #[getset(get)]
     pub(crate) threshold: i64,
+    #[getset(get)]
     pub(crate) parent_id: i32,
+    #[getset(get)]
     pub(crate) operations: Vec<Ops>,
+    #[getset(get)]
     pub(crate) keys: Vec<Key>,
 }
 
@@ -210,10 +216,6 @@ impl Permission {
                 "insufficient key weight for threshold".into(),
             ))
         }
-    }
-
-    pub fn id(&self) -> i32 {
-        self.id
     }
 
     pub fn contains(&self, address: TronAddress) -> bool {
