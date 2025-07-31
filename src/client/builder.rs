@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use derivative::Derivative;
+use time::OffsetDateTime;
 
 use crate::Result;
 use crate::contracts;
@@ -19,6 +20,7 @@ use crate::domain::contract::TransferContract;
 use crate::domain::contract::TriggerSmartContract;
 use crate::domain::contract::UnDelegateResourceContract;
 use crate::domain::contract::UnfreezeBalanceV2Contract;
+use crate::domain::contract::WithdrawExpireUnfreezeContract;
 use crate::domain::permission::Permission;
 use crate::domain::permission::PermissionParams;
 use crate::domain::transaction::Transaction;
@@ -640,6 +642,8 @@ where
                 Error::Unexpected(anyhow!("missing owner address"))
             })?;
 
+        // TODO: Check has enough resources
+
         let latest_block =
             delegate.client.provider.get_now_block().await.unwrap();
         let transaction = Transaction::new(
@@ -743,6 +747,78 @@ where
             owner,
             undelegate.amount,
             undelegate.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct WithdrawUnfreeze<'a, P, S> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) resource: ResourceCode,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+}
+
+impl<'a, P, S, State: withdraw_unfreeze_builder::IsComplete>
+    WithdrawUnfreezeBuilder<'a, P, S, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+{
+    pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
+        let withdraw = self.build_internal();
+        let owner = withdraw
+            .owner
+            .or_else(|| {
+                withdraw.client.signer.as_ref().and_then(|s| s.address())
+            })
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+
+        let account = withdraw.client.provider.get_account(owner).await?;
+        let unfrozen_sum: Trx = account
+            .unfrozen_v2
+            .iter()
+            .filter(|f| {
+                f.unfreeze_type.eq(&withdraw.resource)
+                    && f.unfreeze_expire_time.le(&OffsetDateTime::now_utc())
+            })
+            .map(|f| f.unfreeze_amount)
+            .sum();
+        if unfrozen_sum == Trx::ZERO {
+            return Err(Error::PreconditionFailed(format!(
+                "no {:?} unfrozen to withdraw",
+                withdraw.resource
+            )));
+        }
+
+        let latest_block =
+            withdraw.client.provider.get_now_block().await.unwrap();
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::WithdrawExpireUnfreezeContract(
+                        WithdrawExpireUnfreezeContract {
+                            owner_address: owner,
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            Message::default()
+        );
+        PendingTransaction::new(
+            withdraw.client,
+            transaction,
+            owner,
+            Trx::ZERO,
+            withdraw.can_spend_trx_for_fee.unwrap_or_default(),
         )
         .await
     }

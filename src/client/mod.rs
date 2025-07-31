@@ -80,6 +80,11 @@ where
     pub fn undelegate(&self) -> builder::UndelegateBuilder<'_, P, S> {
         builder::Undelegate::with_client(self)
     }
+    pub fn withdraw_unfreeze(
+        &self,
+    ) -> builder::WithdrawUnfreezeBuilder<'_, P, S> {
+        builder::WithdrawUnfreeze::with_client(self)
+    }
     pub async fn listener(
         &self,
         block_poll_interval: Duration,
