@@ -187,6 +187,12 @@ where
             .context("no permission found")?;
         Ok(permission)
     }
+    pub fn txid(&self) -> Hash32 {
+        self.txid
+    }
+    pub fn transaction(&self) -> Transaction {
+        self.transaction.clone()
+    }
 }
 
 impl<'a, P, S> PendingTransaction<'a, P, S, AutoSigning>

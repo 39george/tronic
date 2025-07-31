@@ -193,6 +193,7 @@ impl Transaction {
         memo: Message,
     ) -> Self {
         let mut transaction = Transaction::default();
+        transaction.raw.timestamp = OffsetDateTime::now_utc();
         transaction.raw.data = memo;
         transaction.raw.contract.push(contract);
         latest_block.fill_header_info_in_transaction(&mut transaction);

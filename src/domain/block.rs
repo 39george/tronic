@@ -47,10 +47,8 @@ impl BlockExtention {
         &self,
         transaction: &mut super::transaction::Transaction,
     ) {
-        let timestamp = self.block_header.raw_data.timestamp;
         transaction.raw.ref_block_bytes = self.calculate_ref_block_bytes();
         transaction.raw.ref_block_hash = self.calculate_ref_block_hash();
-        transaction.raw.timestamp = timestamp;
         transaction.raw.ref_block_num = self.block_header.raw_data.number;
     }
 }
