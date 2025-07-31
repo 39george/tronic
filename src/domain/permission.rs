@@ -104,17 +104,17 @@ define_fixed_string!(PermissionName, 32, "TRON permission name (max 32 bytes)");
 pub struct Permission {
     pub(crate) permission_type: PermissionType,
     /// Owner id=0, Witness id=1, Active id start by 2
-    #[getset(get)]
+    #[getset(get = "pub")]
     pub(crate) id: i32,
-    #[getset(get)]
+    #[getset(get = "pub")]
     pub(crate) permission_name: PermissionName,
-    #[getset(get)]
+    #[getset(get = "pub")]
     pub(crate) threshold: i64,
-    #[getset(get)]
+    #[getset(get = "pub")]
     pub(crate) parent_id: i32,
-    #[getset(get)]
+    #[getset(get = "pub")]
     pub(crate) operations: Vec<Ops>,
-    #[getset(get)]
+    #[getset(get = "pub")]
     pub(crate) keys: Vec<Key>,
 }
 
