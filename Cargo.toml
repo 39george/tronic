@@ -13,6 +13,9 @@ keywords = ["tron", "blockchain", "smart-contracts", "grpc", "rust"]
 categories = ["cryptography", "network-programming", "api-bindings", "asynchronous", "finance"]
 exclude = ["/.github", "/.gitignore", "/examples", "/target", "Makefile", "*.sh"]
 
+[features]
+tonic-tls = ["tonic/tls-native-roots", "tonic/_tls-any", "dep:rustls"]
+
 [dependencies]
 # Base dependencies
 tokio = { version = "1.47" }
@@ -56,6 +59,9 @@ rand = "0.9"
 
 # Telemetry
 tracing = "0.1"
+
+# Optional
+rustls = { version = "0.23", optional = true, default-features = false, features = ["ring"] }
 
 [[example]]
 name = "listener"

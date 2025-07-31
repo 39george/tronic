@@ -21,9 +21,26 @@ pub struct GrpcProvider {
 
 impl GrpcProvider {
     pub async fn new(node_uri: Uri, auth: Auth) -> Result<Self> {
-        let channel = tonic::transport::Channel::builder(node_uri)
-            .connect()
-            .await?;
+        let scheme = node_uri.scheme().cloned();
+        let mut builder = tonic::transport::Channel::builder(node_uri);
+
+        #[cfg(not(feature = "tonic-tls"))]
+        if scheme.is_some_and(|s| s.eq(&http::uri::Scheme::HTTPS)) {
+            return Err(Error::Unexpected(anyhow!(
+                "enable tonic-tls feature to use https"
+            )));
+        }
+        #[cfg(feature = "tonic-tls")]
+        if scheme.is_some_and(|s| s.eq(&http::uri::Scheme::HTTPS)) {
+            let _ = rustls::crypto::CryptoProvider::install_default(
+                rustls::crypto::ring::default_provider(),
+            );
+
+            builder = builder.tls_config(
+                tonic::transport::ClientTlsConfig::new().with_native_roots(),
+            )?;
+        }
+        let channel = builder.connect().await?;
         let channel = auth_channel(
             channel,
             match auth {
