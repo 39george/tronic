@@ -25,9 +25,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # gRPC
-tonic = "0.13"
-prost = "0.13"
-prost-types = "0.13"
+tonic = "0.14"
+tonic-prost = "0.14"
+prost = "0.14"
+prost-types = "0.14"
 
 # Misc
 anyhow = "1.0"
@@ -72,4 +73,4 @@ path = "examples/usdt_with_multisig.rs"
 tokio = { version = "1.47", features = ["signal", "rt-multi-thread"] }
 
 [build-dependencies]
-tonic-build = "0.13"
+tonic-prost-build = "0.14"

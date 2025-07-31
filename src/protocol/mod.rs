@@ -21,8 +21,8 @@ mod protocol;
 
 pub mod contracts_conversions;
 
-pub const TRON_PROTOCOL_FILE_DESCRIPTOR_SET: &[u8] =
-    tonic::include_file_descriptor_set!("tron_protocol_descriptor");
+// pub const TRON_PROTOCOL_FILE_DESCRIPTOR_SET: &[u8] =
+//     tonic::include_file_descriptor_set!("tron_protocol_descriptor");
 
 // ────────────────────────────── Transaction ─────────────────────────────── //
 

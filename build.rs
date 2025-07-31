@@ -4,8 +4,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let root_dir = std::env::current_dir().unwrap();
 
-    tonic_build::configure()
+    tonic_prost_build::configure()
         .out_dir(root_dir.join("src/protocol"))
+        .build_server(false)
         .file_descriptor_set_path(out_dir.join("tron_protocol_descriptor.bin"))
         .type_attribute("SmartContract.ABI", "#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]")
         .type_attribute("SmartContract.ABI.Entry", "#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]")
