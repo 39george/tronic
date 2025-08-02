@@ -18,7 +18,7 @@ pub trait PrehashSigner {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct LocalSigner {
     signing_key: Arc<SigningKey>,
 }

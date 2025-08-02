@@ -1,6 +1,6 @@
 use std::fmt;
 
-use derive_more::{Add, AddAssign, Mul, Sub, Sum};
+use derive_more::{Add, AddAssign, Div, Mul, Sub, Sum};
 
 #[derive(
     Default,
@@ -15,6 +15,7 @@ use derive_more::{Add, AddAssign, Mul, Sub, Sum};
     AddAssign,
     Mul,
     Sum,
+    Div,
 )]
 pub struct Trx(i64);
 
