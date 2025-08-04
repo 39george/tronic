@@ -80,7 +80,7 @@ where
             rx,
         }
     }
-    fn block_stream(self) -> impl Stream<Item = BlockExtention> {
+    pub(crate) fn block_stream(self) -> impl Stream<Item = BlockExtention> {
         BlockStream {
             listener: self,
             delay: Box::pin(sleep(Duration::from_secs(0))),

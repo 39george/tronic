@@ -1,6 +1,8 @@
 use std::marker::PhantomData;
+use std::time::Duration;
 
 use anyhow::Context;
+use futures::StreamExt;
 use prost::Message;
 use time::OffsetDateTime;
 use time::ext::NumericalDuration;
@@ -11,7 +13,7 @@ use crate::domain::address::TronAddress;
 use crate::domain::contract::TriggerSmartContract;
 use crate::domain::estimate::{InsufficientResource, Resource, ResourceState};
 use crate::domain::permission::Permission;
-use crate::domain::transaction::Transaction;
+use crate::domain::transaction::{Transaction, TransactionInfo, TxCode};
 use crate::domain::trx::Trx;
 use crate::error;
 use crate::error::Error;
@@ -241,6 +243,21 @@ where
 
         Ok(self.txid)
     }
+    /// Wait for confirmations and get transaction info
+    pub async fn broadcast_get_receipt(
+        self,
+        ctx: &S::Ctx,
+        confirmations: i32,
+    ) -> Result<TransactionInfo>
+    where
+        P: Clone + Send + Sync + 'static,
+        S: Send + Sync + 'static,
+        <S as crate::signer::PrehashSigner>::Error: std::fmt::Debug,
+    {
+        let client = self.client.to_owned();
+        let txid = self.broadcast(ctx).await?;
+        transaction_receipt(confirmations, client, txid).await
+    }
 }
 
 impl<'a, P, S> PendingTransaction<'a, P, S, ManualSigning>
@@ -315,6 +332,20 @@ where
             .unwrap();
         Ok(txid)
     }
+    /// Wait for confirmations and get transaction info
+    pub async fn broadcast_get_receipt(
+        self,
+        confirmations: i32,
+    ) -> Result<TransactionInfo>
+    where
+        P: Clone + Send + Sync + 'static,
+        S: Send + Sync + 'static,
+        <S as crate::signer::PrehashSigner>::Error: std::fmt::Debug,
+    {
+        let client = self.client.to_owned();
+        let txid = self.broadcast().await?;
+        transaction_receipt(confirmations, client, txid).await
+    }
     /// Expiration is limited to 24 hours
     pub async fn expiration(
         &mut self,
@@ -381,4 +412,79 @@ where
             can_spend_trx_for_fee,
         })
     }
+}
+
+async fn transaction_receipt<P, S>(
+    confirmations: i32,
+    client: Client<P, S>,
+    txid: Hash32,
+) -> std::result::Result<TransactionInfo, Error>
+where
+    P: TronProvider + Clone + Send + Sync + 'static,
+    S: PrehashSigner + Clone + Send + Sync + 'static,
+    error::Error: From<S::Error>,
+    <S as crate::signer::PrehashSigner>::Error: std::fmt::Debug,
+{
+    let listener =
+        crate::listener::Listener::new(client.clone(), Duration::from_secs(3));
+    let mut block_stream = listener.block_stream();
+
+    // Track the latest block number we've seen
+    let mut last_block_number = 0;
+    let mut confirmation_count = 0;
+    let mut initial_tx_info: Option<TransactionInfo> = None;
+
+    while let Some(block_ext) = block_stream.next().await {
+        // Only check if we got a new block
+        if block_ext.block_header.raw_data.number > last_block_number {
+            last_block_number = block_ext.block_header.raw_data.number;
+
+            match client.provider().get_transaction_info(txid).await {
+                Ok(tx_info)
+                    if tx_info
+                        .block_time_stamp
+                        .eq(&OffsetDateTime::UNIX_EPOCH) =>
+                {
+                    continue;
+                }
+                Ok(tx_info) => {
+                    // First check if transaction is in a block
+                    if tx_info.block_number > 0 {
+                        // Store the initial transaction info if we haven't already
+                        if initial_tx_info.is_none() {
+                            initial_tx_info = Some(tx_info.clone());
+                        }
+
+                        // Then check if the transaction was successful
+                        match tx_info.result {
+                            TxCode::Sucess => {
+                                confirmation_count += 1;
+
+                                // Return when we reach the required confirmations
+                                if confirmation_count >= confirmations {
+                                    return Ok(tx_info);
+                                }
+                            }
+                            TxCode::Failed => {
+                                return Err(Error::Transaction {
+                                    txid,
+                                    result: tx_info.result,
+                                    msg: tx_info.res_message,
+                                });
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    // If we had initial confirmation but now get an error, that's bad
+                    if initial_tx_info.is_some() {
+                        return Err(e);
+                    }
+                    // Otherwise just continue waiting
+                }
+            }
+        }
+    }
+
+    Err(Error::TransactionTimeout)
 }

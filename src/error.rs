@@ -3,7 +3,9 @@ use time::OffsetDateTime;
 
 use crate::domain::address::TronAddress;
 use crate::domain::estimate::ResourceState;
+use crate::domain::transaction::TxCode;
 use crate::domain::trx::Trx;
+use crate::domain::{Hash32, Message};
 use crate::protocol::transaction::result::ContractResult;
 
 #[derive(thiserror::Error)]
@@ -55,6 +57,14 @@ pub enum Error {
         frozen: Trx,
         trying_to_unfreeze: Trx,
     },
+    #[error("transaction error: {txid:?}, {result:?}, {msg}")]
+    Transaction {
+        txid: Hash32,
+        result: TxCode,
+        msg: Message,
+    },
+    #[error("transaction was not confirmed within the expected time")]
+    TransactionTimeout,
 }
 
 crate::impl_debug!(Error);
