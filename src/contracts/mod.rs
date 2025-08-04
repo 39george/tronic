@@ -14,3 +14,7 @@ pub trait AbiDecode: Sized {
     type Error;
     fn decode(data: &[u8]) -> Result<Self, Self::Error>;
 }
+
+pub trait ReadContract<Ret>: AbiEncode {
+    fn decode_ret(ret: Vec<Vec<u8>>) -> Ret;
+}

@@ -61,6 +61,12 @@ where
     ) -> builder::Trc20TransferBuilder<'_, P, S, T> {
         builder::Trc20Transfer::with_client(self)
     }
+    pub fn read_contract<C>(
+        &self,
+        call: C,
+    ) -> builder::ReadContractBuilder<'_, P, S, C> {
+        builder::ReadContract::with_client_and_call(self, call)
+    }
     pub fn freeze_balance(&self) -> builder::FreezeBalanceBuilder<'_, P, S> {
         builder::FreezeBalance::with_client(self)
     }

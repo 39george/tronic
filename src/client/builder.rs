@@ -938,3 +938,58 @@ where
         .await
     }
 }
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client_and_call)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct ReadContract<'a, P, S, C> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    #[builder(start_fn)]
+    pub(super) call: C,
+    pub(super) contract: TronAddress,
+    pub(super) owner: Option<TronAddress>,
+}
+
+impl<'a, P, S, C, State: read_contract_builder::IsComplete>
+    ReadContractBuilder<'a, P, S, C, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+{
+    pub async fn get<Ret>(self) -> Result<Ret>
+    where
+        C: crate::contracts::ReadContract<Ret>,
+    {
+        let read_contract = self.build_internal();
+        let owner = read_contract
+            .owner
+            .or_else(|| {
+                read_contract
+                    .client
+                    .signer
+                    .as_ref()
+                    .and_then(|s| s.address())
+            })
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!(
+                    "missing address to check trc20 balance for"
+                ))
+            })?;
+
+        let trigger = TriggerSmartContract {
+            owner_address: owner,
+            contract_address: read_contract.contract,
+            data: read_contract.call.encode().into(),
+            ..Default::default()
+        };
+
+        let extention = read_contract
+            .client
+            .provider
+            .trigger_constant_contract(trigger)
+            .await?;
+        let ret = C::decode_ret(extention.constant_result);
+        Ok(ret)
+    }
+}
