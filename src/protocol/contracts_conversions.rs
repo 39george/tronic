@@ -21,7 +21,11 @@ impl From<domain::contract::TriggerSmartContract> for TriggerSmartContract {
     fn from(value: domain::contract::TriggerSmartContract) -> Self {
         TriggerSmartContract {
             owner_address: value.owner_address.as_bytes().to_vec(),
-            contract_address: value.contract_address.as_bytes().to_vec(),
+            contract_address: if value.contract_address.eq(&TronAddress::ZERO) {
+                Vec::new()
+            } else {
+                value.contract_address.as_bytes().to_vec()
+            },
             call_value: value.call_value.into(),
             data: value.data.to_vec(),
             call_token_value: value.call_token_value.into(),

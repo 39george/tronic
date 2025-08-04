@@ -85,6 +85,9 @@ where
     ) -> builder::WithdrawUnfreezeBuilder<'_, P, S> {
         builder::WithdrawUnfreeze::with_client(self)
     }
+    pub fn create_contract(&self) -> builder::CreateContractBuilder<'_, P, S> {
+        builder::CreateContract::with_client(self)
+    }
     pub async fn listener(
         &self,
         block_poll_interval: Duration,

@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 
+use alloy_primitives::{U8, U256};
+use alloy_sol_types::{SolConstructor, SolValue};
+use alloy_sol_types::{SolType, sol_data};
 use derivative::Derivative;
+use serde::Deserialize;
+use serde::Serialize;
 use time::OffsetDateTime;
 
 use super::account::AccountType;
@@ -440,7 +445,6 @@ pub struct MarketCancelOrderContract {
     pub order_id: HexMessage,
 }
 
-// TODO: continue
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct SmartContract {
     pub origin_address: TronAddress,
@@ -461,27 +465,52 @@ pub struct Abi {
     pub entrys: Vec<Entry>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entry {
+    #[serde(default)]
     pub anonymous: bool,
+    #[serde(default)]
     pub constant: bool,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub inputs: Vec<Param>,
+    #[serde(default)]
     pub outputs: Vec<Param>,
+    #[serde(rename = "type")]
     pub entry_type: EntryType,
+    #[serde(default)]
     pub payable: bool,
+    #[serde(default)]
     pub state_mutability: StateMutabilityType,
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Param {
+    #[serde(default)]
     pub indexed: bool,
+    #[serde(default)]
     pub name: String,
     /// SolidityType type = 3;
+    #[serde(rename = "type")]
     pub param_type: String,
 }
 
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Default,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+)]
+#[serde(rename_all = "lowercase")]
 pub enum EntryType {
     #[default]
     UnknownEntryType = 0,
@@ -493,7 +522,20 @@ pub enum EntryType {
     Error = 6,
 }
 
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(
+    Default,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+)]
+#[serde(rename_all = "lowercase")]
 pub enum StateMutabilityType {
     #[default]
     UnknownMutabilityType = 0,
@@ -576,4 +618,19 @@ pub struct ShieldedTransferContract {
     pub transparent_to_address: TronAddress,
     /// the amount to transparent to_address
     pub to_amount: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractArtifact {
+    pub contract_name: String,
+    pub abi: Vec<Entry>,
+    pub bytecode: String,
+    pub deployed_bytecode: String,
+    pub source_map: Option<String>,
+    pub deployed_source_map: Option<String>,
+    pub source: Option<String>,
+    pub source_path: Option<String>,
+    pub schema_version: String,
+    pub updated_at: String,
 }

@@ -8,6 +8,7 @@ use time::ext::NumericalDuration;
 use crate::domain::Hash32;
 use crate::domain::account::AccountResourceUsage;
 use crate::domain::address::TronAddress;
+use crate::domain::contract::TriggerSmartContract;
 use crate::domain::estimate::{InsufficientResource, Resource, ResourceState};
 use crate::domain::permission::Permission;
 use crate::domain::transaction::Transaction;
@@ -110,16 +111,33 @@ where
     }
     pub async fn estimate_energy(&self) -> Result<i64> {
         if let Some(contract) = self.transaction.raw.contract.first() {
-            if let domain::contract::ContractType::TriggerSmartContract(
-                ref contract,
-            ) = contract.contract_type
-            {
-                let txext = self
-                    .client
-                    .provider
-                    .trigger_constant_contract(contract.clone())
-                    .await?;
-                return Ok(txext.energy_used);
+            match contract.contract_type {
+                domain::contract::ContractType::TriggerSmartContract(
+                    ref contract,
+                ) => {
+                    let txext = self
+                        .client
+                        .provider
+                        .trigger_constant_contract(contract.clone())
+                        .await?;
+                    return Ok(txext.energy_used);
+                }
+                domain::contract::ContractType::CreateSmartContract(
+                    ref contract,
+                ) => {
+                    let bytecode = contract.new_contract.bytecode.clone();
+                    let txext = self
+                        .client
+                        .provider
+                        .trigger_constant_contract(TriggerSmartContract {
+                            owner_address: contract.owner_address,
+                            data: bytecode.into(),
+                            ..Default::default()
+                        })
+                        .await?;
+                    return Ok(txext.energy_used);
+                }
+                _ => (),
             }
         }
         Ok(0)

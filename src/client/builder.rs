@@ -10,12 +10,16 @@ use crate::domain::Message;
 use crate::domain::account::Account;
 use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
+use crate::domain::contract::Abi;
 use crate::domain::contract::AccountPermissionUpdateContract;
 use crate::domain::contract::CancelAllUnfreezeV2Contract;
 use crate::domain::contract::Contract;
+use crate::domain::contract::ContractArtifact;
+use crate::domain::contract::CreateSmartContract;
 use crate::domain::contract::DelegateResourceContract;
 use crate::domain::contract::FreezeBalanceV2Contract;
 use crate::domain::contract::ResourceCode;
+use crate::domain::contract::SmartContract;
 use crate::domain::contract::TransferContract;
 use crate::domain::contract::TriggerSmartContract;
 use crate::domain::contract::UnDelegateResourceContract;
@@ -819,6 +823,116 @@ where
             owner,
             Trx::ZERO,
             withdraw.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
+    }
+}
+
+pub trait ContractConstructorParam {
+    fn to_vec(&self) -> Vec<u8>;
+}
+
+// Implement for all SolValue types
+impl<T: alloy_sol_types::SolValue> ContractConstructorParam for T {
+    fn to_vec(&self) -> Vec<u8> {
+        self.abi_encode()
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct CreateContract<'a, P, S> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) contract: String,
+    pub(super) params: Vec<&'a dyn ContractConstructorParam>,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) memo: Option<Message>,
+    pub(super) call_token_value: Option<Trx>,
+    pub(super) token_id: Option<i64>,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+    // Consume user's resource percentage. It should be an integer between [0, 100].
+    // If 0, means it does not consume user's resource until the developer's resource has been used up.
+    pub(super) consume_user_resource_percent: i64,
+    // The maximum resource consumption of the creator in one execution or creation.
+    pub(super) origin_energy_limit: i64,
+}
+
+impl<'a, P, S, State: create_contract_builder::IsComplete>
+    CreateContractBuilder<'a, P, S, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+{
+    pub async fn build<M>(self) -> Result<PendingTransaction<'a, P, S, M>> {
+        let create = self.build_internal();
+        let owner = create
+            .owner
+            .or_else(|| create.client.signer.as_ref().and_then(|s| s.address()))
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+        let parsed_contract: ContractArtifact =
+            serde_json::from_str(&create.contract).map_err(|e| {
+                Error::InvalidInput(format!("invalid contract: {e}"))
+            })?;
+
+        let latest_block =
+            create.client.provider.get_now_block().await.unwrap();
+        let mut bytecode = hex::decode(
+            parsed_contract
+                .bytecode
+                .strip_prefix("0x")
+                .unwrap_or(&parsed_contract.bytecode),
+        )
+        .map_err(|e| Error::InvalidInput(format!("invalid bytecode: {e}")))?;
+        let params: Vec<u8> = create
+            .params
+            .into_iter()
+            .map(|p| p.to_vec())
+            .flatten()
+            .collect();
+        bytecode.extend(&params);
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::CreateSmartContract(
+                        CreateSmartContract {
+                            owner_address: owner,
+                            call_token_value: create
+                                .call_token_value
+                                .unwrap_or_default(),
+                            token_id: create.token_id.unwrap_or_default(),
+                            new_contract: SmartContract {
+                                origin_address: owner,
+                                abi: Abi {
+                                    entrys: parsed_contract.abi,
+                                },
+                                bytecode,
+                                consume_user_resource_percent: create
+                                    .consume_user_resource_percent,
+                                name: parsed_contract.contract_name,
+                                origin_energy_limit: create.origin_energy_limit,
+                                code_hash: Default::default(),
+                                trx_hash: Default::default(),
+                                version: Default::default(),
+                                ..Default::default()
+                            },
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            create.memo.unwrap_or_default(),
+        );
+        PendingTransaction::new(
+            create.client,
+            transaction,
+            owner,
+            Trx::ZERO,
+            create.can_spend_trx_for_fee.unwrap_or_default(),
         )
         .await
     }
