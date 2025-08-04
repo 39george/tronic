@@ -85,8 +85,11 @@ where
     ) -> builder::WithdrawUnfreezeBuilder<'_, P, S> {
         builder::WithdrawUnfreeze::with_client(self)
     }
-    pub fn create_contract(&self) -> builder::CreateContractBuilder<'_, P, S> {
-        builder::CreateContract::with_client(self)
+    pub fn create_contract(
+        &self,
+        contract: String,
+    ) -> builder::CreateContractBuilder<'_, P, S> {
+        builder::CreateContract::with_client_and_contract(self, contract)
     }
     pub async fn listener(
         &self,

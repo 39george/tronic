@@ -840,11 +840,12 @@ impl<T: alloy_sol_types::SolValue> ContractConstructorParam for T {
 }
 
 #[derive(bon::Builder)]
-#[builder(start_fn = with_client)]
+#[builder(start_fn = with_client_and_contract)]
 #[builder(finish_fn(vis = "", name = build_internal))]
 pub struct CreateContract<'a, P, S> {
     #[builder(start_fn)]
     pub(super) client: &'a Client<P, S>,
+    #[builder(start_fn)]
     pub(super) contract: String,
     pub(super) params: Vec<&'a dyn ContractConstructorParam>,
     pub(super) owner: Option<TronAddress>,

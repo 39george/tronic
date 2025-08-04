@@ -1,7 +1,3 @@
-#![cfg(not(doctest))]
-
-//! That module contains auto-generated submodules, using tonic-build.
-
 use k256::ecdsa::{RecoveryId, Signature};
 pub use protocol::*;
 use time::OffsetDateTime;
@@ -404,7 +400,11 @@ impl From<domain::transaction::TransactionInfo> for TransactionInfo {
             fee: value.fee.into(),
             block_number: value.block_number,
             block_time_stamp: value.block_time_stamp.to_tron(),
-            contract_result: value.contract_result,
+            contract_result: value
+                .contract_result
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             // TODO: abc
             contract_address: value.contract_address.as_bytes().into(),
             receipt: value.receipt.map(Into::into),
@@ -426,7 +426,7 @@ impl From<domain::transaction::TransactionInfo> for TransactionInfo {
                 .exchange_withdraw_another_amount,
             exchange_id: value.exchange_id,
             shielded_transaction_fee: value.shielded_transaction_fee.into(),
-            order_id: value.order_id,
+            order_id: value.order_id.into(),
             order_details: value
                 .order_details
                 .into_iter()
@@ -451,8 +451,11 @@ impl From<TransactionInfo> for domain::transaction::TransactionInfo {
             fee: value.fee.into(),
             block_number: value.block_number,
             block_time_stamp: OffsetDateTime::from_tron(value.block_time_stamp),
-            contract_result: value.contract_result,
-            // TODO: abc
+            contract_result: value
+                .contract_result
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             contract_address: value
                 .contract_address
                 .as_slice()
@@ -476,7 +479,7 @@ impl From<TransactionInfo> for domain::transaction::TransactionInfo {
                 .exchange_withdraw_another_amount,
             exchange_id: value.exchange_id,
             shielded_transaction_fee: value.shielded_transaction_fee.into(),
-            order_id: value.order_id,
+            order_id: value.order_id.into(),
             order_details: value
                 .order_details
                 .into_iter()

@@ -4,6 +4,7 @@ use derivative::Derivative;
 use time::OffsetDateTime;
 use time::ext::NumericalDuration;
 
+use crate::domain::HexMessage;
 use crate::domain::Message;
 use crate::domain::address::TronAddress;
 use crate::domain::block::BlockExtention;
@@ -161,7 +162,7 @@ pub struct TransactionInfo {
     pub fee: Trx,
     pub block_number: i64,
     pub block_time_stamp: OffsetDateTime,
-    pub contract_result: Vec<Vec<u8>>,
+    pub contract_result: Vec<HexMessage>,
     pub contract_address: TronAddress,
     pub receipt: Option<ResourceReceipt>,
     pub log: Vec<Log>,
@@ -176,7 +177,7 @@ pub struct TransactionInfo {
     pub exchange_withdraw_another_amount: i64,
     pub exchange_id: i64,
     pub shielded_transaction_fee: Trx,
-    pub order_id: Vec<u8>,
+    pub order_id: HexMessage,
     pub order_details: Vec<MarketOrderDetail>,
     pub packing_fee: Trx,
     pub withdraw_expire_amount: i64,
