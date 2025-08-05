@@ -2,7 +2,10 @@ use std::io::{self, Write};
 
 use tronic::{
     client::{Client, pending::ManualSigning},
-    contracts::{token::usdt::Usdt, trc20::Trc20Contract},
+    contracts::{
+        token::usdt::Usdt,
+        trc20::{Trc20Calls, Trc20Contract},
+    },
     domain::address::TronAddress,
     provider::grpc::GrpcProvider,
     signer::LocalSigner,

@@ -1,10 +1,23 @@
 use std::marker::PhantomData;
 
 use alloy_primitives::U256;
+use anyhow::anyhow;
 
 use crate::{
-    contracts::{AbiDecode, token::Token},
-    domain::address::TronAddress,
+    client::{Client, pending::PendingTransaction},
+    contracts::{AbiDecode, AbiEncode, token::Token},
+    domain::{
+        Message,
+        account::AccountStatus,
+        address::TronAddress,
+        contract::{Contract, TriggerSmartContract},
+        transaction::Transaction,
+        trx::Trx,
+    },
+    error::Error,
+    provider::TronProvider,
+    signer::PrehashSigner,
+    trx,
 };
 
 use super::TryFromData;
@@ -315,5 +328,168 @@ impl<T: Token> TryFromData for Trc20Call<T> {
         } else {
             Err("unknown call".into())
         }
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct Trc20Transfer<'a, P, S, T> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) contract: Trc20Contract<T>,
+    pub(super) to: TronAddress,
+    pub(super) amount: T,
+    pub(super) owner: Option<TronAddress>,
+    pub(super) memo: Option<Message>,
+    pub(super) call_value: Option<Trx>,
+    pub(super) call_token_value: Option<Trx>,
+    pub(super) token_id: Option<i64>,
+    pub(super) can_spend_trx_for_fee: Option<bool>,
+}
+
+impl<'a, P, S, T, State: trc20_transfer_builder::IsComplete>
+    Trc20TransferBuilder<'a, P, S, T, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    Error: From<S::Error>,
+    T: Token,
+{
+    pub async fn build<M>(
+        self,
+    ) -> crate::Result<PendingTransaction<'a, P, S, M>> {
+        let transfer = self.build_internal();
+        let owner = transfer
+            .owner
+            .or_else(|| transfer.client.signer_address())
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!("missing owner address"))
+            })?;
+        let call = transfer.contract.transfer(transfer.to, transfer.amount);
+        let contract_address = transfer.contract.address();
+
+        // Check balance
+        {
+            let balance = Trc20BalanceOf::with_client(transfer.client)
+                .contract(transfer.contract)
+                .owner(owner)
+                .get()
+                .await?;
+            if transfer.amount > balance {
+                return Err(Error::InsufficientTokenBalance {
+                    balance: balance.into(),
+                    need: transfer.amount.into(),
+                    token: T::symbol(),
+                });
+            }
+        }
+
+        let latest_block =
+            transfer.client.provider.get_now_block().await.unwrap();
+        let transaction = Transaction::new(
+            Contract {
+                contract_type:
+                    crate::domain::contract::ContractType::TriggerSmartContract(
+                        TriggerSmartContract {
+                            owner_address: owner,
+                            contract_address,
+                            call_value: transfer.call_value.unwrap_or_default(),
+                            data: call.encode().into(),
+                            call_token_value: transfer
+                                .call_token_value
+                                .unwrap_or_default(),
+                            token_id: transfer.token_id.unwrap_or_default(),
+                        },
+                    ),
+                ..Default::default()
+            },
+            &latest_block,
+            transfer.memo.unwrap_or_default(),
+        );
+        let check = transfer.client.check_account(transfer.to).await?;
+        let additional_fee = if matches!(check, AccountStatus::NotExists) {
+            trx!(0.1 TRX)
+        } else {
+            Trx::ZERO
+        };
+        PendingTransaction::new(
+            transfer.client,
+            transaction,
+            owner,
+            additional_fee,
+            transfer.can_spend_trx_for_fee.unwrap_or_default(),
+        )
+        .await
+    }
+}
+
+#[derive(bon::Builder)]
+#[builder(start_fn = with_client)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct Trc20BalanceOf<'a, P, S, T> {
+    #[builder(start_fn)]
+    pub(super) client: &'a Client<P, S>,
+    pub(super) contract: Trc20Contract<T>,
+    pub(super) owner: Option<TronAddress>,
+}
+
+impl<'a, P, S, T, State: trc20_balance_of_builder::IsComplete>
+    Trc20BalanceOfBuilder<'a, P, S, T, State>
+where
+    P: TronProvider,
+    S: PrehashSigner,
+    T: Token,
+{
+    pub async fn get(self) -> crate::Result<T> {
+        let balance_of = self.build_internal();
+        let owner = balance_of
+            .owner
+            .or_else(|| balance_of.client.signer_address())
+            .ok_or_else(|| {
+                Error::Unexpected(anyhow!(
+                    "missing address to check trc20 balance for"
+                ))
+            })?;
+
+        let call = balance_of.contract.balance_of(owner);
+        let trigger = TriggerSmartContract {
+            owner_address: owner,
+            contract_address: balance_of.contract.address(),
+            data: call.encode().into(),
+            ..Default::default()
+        };
+        let mut extention = balance_of
+            .client
+            .provider
+            .trigger_constant_contract(trigger)
+            .await?;
+        let balance = if let Some(result) = extention.constant_result.pop() {
+            if result.len() == 32 {
+                let balance_bytes: [u8; 32] = result.try_into().unwrap(); // We sure in length
+                alloy_primitives::U256::from_be_bytes(balance_bytes)
+            } else {
+                return Err(anyhow!("unexpected constant result length").into());
+            }
+        } else {
+            return Err(anyhow::anyhow!("no constant result returned",).into());
+        };
+
+        Ok(T::from(balance))
+    }
+}
+
+pub trait Trc20Calls<P, S, T> {
+    fn trc20_balance_of(&self) -> Trc20BalanceOfBuilder<'_, P, S, T>;
+    fn trc20_transfer(&self) -> Trc20TransferBuilder<'_, P, S, T>;
+}
+
+impl<P, S, T> Trc20Calls<P, S, T> for Client<P, S> {
+    fn trc20_balance_of(&self) -> Trc20BalanceOfBuilder<'_, P, S, T> {
+        Trc20BalanceOf::with_client(self)
+    }
+
+    fn trc20_transfer(&self) -> Trc20TransferBuilder<'_, P, S, T> {
+        Trc20Transfer::with_client(self)
     }
 }

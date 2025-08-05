@@ -22,6 +22,8 @@ pub struct GrpcProvider {
 impl GrpcProvider {
     pub async fn new(node_uri: Uri, auth: Auth) -> Result<Self> {
         let scheme = node_uri.scheme().cloned();
+
+        #[allow(unused_mut)]
         let mut builder = tonic::transport::Channel::builder(node_uri);
 
         #[cfg(not(feature = "tonic-tls"))]

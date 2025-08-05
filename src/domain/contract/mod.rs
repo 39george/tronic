@@ -1,8 +1,5 @@
 use std::collections::HashMap;
 
-use alloy_primitives::{U8, U256};
-use alloy_sol_types::{SolConstructor, SolValue};
-use alloy_sol_types::{SolType, sol_data};
 use derivative::Derivative;
 use serde::Deserialize;
 use serde::Serialize;

@@ -4,7 +4,6 @@ use anyhow::anyhow;
 use secrecy::SecretString;
 
 use crate::Result;
-use crate::contracts::token::Token;
 use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
@@ -50,16 +49,6 @@ where
     }
     pub fn trx_balance(&self) -> builder::TrxBalanceBuilder<'_, P, S> {
         builder::TrxBalance::with_client(self)
-    }
-    pub fn trc20_balance_of<T: Token>(
-        &self,
-    ) -> builder::Trc20BalanceOfBuilder<'_, P, S, T> {
-        builder::Trc20BalanceOf::with_client(self)
-    }
-    pub fn trc20_transfer<T: Token>(
-        &self,
-    ) -> builder::Trc20TransferBuilder<'_, P, S, T> {
-        builder::Trc20Transfer::with_client(self)
     }
     pub fn read_contract<C>(
         &self,

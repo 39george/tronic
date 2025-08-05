@@ -3,7 +3,7 @@ use std::time::Duration;
 use alloy_primitives::U256;
 use tronic::client::pending::AutoSigning;
 use tronic::contracts::token::usdt::Usdt;
-use tronic::contracts::trc20::Trc20Contract;
+use tronic::contracts::trc20::{Trc20Calls, Trc20Contract};
 use tronic::domain::transaction::TxCode;
 use tronic::provider::TronProvider;
 
