@@ -324,7 +324,6 @@ where
         self.transaction
             .signature
             .push(recoverable_signature.clone());
-
         Ok(recoverable_signature)
     }
     pub async fn broadcast(self) -> Result<Hash32> {
