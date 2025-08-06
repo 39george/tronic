@@ -4,6 +4,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let root_dir = std::env::current_dir().unwrap();
 
+    if env::var("CARGO_CFG_PUBLISHING").is_ok() {
+        return Ok(());
+    }
+
     tonic_prost_build::configure()
         .out_dir(root_dir.join("src/protocol"))
         .build_server(false)
