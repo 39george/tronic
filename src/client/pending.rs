@@ -312,9 +312,9 @@ where
         // Check address contained in permission
         let permission = self.extract_permission().await?;
         if !permission.contains(signing_addr) {
-            return Err(Error::InvalidInput(
-                "address is not in permission".into(),
-            ));
+            return Err(Error::InvalidInput(format!(
+                "{signing_addr} is not in permission"
+            )));
         }
 
         self.transaction.signature.push(recoverable_signature);
