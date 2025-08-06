@@ -324,6 +324,8 @@ where
         self.transaction
             .signature
             .push(recoverable_signature.clone());
+        self.refresh_txid().await?;
+
         Ok(recoverable_signature)
     }
     pub async fn broadcast(self) -> Result<Hash32> {
@@ -334,8 +336,7 @@ where
         self.client
             .provider
             .broadcast_transaction(self.transaction)
-            .await
-            .unwrap();
+            .await?;
         Ok(txid)
     }
     /// Wait for confirmations and get transaction info
