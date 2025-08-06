@@ -32,5 +32,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &["proto/tron", "proto"],
         )
         .unwrap();
+
+    // Delete unused file
+    std::fs::remove_file(root_dir.join("src/protocol/google.api.rs"))?;
+
     Ok(())
 }
