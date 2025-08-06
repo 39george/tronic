@@ -1,5 +1,57 @@
 # Changelog
 
+## [v0.3.1] - 2025-08-06
+
+
+### Bug Fixes
+
+
+- Fix build.rs (264373f)
+
+
+- For cargo publish (d5ecfac)
+
+
+- Refresh txid on transaction signing (manual) (08e6e33)
+
+
+- Regression (399e6b9)
+
+
+
+### Features
+
+
+- Sign method now returns RecoverableSignature (87242e6)
+
+
+
+### Miscellaneous
+
+
+- Update gitignore (6ce7bd5)
+
+
+- Format (cf50e7c)
+
+
+- Bump version (42790b2)
+
+
+
+### Refactor
+
+
+- Add assert for TronAddress test (2a1e44b)
+
+
+
+### Test
+
+
+- Implement new integration test (d3b77ee)
+
+
 ## [v0.3.0] - 2025-08-06
 
 
@@ -78,6 +130,9 @@
 
 
 - Bump tonic & prost versions (cfbb837)
+
+
+- Bump version (7bfdb84)
 
 
 
