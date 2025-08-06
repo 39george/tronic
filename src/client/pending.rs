@@ -7,7 +7,6 @@ use prost::Message;
 use time::OffsetDateTime;
 use time::ext::NumericalDuration;
 
-use crate::domain::Hash32;
 use crate::domain::account::AccountResourceUsage;
 use crate::domain::address::TronAddress;
 use crate::domain::contract::TriggerSmartContract;
@@ -15,6 +14,7 @@ use crate::domain::estimate::{InsufficientResource, Resource, ResourceState};
 use crate::domain::permission::Permission;
 use crate::domain::transaction::{Transaction, TransactionInfo, TxCode};
 use crate::domain::trx::Trx;
+use crate::domain::{Hash32, RecoverableSignature};
 use crate::error;
 use crate::error::Error;
 use crate::provider::TronProvider;
@@ -289,7 +289,11 @@ where
 
         Ok(())
     }
-    pub async fn sign(&mut self, signer: &S, ctx: &S::Ctx) -> Result<()> {
+    pub async fn sign(
+        &mut self,
+        signer: &S,
+        ctx: &S::Ctx,
+    ) -> Result<RecoverableSignature> {
         let txid = &self.txid;
 
         let recoverable_signature = signer.sign_recoverable(txid, ctx).await?;
@@ -317,8 +321,10 @@ where
             )));
         }
 
-        self.transaction.signature.push(recoverable_signature);
-        Ok(())
+        self.transaction
+            .signature
+            .push(recoverable_signature.clone());
+        Ok(recoverable_signature)
     }
     pub async fn broadcast(self) -> Result<Hash32> {
         let txid = self.txid;
