@@ -227,5 +227,6 @@ mod test {
     .unwrap();
         let verifying_key = VerifyingKey::from_sec1_bytes(&bytes).unwrap();
         let tron_addr: Result<TronAddress, _> = (&verifying_key).try_into();
+        assert!(tron_addr.is_ok());
     }
 }
