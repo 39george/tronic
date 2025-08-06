@@ -461,7 +461,7 @@ where
         };
         let mut extention = balance_of
             .client
-            .provider
+            .provider()
             .trigger_constant_contract(trigger)
             .await?;
         let balance = if let Some(result) = extention.constant_result.pop() {
