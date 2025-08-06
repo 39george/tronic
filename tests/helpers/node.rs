@@ -1,4 +1,5 @@
 use k256::ecdsa::SigningKey;
+use tronic::domain::address::TronAddress;
 use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::Command;
@@ -16,6 +17,7 @@ pub struct Node {
     container_name: String,
     grpc_port: u16,
     tx: tokio::sync::mpsc::Sender<tokio::sync::oneshot::Sender<LocalSigner>>,
+    zion_addr: TronAddress,
 }
 
 impl Node {
@@ -93,13 +95,22 @@ impl Node {
         // Wait node to initialize
         std::thread::sleep(Duration::from_secs(10));
 
-        Self { container_name: container_name.into(), grpc_port, tx }
+        Self {
+            container_name: container_name.into(),
+            grpc_port,
+            tx, 
+            zion_addr: LocalSigner::from(SigningKey::from_slice(&hex::decode("da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0").unwrap()).unwrap()).address()
+        }
     }
 
     pub fn grpc_addr(&self) -> http::Uri {
         format!("http://localhost:{}", self.grpc_port)
             .parse()
             .unwrap()
+    }
+
+    pub fn zion_addr(&self) -> TronAddress {
+        self.zion_addr
     }
 
     pub async fn new_account(&self) -> LocalSigner {
