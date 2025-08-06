@@ -324,7 +324,6 @@ where
         self.transaction
             .signature
             .push(recoverable_signature.clone());
-        self.refresh_txid().await?;
 
         Ok(recoverable_signature)
     }
