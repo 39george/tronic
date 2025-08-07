@@ -1,9 +1,12 @@
 use alloy_primitives::U256;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 use super::{Token, TokenError};
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+)]
 pub struct Usdt(U256);
 
 impl Usdt {

@@ -55,7 +55,7 @@ sha3 = "0.10"
 bs58 = { version = "0.5", features = ["check"] }
 alloy-sol-types = "1.2"
 alloy-sol-macro = "1.2"
-alloy-primitives = "1.2"
+alloy-primitives = { version = "1.2", features = ["serde"] }
 rand = "0.9"
 
 # Telemetry
