@@ -5,7 +5,16 @@ use std::fmt;
 use super::{Token, TokenError};
 
 #[derive(
-    Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    Hash,
 )]
 pub struct Usdt(U256);
 
