@@ -219,7 +219,7 @@ impl From<HexMessage> for Vec<u8> {
 }
 
 impl HexMessage {
-    pub fn to_vec(self) -> Vec<u8> {
+    pub fn to_bytes_vec(self) -> Vec<u8> {
         Vec::<u8>::from(self)
     }
 }

@@ -67,8 +67,9 @@ async fn main() -> anyhow::Result<()> {
         TxSubscriber::new(&client, |t: Transaction, txid: Hash32| async move {
             if let Some(c) = t.get_contract() {
                 if let Some(trg) = c.trigger_smart_contract()
-                    && let Ok(trc20) =
-                        Trc20Call::<Usdt>::try_from_data(&trg.data.to_vec())
+                    && let Ok(trc20) = Trc20Call::<Usdt>::try_from_data(
+                        &trg.data.to_bytes_vec(),
+                    )
                 {
                     if let Trc20Call::Transfer(transfer_call) = trc20 {
                         let message = if !t.raw.data.is_empty() {
