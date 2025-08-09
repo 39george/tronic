@@ -33,6 +33,10 @@ impl Usdt {
         Ok(Self(amount))
     }
 
+    pub fn is_wnole(&self) -> bool {
+        self.0 % U256::from(1_000_000) == U256::ZERO
+    }
+
     pub fn to_decimal<T>(&self) -> T
     where
         T: TryFrom<U256> + std::fmt::Debug,
