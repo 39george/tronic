@@ -1,6 +1,8 @@
-use alloy_primitives::U256;
-use serde::{Deserialize, Serialize};
 use std::fmt;
+
+use alloy_primitives::U256;
+use derive_more::{Add, AddAssign, Div, Mul, Sub, Sum};
+use serde::{Deserialize, Serialize};
 
 use super::{Token, TokenError};
 
@@ -15,6 +17,12 @@ use super::{Token, TokenError};
     Serialize,
     Deserialize,
     Hash,
+    Add,
+    AddAssign,
+    Div,
+    Mul,
+    Sub,
+    Sum,
 )]
 pub struct Usdt(U256);
 
