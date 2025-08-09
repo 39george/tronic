@@ -31,6 +31,14 @@ impl Usdt {
         Ok(Self(amount))
     }
 
+    pub fn to_decimal<T>(&self) -> T
+    where
+        U256: alloy_primitives::ruint::UintTryTo<T>,
+        T: std::fmt::Debug,
+    {
+        self.0.to()
+    }
+
     pub fn checked_add(self, other: Self) -> Option<Self> {
         self.0.checked_add(other.0).map(Self)
     }
