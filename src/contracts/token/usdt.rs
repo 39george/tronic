@@ -33,7 +33,7 @@ impl Usdt {
         Ok(Self(amount))
     }
 
-    pub fn is_wnole(&self) -> bool {
+    pub fn is_whole(&self) -> bool {
         self.0 % U256::from(1_000_000) == U256::ZERO
     }
 
