@@ -33,10 +33,10 @@ impl Usdt {
 
     pub fn to_decimal<T>(&self) -> T
     where
-        U256: alloy_primitives::ruint::UintTryTo<T>,
-        T: std::fmt::Debug,
+        T: TryFrom<U256> + std::fmt::Debug,
+        <T as TryFrom<alloy_primitives::Uint<256, 4>>>::Error: std::fmt::Debug,
     {
-        self.0.to()
+        T::try_from(self.0).expect("failed to build decimal from Usdt")
     }
 
     pub fn checked_add(self, other: Self) -> Option<Self> {
