@@ -19,6 +19,8 @@ use super::{Token, TokenError};
 pub struct Usdt(U256);
 
 impl Usdt {
+    pub const ZERO: Usdt = Usdt(U256::ZERO);
+
     /// Creates USDT from human-readable decimal amount
     pub fn from_decimal(value: f64) -> Result<Self, TokenError> {
         let micro_usdt = (value * 1_000_000.0).round(); // 6 decimals
