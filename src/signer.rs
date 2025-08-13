@@ -41,6 +41,9 @@ impl LocalSigner {
             .try_into()
             .expect("valid key must produce Tron address")
     }
+    pub fn secret_key(&self) -> [u8; 32] {
+        self.signing_key.to_bytes().to_vec().try_into().unwrap()
+    }
 }
 
 impl From<SigningKey> for LocalSigner {
