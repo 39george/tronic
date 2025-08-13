@@ -24,6 +24,8 @@ use super::{Token, TokenError};
     Sub,
     Sum,
 )]
+#[mul(forward)]
+#[div(forward)]
 pub struct Usdt(U256);
 
 impl Usdt {
