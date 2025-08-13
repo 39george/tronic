@@ -129,6 +129,6 @@ macro_rules! usdt {
             .expect("Invalid USDT amount")
     }};
     ($val:literal MICRO_USDT) => {
-        $crate::contracts::token::usdt::Usdt(U256::from($val))
+        $crate::contracts::token::usdt::Usdt::from($val)
     };
 }
