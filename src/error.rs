@@ -24,8 +24,10 @@ pub enum Error {
     TronProtocol(#[from] tonic::Status),
     #[error("transaction failed with: {0}")]
     FailedTransaction(String, Option<ContractResult>),
-    #[error("transport error: {0}")]
-    Transport(#[from] tonic::transport::Error),
+    #[error("grpc transport error: {0}")]
+    GrpcTransport(#[from] tonic::transport::Error),
+    #[error("http transport error: {0}")]
+    HttpTransport(#[from] reqwest::Error),
     #[error("bad header: {0}")]
     BadHeader(#[from] http::header::InvalidHeaderName),
     #[error("bad header value: {0}")]

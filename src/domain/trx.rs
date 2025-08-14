@@ -1,6 +1,7 @@
 use std::fmt;
 
 use derive_more::{Add, AddAssign, Div, Mul, Sub, Sum};
+use serde::{Deserialize, Serialize};
 
 #[derive(
     Default,
@@ -16,6 +17,8 @@ use derive_more::{Add, AddAssign, Div, Mul, Sub, Sum};
     Mul,
     Sum,
     Div,
+    Serialize,
+    Deserialize,
 )]
 pub struct Trx(i64);
 

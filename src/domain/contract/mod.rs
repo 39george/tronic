@@ -12,6 +12,7 @@ use super::HexMessage;
 use super::Message;
 
 pub mod methods;
+pub mod ser;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 #[repr(i32)]

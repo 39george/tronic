@@ -2,6 +2,7 @@ use std::ops::Deref;
 
 use anyhow::{Context, anyhow};
 use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
+use serde::{Deserialize, Serialize};
 
 use crate::domain::address::TronAddress;
 
@@ -231,7 +232,7 @@ impl Deref for HexMessage {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Message(String);
 
 impl From<Vec<u8>> for Message {

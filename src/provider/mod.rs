@@ -7,6 +7,7 @@ use crate::domain::trx::Trx;
 use crate::domain::{self, Hash32};
 
 pub mod grpc;
+pub mod http;
 
 #[async_trait::async_trait]
 pub trait TronProvider {

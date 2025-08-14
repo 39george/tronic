@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use derivative::Derivative;
+use serde::Deserialize;
+use serde::Serialize;
 use time::OffsetDateTime;
 use time::ext::NumericalDuration;
 
@@ -63,36 +65,38 @@ pub struct TransactionResult {
     pub cancel_unfreeze_v2_amount: HashMap<String, i64>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AccountId {
     pub name: Message,
     pub address: TronAddress,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Authority {
     pub account: AccountId,
     pub permission_name: Message,
 }
 
-#[derive(Derivative, Debug, Clone, PartialEq)]
+#[derive(Derivative, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[derivative(Default)]
 pub struct RawTransaction {
     pub ref_block_bytes: RefBlockBytes,
     pub ref_block_num: i64,
     pub ref_block_hash: RefBlockHash,
     #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    #[serde(with = "time::serde::timestamp::milliseconds")]
     pub expiration: OffsetDateTime,
     pub data: Message,
     pub contract: Vec<Contract>,
     pub scripts: Vec<u8>,
     #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
+    #[serde(with = "time::serde::timestamp::milliseconds")]
     pub timestamp: OffsetDateTime,
     pub fee_limit: Trx,
     pub auths: Vec<Authority>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Transaction {
     pub raw: RawTransaction,
     pub signature: Vec<RecoverableSignature>,
