@@ -204,7 +204,7 @@ define_fixed_hash!(AccountStateRoot, 32, "32-byte root hash of account state");
 define_fixed_hash!(TxTrieRoot, 32, "32-byte transaction trie root");
 define_fixed_hash!(ParentHash, 32, "32-byte parent block hash");
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HexMessage(String);
 
 impl From<Vec<u8>> for HexMessage {

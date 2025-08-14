@@ -2,6 +2,7 @@ use crate::contracts::AbiEncode;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::domain::{self, Hash32};
+use crate::provider::TronProvider;
 use crate::{Result, client::Auth};
 use anyhow::Context;
 use http::HeaderName;
@@ -15,12 +16,12 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 #[derive(Clone)]
-pub struct RestProvider {
+pub struct HttpProvider {
     client: Client,
     base: Url,
 }
 
-impl RestProvider {
+impl HttpProvider {
     pub fn new(base: Url, auth: Auth) -> Result<Self> {
         let mut headers = HeaderMap::new();
         if let Auth::Bearer { name, secret } = auth {
@@ -75,7 +76,7 @@ impl RestProvider {
 }
 
 #[async_trait::async_trait]
-pub trait TronProvider {
+impl TronProvider for HttpProvider {
     async fn trasnfer_contract(
         &self,
         owner: TronAddress,
@@ -99,7 +100,13 @@ pub trait TronProvider {
         &self,
         transaction: domain::transaction::Transaction,
     ) -> Result<()> {
-        todo!()
+        let () = self
+            .post_json(
+                "wallet/broadcasttransaction",
+                &serde_json::json!({"raw_data": transaction.raw}),
+            )
+            .await?;
+        Ok(())
     }
     async fn estimate_energy(
         &self,

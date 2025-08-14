@@ -96,7 +96,7 @@ pub struct RawTransaction {
     pub auths: Vec<Authority>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Transaction {
     pub raw: RawTransaction,
     pub signature: Vec<RecoverableSignature>,

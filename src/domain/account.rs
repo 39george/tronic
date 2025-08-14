@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use derivative::Derivative;
+use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 use crate::domain::contract::ResourceCode;
@@ -9,7 +10,7 @@ use crate::domain::{address::TronAddress, trx::Trx};
 use super::Message;
 use super::permission::Permission;
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AccountType {
     #[default]
     Normal = 0,
