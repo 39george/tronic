@@ -172,9 +172,9 @@ macro_rules! define_fixed_hash {
                 })
             }
         }
-        impl TryFrom<&str> for $name {
-            type Error = String;
-            fn try_from(value: &str) -> Result<Self, Self::Error> {
+        impl std::str::FromStr for $name {
+            type Err = String;
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
                 hex::decode(value).map_err(|e| e.to_string())?.try_into()
             }
         }

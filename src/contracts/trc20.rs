@@ -57,36 +57,36 @@ pub mod Trc20 {
     }
 
     macro_rules! generate_trc20_structs {
-    // Handle non-generic structs
-    ($($name:ident { $($field:ident: $ty:ty),+ }),+) => {
-        $(
-            #[derive(Clone, Debug)]
-            pub struct $name {
-                $(pub $field: $ty),+
-            }
-        )+
-    };
-    // Handle generic structs
-    ($($name:ident<$generic:ident> { $($field:ident: $ty:ty),+ }),+) => {
-        $(
-            #[derive(Clone, Debug)]
-            pub struct $name<$generic> {
-                $(pub $field: $ty),+
-            }
-        )+
-    };
-    // Mixed case (both generic and non-generic)
-    ($(
-        $name:ident $(<$generic:ident>)? { $($field:ident: $ty:ty),+ }
-    ),+) => {
-        $(
-            #[derive(Clone, Debug)]
-            pub struct $name $(<$generic>)? {
-                $(pub $field: $ty),+
-            }
-        )+
-    };
-}
+        // Handle non-generic structs
+        ($($name:ident { $($field:ident: $ty:ty),+ }),+) => {
+            $(
+                #[derive(Clone, Debug)]
+                pub struct $name {
+                    $(pub $field: $ty),+
+                }
+            )+
+        };
+        // Handle generic structs
+        ($($name:ident<$generic:ident> { $($field:ident: $ty:ty),+ }),+) => {
+            $(
+                #[derive(Clone, Debug)]
+                pub struct $name<$generic> {
+                    $(pub $field: $ty),+
+                }
+            )+
+        };
+        // Mixed case (both generic and non-generic)
+        ($(
+            $name:ident $(<$generic:ident>)? { $($field:ident: $ty:ty),+ }
+        ),+) => {
+            $(
+                #[derive(Clone, Debug)]
+                pub struct $name $(<$generic>)? {
+                    $(pub $field: $ty),+
+                }
+            )+
+        };
+    }
 
     // Usage with generic parameters
     generate_trc20_structs! {
@@ -99,55 +99,55 @@ pub mod Trc20 {
 
     // Macro for non-generic types
     macro_rules! impl_from_erc20 {
-    ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
-        impl From<$erc20_type> for $trc20_type {
-            fn from(call: $erc20_type) -> Self {
-                $trc20_type {
-                    $($field: call.$field.into()),+
+        ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
+            impl From<$erc20_type> for $trc20_type {
+                fn from(call: $erc20_type) -> Self {
+                    $trc20_type {
+                        $($field: call.$field.into()),+
+                    }
                 }
             }
-        }
-    };
-}
+        };
+    }
 
     // Macro for non-generic types (reverse direction)
     macro_rules! impl_from_trc20 {
-    ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
-        impl From<$trc20_type> for $erc20_type {
-            fn from(call: $trc20_type) -> Self {
-                $erc20_type {
-                    $($field: call.$field.into()),+
+        ($trc20_type:ident, $erc20_type:path { $($field:ident),+ }) => {
+            impl From<$trc20_type> for $erc20_type {
+                fn from(call: $trc20_type) -> Self {
+                    $erc20_type {
+                        $($field: call.$field.into()),+
+                    }
                 }
             }
-        }
-    };
-}
+        };
+    }
 
     // Macro for generic types (ERC20 → TRC20)
     macro_rules! impl_from_erc20_generic {
-    ($trc20_type:ident<$generic:ident>, $erc20_type:path { $($field:ident),+ }) => {
-        impl<$generic: From<U256>> From<$erc20_type> for $trc20_type<$generic> {
-            fn from(call: $erc20_type) -> Self {
-                $trc20_type {
-                    $($field: call.$field.into()),+
+        ($trc20_type:ident<$generic:ident>, $erc20_type:path { $($field:ident),+ }) => {
+            impl<$generic: From<U256>> From<$erc20_type> for $trc20_type<$generic> {
+                fn from(call: $erc20_type) -> Self {
+                    $trc20_type {
+                        $($field: call.$field.into()),+
+                    }
                 }
             }
-        }
-    };
-}
+        };
+    }
 
     // Macro for generic types (TRC20 → ERC20)
     macro_rules! impl_from_trc20_generic {
-    ($trc20_type:ident<$generic:ident>, $erc20_type:path { $($field:ident),+ }) => {
-        impl<$generic: Into<U256>> From<$trc20_type<$generic>> for $erc20_type {
-            fn from(call: $trc20_type<$generic>) -> Self {
-                $erc20_type {
-                    $($field: call.$field.into()),+
+        ($trc20_type:ident<$generic:ident>, $erc20_type:path { $($field:ident),+ }) => {
+            impl<$generic: Into<U256>> From<$trc20_type<$generic>> for $erc20_type {
+                fn from(call: $trc20_type<$generic>) -> Self {
+                    $erc20_type {
+                        $($field: call.$field.into()),+
+                    }
                 }
             }
-        }
-    };
-}
+        };
+    }
 
     // Implement conversions for non-generic structs
     impl_from_erc20!(balanceOfCall, Erc20::balanceOfCall { account });
