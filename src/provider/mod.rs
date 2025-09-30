@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
-use crate::Result;
 use crate::contracts::AbiEncode;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::domain::{self, Hash32};
+use crate::Result;
 
 pub mod grpc;
+#[cfg(feature = "mock-provider")]
+pub mod mock;
 
 #[async_trait::async_trait]
 pub trait TronProvider {

@@ -15,6 +15,7 @@ exclude = ["/.github", "/.gitignore", "/examples", "/target", "Makefile", "*.sh"
 
 [features]
 tonic-tls = ["tonic/tls-native-roots", "tonic/_tls-any", "dep:rustls"]
+mock-provider = []
 
 [dependencies]
 # Base dependencies
