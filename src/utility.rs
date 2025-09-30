@@ -39,6 +39,7 @@ impl TronOffsetDateTime for time::OffsetDateTime {
 }
 
 pub fn generate_txid(raw_data: &[u8]) -> Hash32 {
-    let hash: [u8; 32] = Sha256::digest(raw_data).into();
+    let digest = Sha256::digest(raw_data);
+    let hash: [u8; 32] = digest.into();
     hash.into()
 }
