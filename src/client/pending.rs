@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 use std::time::Duration;
 
+use alloy_primitives::TxHash;
 use anyhow::Context;
 use futures::StreamExt;
 use prost::Message;
@@ -213,6 +214,22 @@ where
     pub fn transaction(&self) -> Transaction {
         self.transaction.clone()
     }
+    /// Expiration is limited to 24 hours
+    pub async fn set_expiration(
+        mut self,
+        expiration: time::Duration,
+    ) -> Result<Self> {
+        let timestamp = self.transaction.raw.timestamp;
+        let new_expiration = timestamp.saturating_add(expiration);
+        if new_expiration > timestamp.saturating_add(24.hours()) {
+            return Err(Error::InvalidInput(
+                "expiration is limited to 24 hours".into(),
+            ));
+        }
+        self.transaction.raw.expiration = new_expiration;
+        self.refresh_txid().await?;
+        Ok(self)
+    }
 }
 
 impl<'a, P, S> PendingTransaction<'a, P, S, AutoSigning>
@@ -326,6 +343,54 @@ where
             .push(recoverable_signature.clone());
         Ok(recoverable_signature)
     }
+    /// Signs a raw transaction hash using an external signing function without performing
+    /// standard validation checks.
+    ///
+    /// This method is specifically designed for custom signing scenarios where:
+    /// - The signature is generated externally (e.g., through MPC protocol)
+    /// - You need to bypass standard permission and signature validation
+    /// - You want to inject a pre-computed signature into the transaction
+    ///
+    /// # Security Notes
+    ///
+    /// ⚠️ **USE WITH CAUTION**: This method skips critical security validations:
+    /// - Does not verify the signer has permission to sign this transaction
+    /// - Does not check for duplicate signatures from the same address
+    /// - Does not validate signature recovery against transaction permissions
+    ///
+    /// Only use this method when you have performed these validations externally
+    /// and are confident in the signing process (e.g., in MPC protocols).
+    ///
+    /// # Parameters
+    ///
+    /// * `signer` - The verifying key that will be used to validate signature recovery
+    /// * `with` - Async closure that receives the transaction hash and returns a signature
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The signature recovery fails
+    /// - The external signing function returns an error
+    pub async fn sign_raw_tx_unchecked<F, Fut>(
+        &mut self,
+        signer: k256::ecdsa::VerifyingKey,
+        with: F,
+    ) -> Result<()>
+    where
+        F: FnOnce(Hash32) -> Fut,
+        Fut: Future<Output = Result<k256::ecdsa::Signature>>,
+    {
+        let signature = with(self.txid()).await?;
+        let recovery_id = k256::ecdsa::RecoveryId::trial_recovery_from_prehash(
+            &signer,
+            self.txid().as_ref(),
+            &signature,
+        )?;
+        let signature = RecoverableSignature::new(signature, recovery_id);
+
+        self.transaction.signature.push(signature);
+        Ok(())
+    }
     pub async fn broadcast(self) -> Result<Hash32> {
         let txid = self.txid;
 
@@ -350,22 +415,6 @@ where
         let client = self.client.to_owned();
         let txid = self.broadcast().await?;
         transaction_receipt(confirmations, client, txid).await
-    }
-    /// Expiration is limited to 24 hours
-    pub async fn expiration(
-        &mut self,
-        expiration: time::Duration,
-    ) -> Result<()> {
-        let timestamp = self.transaction.raw.timestamp;
-        let new_expiration = timestamp.saturating_add(expiration);
-        if new_expiration > timestamp.saturating_add(24.hours()) {
-            return Err(Error::InvalidInput(
-                "expiration is limited to 24 hours".into(),
-            ));
-        }
-        self.transaction.raw.expiration = new_expiration;
-        self.refresh_txid().await?;
-        Ok(())
     }
     pub fn serialize(&self) -> Vec<u8> {
         let transaction = protocol::Transaction::from(self.transaction.clone())

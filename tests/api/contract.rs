@@ -27,6 +27,9 @@ async fn deploy_trc20_contract() {
         .build::<AutoSigning>()
         .await
         .unwrap()
+        .set_expiration(time::Duration::seconds(100))
+        .await
+        .unwrap()
         .broadcast(&())
         .await
         .unwrap();
