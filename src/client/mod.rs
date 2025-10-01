@@ -3,13 +3,13 @@ use std::time::Duration;
 use anyhow::anyhow;
 use secrecy::SecretString;
 
-use crate::Result;
 use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::listener::ListenerHandle;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
+use crate::Result;
 
 use builder::PermissionHandler;
 

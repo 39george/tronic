@@ -4,8 +4,8 @@ use std::time::Duration;
 use anyhow::Context;
 use futures::StreamExt;
 use prost::Message;
-use time::OffsetDateTime;
 use time::ext::NumericalDuration;
+use time::OffsetDateTime;
 
 use crate::domain::account::AccountResourceUsage;
 use crate::domain::address::TronAddress;
@@ -20,8 +20,8 @@ use crate::error::Error;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
 use crate::utility::generate_txid;
-use crate::{Result, protocol, utility};
 use crate::{domain, trx};
+use crate::{protocol, utility, Result};
 
 use super::Client;
 
@@ -384,7 +384,7 @@ where
     }
     pub fn try_deserialize(
         client: &'a Client<P, S>,
-        data: Vec<u8>,
+        data: &[u8],
     ) -> Option<Self> {
         // Minimum data length: 32 (txid) + 21 (address) + 8 (Trx) + 1 (min protobuf)
         if data.len() < 62 {

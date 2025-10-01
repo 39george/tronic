@@ -6,7 +6,7 @@ use tronic::domain::transaction::TxCode;
 use tronic::provider::TronProvider;
 use tronic::trx;
 
-use crate::helpers::{NODE, Tronic};
+use crate::helpers::{Tronic, NODE};
 
 #[tokio::test]
 async fn multisig_trx_transfer() {
@@ -59,7 +59,7 @@ async fn multisig_trx_transfer() {
     tx.set_permission(2).await.unwrap();
     let tx = tx.serialize();
 
-    let mut tx = PendingTransaction::try_deserialize(&tronic, tx).unwrap();
+    let mut tx = PendingTransaction::try_deserialize(&tronic, &tx).unwrap();
     tx.sign(tronic.signer(), &()).await.unwrap();
     tx.sign(&multisig_participant, &()).await.unwrap();
 
