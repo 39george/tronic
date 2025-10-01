@@ -371,7 +371,7 @@ where
     /// Returns an error if:
     /// - The signature recovery fails
     /// - The external signing function returns an error
-    pub async fn sign_raw_tx_unchecked<F, Fut>(
+    pub async fn sign_tx_unchecked<F, Fut>(
         &mut self,
         signer: k256::ecdsa::VerifyingKey,
         with: F,
