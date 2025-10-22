@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 use std::time::Duration;
 
-use alloy_primitives::TxHash;
 use anyhow::Context;
 use futures::StreamExt;
 use prost::Message;

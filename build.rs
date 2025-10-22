@@ -8,6 +8,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
+    if env::var("CARGO_MANIFEST_DIR").is_err() {
+        return Ok(());
+    }
+
     tonic_prost_build::configure()
         .out_dir(root_dir.join("src/protocol"))
         .build_server(false)

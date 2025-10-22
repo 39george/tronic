@@ -72,6 +72,11 @@ impl Usdt {
     }
 
     /// Returns the amount as a decimal string without trailing zeros
+    pub fn to_decimal(&self) -> f64 {
+        todo!()
+    }
+
+    /// Returns the amount as a decimal string without trailing zeros
     pub fn to_decimal_string(&self) -> String {
         let divisor = U256::from(10).pow(U256::from(Self::decimals()));
         let integer = self.0 / divisor;
