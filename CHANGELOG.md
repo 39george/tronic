@@ -1,6 +1,15 @@
 # Changelog
 
-## [0.3.3] - 2025-10-22
+## [0.3.4] - 2025-10-22
+
+
+### Bug Fixes
+
+
+- Build.rs (66aa79e)
+
+
+## [v0.3.3] - 2025-10-22
 
 
 ### Bug Fixes
@@ -69,6 +78,9 @@
 
 
 - Update release.toml (19a71ed)
+
+
+- Release (f3535b7)
 
 
 
