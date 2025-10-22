@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.2] - 2025-10-22
+## [0.3.3] - 2025-10-22
 
 
 ### Bug Fixes
@@ -63,6 +63,12 @@
 
 
 - Do not use protoc when used as dep (2a6d8cd)
+
+
+- {{crate_name}} v{{version}} (b96ada5)
+
+
+- Update release.toml (19a71ed)
 
 
 
