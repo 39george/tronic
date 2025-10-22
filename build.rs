@@ -4,11 +4,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let root_dir = std::env::current_dir().unwrap();
 
-    if env::var("CARGO_CFG_PUBLISHING").is_ok() {
+    if env::var_os("CARGO_PRIMARY_PACKAGE").is_none() {
+        println!(
+            "cargo:warning=tronic: skipping proto codegen (building as dependency)"
+        );
         return Ok(());
     }
 
-    if env::var("CARGO_MANIFEST_DIR").is_err() {
+    if !env::var_os("TRONIC_REGEN_PROTO").is_some() {
+        println!(
+            "cargo:warning=tronic: build-proto is disabled; using pre-generated files"
+        );
         return Ok(());
     }
 
