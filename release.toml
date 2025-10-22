@@ -3,9 +3,10 @@ consolidate-commits = true
 push = true
 publish = true
 
-pre-release-commit-message = "chore(release): {{crate_name}} v{{version}}"
-tag-name    = "{{prefix}}{{version}}"
-tag-message = "chore(release): {{crate_name}} v{{version}}"
+pre-release-commit-message = "chore: Release"
+tag-name    = "{{prefix}}v{{version}}"
+tag-message = "chore: Release {{crate_name}} version {{version}}"
+# sign-tag    = true
 
 # Generate CHANGELOG for the new tag; cliff will put a version section by itself
 pre-release-hook = ["git", "cliff", "-o", "CHANGELOG.md", "--tag", "{{version}}"]
