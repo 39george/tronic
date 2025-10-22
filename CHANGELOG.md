@@ -1,5 +1,99 @@
 # Changelog
 
+## [0.3.2] - 2025-10-22
+
+
+### Bug Fixes
+
+
+- Fix to_decimal impl (93ce801)
+
+
+- Typo (eaf3454)
+
+
+- Fix macro (8c9bd70)
+
+
+- Fix mul/div derive (d355fe1)
+
+
+
+### Features
+
+
+- Add serde derive for usdt (c313766)
+
+
+- Make usdt Hash (5cffe01)
+
+
+- Implement to_decimal conversion for usdt type (530aecb)
+
+
+- Add ZERO const (116e89e)
+
+
+- Add is_wnole method (0fa8a74)
+
+
+- Add from<T> impl (1ffa3a6)
+
+
+- Add arithmetic derives (4f2507e)
+
+
+- Couple helper methods (d4fa3df)
+
+
+- Implement mock provider (3a05737)
+
+
+- Add sign_raw_tx_unchecked method for PendingTransaction (4ad743a)
+
+
+- Add release.toml (32d9f0a)
+
+
+
+### Miscellaneous
+
+
+- Update changelog (ae90e09)
+
+
+- Do not use protoc when used as dep (2a6d8cd)
+
+
+
+### Ci
+
+
+- Update release.toml (82b42e0)
+
+
+
+### Refactor
+
+
+- Rename to_vec to to_bytes_vec (b81329d)
+
+
+- Format (21dc10d)
+
+
+- Use FromStr instead of TryFrom<&str> for hashes (fd60768)
+
+
+- More verbose txid from digest (fa5764e)
+
+
+- Use &[u8] for try_deserialize PendingTransaction (39ea54a)
+
+
+- Rename sign_raw_tx_unchecked to sign_tx_unchecked (2a2099d)
+
+
 ## [v0.3.1] - 2025-08-06
 
 
