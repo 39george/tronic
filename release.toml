@@ -1,0 +1,22 @@
+allow-branch = ["main"]
+consolidate-commits = true
+push   = true         # Push commits & tags
+publish = true        # Run cargo publish
+
+# Commit & tag
+pre-release-commit-message = "chore(release): {{crate_name}} v{{version}}"
+tag-name    = "{{prefix}}{{version}}"
+tag-message = "chore(release): {{crate_name}} v{{version}}"
+
+# Generate CHANGELOG for a new tag before the commit & tag
+pre-release-hook = ["git", "cliff", "-o", "CHANGELOG.md", "--tag", "{{version}}"]
+
+# Update CHANGELOG for `Keep a Changelog` schema
+# Create version record, date, ref diff and a new Unreleased block
+pre-release-replacements = [
+  { file="CHANGELOG.md", search="Unreleased",      replace="{{version}}",       min=1 },
+  { file="CHANGELOG.md", search="\\.\\.\\.HEAD",   replace="...{{tag_name}}",   exactly=1 },
+  { file="CHANGELOG.md", search="ReleaseDate",     replace="{{date}}",          min=1 },
+  { file="CHANGELOG.md", search="<!-- next-header -->", replace="<!-- next-header -->\n## [Unreleased] - ReleaseDate\n", exactly=1 },
+]
+
