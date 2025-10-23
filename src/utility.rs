@@ -28,12 +28,22 @@ impl TronOffsetDateTime for time::OffsetDateTime {
         (self.unix_timestamp_nanos() / 1_000_000) as i64
     }
     fn try_from_tron(tm: i64) -> Result<Self, time::error::ComponentRange> {
-        time::OffsetDateTime::from_unix_timestamp_nanos(tm as i128 * 1_000_000)
-            .inspect_err(|e| {
-                tracing::debug!(
-                    "failed to create OffsetDateTime from unix_timestamp: {e}, got value: {tm}"
-                )
-            })
+        let abs = (tm as i128).abs() as i128;
+        let ns = if abs <= 253_402_300_799 {
+            // secs
+            (tm as i128) * 1_000_000_000
+        } else if abs <= 253_402_300_799_000 {
+            // millis
+            (tm as i128) * 1_000_000
+        } else if abs <= 253_402_300_799_000_000 {
+            // micros
+            (tm as i128) * 1_000
+        } else {
+            // nanos
+            tm as i128
+        };
+
+        time::OffsetDateTime::from_unix_timestamp_nanos(ns)
     }
 }
 

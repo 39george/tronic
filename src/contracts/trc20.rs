@@ -385,8 +385,7 @@ where
             }
         }
 
-        let latest_block =
-            transfer.client.provider.get_now_block().await.unwrap();
+        let latest_block = transfer.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:

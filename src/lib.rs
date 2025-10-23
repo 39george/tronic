@@ -1,4 +1,6 @@
 #![allow(clippy::result_large_err)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
 // #![feature(error_generic_member_access)]
 
 #[allow(warnings)]
