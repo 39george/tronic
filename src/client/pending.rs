@@ -1,11 +1,12 @@
+use std::array::TryFromSliceError;
 use std::marker::PhantomData;
 use std::time::Duration;
 
 use anyhow::Context;
 use futures::StreamExt;
 use prost::Message;
-use time::ext::NumericalDuration;
 use time::OffsetDateTime;
+use time::ext::NumericalDuration;
 
 use crate::domain::account::AccountResourceUsage;
 use crate::domain::address::TronAddress;
@@ -20,8 +21,8 @@ use crate::error::Error;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
 use crate::utility::generate_txid;
+use crate::{Result, protocol, utility};
 use crate::{domain, trx};
-use crate::{protocol, utility, Result};
 
 use super::Client;
 
@@ -433,10 +434,13 @@ where
     pub fn try_deserialize(
         client: &'a Client<P, S>,
         data: &[u8],
-    ) -> Option<Self> {
+    ) -> Result<Self> {
         // Minimum data length: 32 (txid) + 21 (address) + 8 (Trx) + 1 (min protobuf)
         if data.len() < 62 {
-            return None;
+            return Err(Error::InvalidInput(format!(
+                "min data length is 62, got {}",
+                data.len()
+            )));
         }
 
         let (txid_bytes, remaining) = data.split_at(32);
@@ -444,18 +448,24 @@ where
         let (fee_bytes, remaining) = remaining.split_at(8);
         let (can_spend_byte, transaction_data) = remaining.split_at(1);
 
-        let txid: Hash32 = txid_bytes.try_into().ok()?;
-        let owner =
-            TronAddress::new(*<&[u8; 21]>::try_from(address_bytes).ok()?)
-                .ok()?;
-        let additional_fee =
-            i64::from_le_bytes(fee_bytes.try_into().ok()?).into();
+        let txid: Hash32 =
+            txid_bytes.try_into().map_err(Error::InvalidInput)?;
+        let owner = TronAddress::new(
+            *<&[u8; 21]>::try_from(address_bytes)
+                .map_err(|e| Error::InvalidInput(e.to_string()))?,
+        )?;
+        let additional_fee = i64::from_le_bytes(fee_bytes.try_into().map_err(
+            |e: TryFromSliceError| Error::InvalidInput(e.to_string()),
+        )?)
+        .into();
         let can_spend_trx_for_fee = can_spend_byte[0] != 0;
 
         let transaction: domain::transaction::Transaction =
-            protocol::Transaction::decode(transaction_data).ok()?.into();
+            protocol::Transaction::decode(transaction_data)?
+                .try_into()
+                .map_err(Error::ProtoConv)?;
 
-        Some(Self {
+        Ok(Self {
             client,
             txid,
             owner,

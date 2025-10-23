@@ -20,21 +20,20 @@ pub fn estimate_bandwidth(
 
 pub trait TronOffsetDateTime: Sized {
     fn to_tron(&self) -> i64;
-    fn from_tron(_: i64) -> Self;
+    fn try_from_tron(_: i64) -> Result<Self, time::error::ComponentRange>;
 }
 
 impl TronOffsetDateTime for time::OffsetDateTime {
     fn to_tron(&self) -> i64 {
         (self.unix_timestamp_nanos() / 1_000_000) as i64
     }
-    fn from_tron(tm: i64) -> Self {
+    fn try_from_tron(tm: i64) -> Result<Self, time::error::ComponentRange> {
         time::OffsetDateTime::from_unix_timestamp_nanos(tm as i128 * 1_000_000)
             .inspect_err(|e| {
-                tracing::error!(
-                    "failed to create OffsetDateTime from unix_timestamp: {e}"
+                tracing::debug!(
+                    "failed to create OffsetDateTime from unix_timestamp: {e}, got value: {tm}"
                 )
             })
-            .unwrap_or(time::OffsetDateTime::UNIX_EPOCH)
     }
 }
 

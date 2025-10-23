@@ -108,7 +108,7 @@ impl crate::provider::TronProvider for GrpcProvider {
                 )
             )))
         } else {
-            Ok(txext.into())
+            Ok(txext.try_into()?)
         }
     }
     async fn trigger_smart_contract<A: AbiEncode + Send>(
@@ -130,7 +130,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             .await
             .map(|r| r.into_inner())?;
         Self::return_to_result(reply.result.clone())?;
-        Ok(reply.into())
+        Ok(reply.try_into()?)
     }
     async fn broadcast_transaction(
         &self,
@@ -163,7 +163,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             ..Default::default()
         };
         let account: domain::account::Account =
-            node.get_account(account).await?.into_inner().into();
+            node.get_account(account).await?.into_inner().try_into()?;
         Ok(account)
     }
     async fn get_account_resources(
@@ -190,7 +190,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             .await
             .map(|r| r.into_inner())?;
         Self::return_to_result(txext.result.clone())?;
-        Ok(txext.into())
+        Ok(txext.try_into()?)
     }
     async fn get_now_block(&self) -> Result<domain::block::BlockExtention> {
         let mut node = self.wallet_client();
@@ -198,7 +198,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             .get_now_block2(protocol::EmptyMessage::default())
             .await?
             .into_inner();
-        Ok(now_block.into())
+        Ok(now_block.try_into()?)
     }
     async fn account_permission_update(
         &self,
@@ -210,7 +210,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         let txext =
             node.account_permission_update(contract).await?.into_inner();
         Self::return_to_result(txext.result.clone())?;
-        Ok(txext.into())
+        Ok(txext.try_into()?)
     }
     async fn get_transaction_by_id(
         &self,
@@ -221,7 +221,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             .get_transaction_by_id(protocol::BytesMessage::from(txid))
             .await?
             .into_inner();
-        Ok(transaction.into())
+        Ok(transaction.try_into()?)
     }
     async fn get_transaction_info(
         &self,
@@ -232,7 +232,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             .get_transaction_info_by_id(protocol::BytesMessage::from(txid))
             .await?
             .into_inner();
-        Ok(transaction.into())
+        Ok(transaction.try_into()?)
     }
     async fn chain_parameters(&self) -> Result<HashMap<String, i64>> {
         let mut node = WalletClient::new(self.channel.clone());
@@ -254,7 +254,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         let contract: protocol::FreezeBalanceV2Contract = contract.into();
         let txext = node.freeze_balance_v2(contract).await?.into_inner();
         Self::return_to_result(txext.result.clone())?;
-        Ok(txext.into())
+        Ok(txext.try_into()?)
     }
     async fn unfreeze_balance(
         &self,
@@ -264,7 +264,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         let contract: protocol::UnfreezeBalanceV2Contract = contract.into();
         let txext = node.unfreeze_balance_v2(contract).await?.into_inner();
         Self::return_to_result(txext.result.clone())?;
-        Ok(txext.into())
+        Ok(txext.try_into()?)
     }
     async fn get_reward(&self, address: TronAddress) -> Result<Trx> {
         let mut node = WalletClient::new(self.channel.clone());
@@ -290,7 +290,10 @@ impl crate::provider::TronProvider for GrpcProvider {
             .await?
             .into_inner()
             .delegated_resource;
-        Ok(list.into_iter().map(Into::into).collect())
+        Ok(list
+            .into_iter()
+            .map(TryInto::<domain::account::DelegatedResource>::try_into)
+            .collect::<std::result::Result<Vec<_>, _>>()?)
     }
     async fn get_delegated_resource_account(
         &self,
@@ -303,7 +306,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             })
             .await?
             .into_inner();
-        Ok(index.into())
+        Ok(index.try_into()?)
     }
 }
 

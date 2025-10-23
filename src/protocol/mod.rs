@@ -4,8 +4,8 @@ use time::OffsetDateTime;
 
 use crate::{
     domain::{
-        self, Hash32, RecoverableSignature, address::TronAddress,
-        permission::Ops,
+        self, Hash32, RecoverableSignature, RefBlockBytes, RefBlockHash,
+        address::TronAddress, permission::Ops,
     },
     impl_enum_conversions,
     utility::TronOffsetDateTime,
@@ -21,6 +21,18 @@ pub mod contracts_conversions;
 //     tonic::include_file_descriptor_set!("tron_protocol_descriptor");
 
 // ────────────────────────────── Transaction ─────────────────────────────── //
+
+#[derive(Debug, thiserror::Error)]
+pub enum ProtoConvError {
+    #[error("missing field {0}")]
+    Missing(&'static str),
+    #[error("invalid ref_block_bytes length: got {got}, expected 2")]
+    BadRefBlockBytes { got: usize },
+    #[error("invalid ref_block_hash length: got {got}, expected 8")]
+    BadRefBlockHash { got: usize },
+    #[error("bad timestamp: {0}")]
+    IncorrectTimestamp(#[from] time::error::ComponentRange),
+}
 
 impl From<Hash32> for BytesMessage {
     fn from(value: Hash32) -> Self {
@@ -166,20 +178,34 @@ impl From<domain::transaction::TransactionResult> for transaction::Result {
     }
 }
 
-impl From<transaction::Raw> for domain::transaction::RawTransaction {
-    fn from(mut r: transaction::Raw) -> Self {
-        domain::transaction::RawTransaction {
-            ref_block_bytes: r.ref_block_bytes.try_into().unwrap(),
+impl TryFrom<transaction::Raw> for domain::transaction::RawTransaction {
+    type Error = ProtoConvError;
+    fn try_from(mut r: transaction::Raw) -> Result<Self, Self::Error> {
+        let ref_block_bytes: RefBlockBytes =
+            r.ref_block_bytes.as_slice().try_into().map_err(|_| {
+                ProtoConvError::BadRefBlockBytes {
+                    got: r.ref_block_bytes.len(),
+                }
+            })?;
+        let ref_block_hash: RefBlockHash =
+            r.ref_block_hash.as_slice().try_into().map_err(|_| {
+                ProtoConvError::BadRefBlockHash {
+                    got: r.ref_block_hash.len(),
+                }
+            })?;
+
+        Ok(domain::transaction::RawTransaction {
+            ref_block_bytes,
             ref_block_num: r.ref_block_num,
-            ref_block_hash: r.ref_block_hash.try_into().unwrap_or_default(),
-            expiration: OffsetDateTime::from_tron(r.expiration),
+            ref_block_hash,
+            expiration: OffsetDateTime::try_from_tron(r.expiration)?,
             data: r.data.into(),
             contract: r.contract.into_iter().map(Into::into).collect(),
             scripts: r.scripts,
-            timestamp: OffsetDateTime::from_tron(r.timestamp),
+            timestamp: OffsetDateTime::try_from_tron(r.timestamp)?,
             fee_limit: r.fee_limit.into(),
             auths: r.auths.into_iter().map(Into::into).collect(),
-        }
+        })
     }
 }
 
@@ -200,10 +226,13 @@ impl From<domain::transaction::RawTransaction> for transaction::Raw {
     }
 }
 
-impl From<Transaction> for domain::transaction::Transaction {
-    fn from(t: Transaction) -> Self {
-        domain::transaction::Transaction {
-            raw: t.raw_data.unwrap_or_default().into(),
+impl TryFrom<Transaction> for domain::transaction::Transaction {
+    type Error = ProtoConvError;
+
+    fn try_from(t: Transaction) -> Result<Self, Self::Error> {
+        let raw = t.raw_data.ok_or(ProtoConvError::Missing("raw_data"))?;
+        Ok(Self {
+            raw: raw.try_into()?, // ← пропагируем проверку длины
             signature: t
                 .signature
                 .into_iter()
@@ -211,9 +240,9 @@ impl From<Transaction> for domain::transaction::Transaction {
                     TryInto::<RecoverableSignature>::try_into(s.as_slice())
                 })
                 .collect::<Result<_, _>>()
-                .unwrap(),
+                .map_err(|_| ProtoConvError::Missing("signature"))?,
             result: t.ret.into_iter().map(Into::into).collect(),
-        }
+        })
     }
 }
 
@@ -227,15 +256,22 @@ impl From<domain::transaction::Transaction> for Transaction {
     }
 }
 
-impl From<TransactionExtention> for domain::transaction::TransactionExtention {
-    fn from(txext: TransactionExtention) -> Self {
-        domain::transaction::TransactionExtention {
-            transaction: txext.transaction.map(Into::into),
+impl TryFrom<TransactionExtention>
+    for domain::transaction::TransactionExtention
+{
+    type Error = ProtoConvError;
+
+    fn try_from(txext: TransactionExtention) -> Result<Self, Self::Error> {
+        Ok(domain::transaction::TransactionExtention {
+            transaction: txext
+                .transaction
+                .map(TryInto::try_into)
+                .transpose()?,
             txid: txext.txid.try_into().unwrap_or_default(),
             constant_result: txext.constant_result,
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
-        }
+        })
     }
 }
 
@@ -443,14 +479,17 @@ impl From<domain::transaction::TransactionInfo> for TransactionInfo {
     }
 }
 
-impl From<TransactionInfo> for domain::transaction::TransactionInfo {
-    fn from(value: TransactionInfo) -> Self {
-        domain::transaction::TransactionInfo {
+impl TryFrom<TransactionInfo> for domain::transaction::TransactionInfo {
+    type Error = ProtoConvError;
+    fn try_from(value: TransactionInfo) -> Result<Self, Self::Error> {
+        Ok(domain::transaction::TransactionInfo {
             result: value.result().into(),
             id: value.id.try_into().unwrap_or_default(),
             fee: value.fee.into(),
             block_number: value.block_number,
-            block_time_stamp: OffsetDateTime::from_tron(value.block_time_stamp),
+            block_time_stamp: OffsetDateTime::try_from_tron(
+                value.block_time_stamp,
+            )?,
             contract_result: value
                 .contract_result
                 .into_iter()
@@ -492,7 +531,7 @@ impl From<TransactionInfo> for domain::transaction::TransactionInfo {
                 .into_iter()
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
-        }
+        })
     }
 }
 
@@ -561,12 +600,13 @@ impl From<crate::domain::permission::Permission> for Permission {
     }
 }
 
-impl From<account::Frozen> for crate::domain::account::Frozen {
-    fn from(f: account::Frozen) -> Self {
-        Self {
+impl TryFrom<account::Frozen> for crate::domain::account::Frozen {
+    type Error = ProtoConvError;
+    fn try_from(f: account::Frozen) -> Result<Self, Self::Error> {
+        Ok(Self {
             frozen_balance: domain::trx::Trx::from(f.frozen_balance),
-            expire_time: OffsetDateTime::from_tron(f.expire_time),
-        }
+            expire_time: OffsetDateTime::try_from_tron(f.expire_time)?,
+        })
     }
 }
 
@@ -597,15 +637,16 @@ impl From<crate::domain::account::FreezeV2> for account::FreezeV2 {
     }
 }
 
-impl From<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
-    fn from(f: account::UnFreezeV2) -> Self {
-        Self {
+impl TryFrom<account::UnFreezeV2> for crate::domain::account::UnFreezeV2 {
+    type Error = ProtoConvError;
+    fn try_from(f: account::UnFreezeV2) -> Result<Self, Self::Error> {
+        Ok(Self {
             unfreeze_type: f.r#type().into(),
             unfreeze_amount: f.unfreeze_amount.into(),
-            unfreeze_expire_time: OffsetDateTime::from_tron(
+            unfreeze_expire_time: OffsetDateTime::try_from_tron(
                 f.unfreeze_expire_time,
-            ),
-        }
+            )?,
+        })
     }
 }
 
@@ -638,16 +679,18 @@ impl From<crate::domain::account::Vote> for Vote {
     }
 }
 
-impl From<account::AccountResource> for domain::account::AccountResource {
-    fn from(r: account::AccountResource) -> Self {
-        Self {
+impl TryFrom<account::AccountResource> for domain::account::AccountResource {
+    type Error = ProtoConvError;
+    fn try_from(r: account::AccountResource) -> Result<Self, Self::Error> {
+        Ok(Self {
             energy_usage: r.energy_usage,
             frozen_balance_for_energy: r
                 .frozen_balance_for_energy
-                .map(Into::into),
-            latest_consume_time_for_energy: OffsetDateTime::from_tron(
+                .map(TryInto::try_into)
+                .transpose()?,
+            latest_consume_time_for_energy: OffsetDateTime::try_from_tron(
                 r.latest_consume_time_for_energy,
-            ),
+            )?,
             acquired_delegated_frozen_balance_for_energy: r
                 .acquired_delegated_frozen_balance_for_energy
                 .into(),
@@ -664,7 +707,7 @@ impl From<account::AccountResource> for domain::account::AccountResource {
                 .acquired_delegated_frozen_v2_balance_for_energy
                 .into(),
             energy_window_optimized: r.energy_window_optimized,
-        }
+        })
     }
 }
 
@@ -722,9 +765,10 @@ impl From<AccountResourceMessage> for domain::account::AccountResourceUsage {
     }
 }
 
-impl From<Account> for domain::account::Account {
-    fn from(a: Account) -> Self {
-        Self {
+impl TryFrom<Account> for domain::account::Account {
+    type Error = ProtoConvError;
+    fn try_from(a: Account) -> Result<Self, Self::Error> {
+        Ok(Self {
             account_type: a.r#type().into(),
             account_name: a.account_name.into(),
             address: a.address.as_slice().try_into().unwrap_or_default(),
@@ -732,7 +776,11 @@ impl From<Account> for domain::account::Account {
             votes: a.votes.into_iter().map(Into::into).collect(),
             asset: a.asset,
             asset_v2: a.asset_v2,
-            frozen: a.frozen.into_iter().map(Into::into).collect(),
+            frozen: a
+                .frozen
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             net_usage: a.net_usage,
             acquired_delegated_frozen_balance_for_bandwidth: a
                 .acquired_delegated_frozen_balance_for_bandwidth
@@ -741,24 +789,24 @@ impl From<Account> for domain::account::Account {
                 .delegated_frozen_balance_for_bandwidth
                 .into(),
             old_tron_power: a.old_tron_power,
-            tron_power: a.tron_power.map(Into::into),
+            tron_power: a.tron_power.map(TryInto::try_into).transpose()?,
             asset_optimized: a.asset_optimized,
-            create_time: OffsetDateTime::from_tron(a.create_time),
-            latest_opration_time: OffsetDateTime::from_tron(
+            create_time: OffsetDateTime::try_from_tron(a.create_time)?,
+            latest_opration_time: OffsetDateTime::try_from_tron(
                 a.latest_opration_time,
-            ),
+            )?,
             allowance: a.allowance,
-            latest_withdraw_time: OffsetDateTime::from_tron(
+            latest_withdraw_time: OffsetDateTime::try_from_tron(
                 a.latest_withdraw_time,
-            ),
+            )?,
             code: a.code,
             is_witness: a.is_witness,
             is_committee: a.is_committee,
             frozen_supply: a
                 .frozen_supply
                 .into_iter()
-                .map(Into::into)
-                .collect(),
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             asset_issued_name: a.asset_issued_name,
             asset_issued_id: a.asset_issued_id,
             latest_asset_operation_time: a.latest_asset_operation_time,
@@ -766,18 +814,19 @@ impl From<Account> for domain::account::Account {
             free_net_usage: a.free_net_usage,
             free_asset_net_usage: a.free_asset_net_usage,
             free_asset_net_usage_v2: a.free_asset_net_usage_v2,
-            latest_consume_time: OffsetDateTime::from_tron(
+            latest_consume_time: OffsetDateTime::try_from_tron(
                 a.latest_consume_time,
-            ),
-            latest_consume_free_time: OffsetDateTime::from_tron(
+            )?,
+            latest_consume_free_time: OffsetDateTime::try_from_tron(
                 a.latest_consume_free_time,
-            ),
+            )?,
             account_id: a.account_id,
             net_window_size: a.net_window_size,
             net_window_optimized: a.net_window_optimized,
             account_resource: a
                 .account_resource
-                .map(Into::into)
+                .map(TryInto::try_into)
+                .transpose()?
                 .unwrap_or_default(),
             code_hash: a.code_hash,
             owner_permission: a
@@ -791,14 +840,18 @@ impl From<Account> for domain::account::Account {
                 .map(Into::into)
                 .collect(),
             frozen_v2: a.frozen_v2.into_iter().map(Into::into).collect(),
-            unfrozen_v2: a.unfrozen_v2.into_iter().map(Into::into).collect(),
+            unfrozen_v2: a
+                .unfrozen_v2
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             delegated_frozen_v2_balance_for_bandwidth: a
                 .delegated_frozen_v2_balance_for_bandwidth
                 .into(),
             acquired_delegated_frozen_v2_balance_for_bandwidth: a
                 .acquired_delegated_frozen_v2_balance_for_bandwidth
                 .into(),
-        }
+        })
     }
 }
 
@@ -868,11 +921,14 @@ impl From<domain::account::Account> for Account {
     }
 }
 
-impl From<DelegatedResourceAccountIndex>
+impl TryFrom<DelegatedResourceAccountIndex>
     for domain::account::DelegatedResourceAccountIndex
 {
-    fn from(value: DelegatedResourceAccountIndex) -> Self {
-        domain::account::DelegatedResourceAccountIndex {
+    type Error = ProtoConvError;
+    fn try_from(
+        value: DelegatedResourceAccountIndex,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::account::DelegatedResourceAccountIndex {
             account: value.account.as_slice().try_into().unwrap_or_default(),
             from_accounts: value
                 .from_accounts
@@ -884,8 +940,8 @@ impl From<DelegatedResourceAccountIndex>
                 .into_iter()
                 .map(|a| a.as_slice().try_into().unwrap_or_default())
                 .collect(),
-            timestamp: OffsetDateTime::from_tron(value.timestamp),
-        }
+            timestamp: OffsetDateTime::try_from_tron(value.timestamp)?,
+        })
     }
 }
 
@@ -910,22 +966,23 @@ impl From<domain::account::DelegatedResourceAccountIndex>
     }
 }
 
-impl From<DelegatedResource> for domain::account::DelegatedResource {
-    fn from(value: DelegatedResource) -> Self {
-        domain::account::DelegatedResource {
+impl TryFrom<DelegatedResource> for domain::account::DelegatedResource {
+    type Error = ProtoConvError;
+    fn try_from(value: DelegatedResource) -> Result<Self, Self::Error> {
+        Ok(domain::account::DelegatedResource {
             from: value.from.as_slice().try_into().unwrap_or_default(),
             to: value.to.as_slice().try_into().unwrap_or_default(),
             frozen_balance_for_bandwidth: value
                 .frozen_balance_for_bandwidth
                 .into(),
             frozen_balance_for_energy: value.frozen_balance_for_energy.into(),
-            expire_time_for_bandwidth: OffsetDateTime::from_tron(
+            expire_time_for_bandwidth: OffsetDateTime::try_from_tron(
                 value.expire_time_for_bandwidth,
-            ),
-            expire_time_for_energy: OffsetDateTime::from_tron(
+            )?,
+            expire_time_for_energy: OffsetDateTime::try_from_tron(
                 value.expire_time_for_energy,
-            ),
-        }
+            )?,
+        })
     }
 }
 
@@ -948,10 +1005,11 @@ impl From<domain::account::DelegatedResource> for DelegatedResource {
 
 // ───────────────────────────────── Block ────────────────────────────────── //
 
-impl From<block_header::Raw> for domain::block::RawBlockHeader {
-    fn from(p: block_header::Raw) -> Self {
-        Self {
-            timestamp: OffsetDateTime::from_tron(p.timestamp),
+impl TryFrom<block_header::Raw> for domain::block::RawBlockHeader {
+    type Error = ProtoConvError;
+    fn try_from(p: block_header::Raw) -> Result<Self, Self::Error> {
+        Ok(Self {
+            timestamp: OffsetDateTime::try_from_tron(p.timestamp)?,
             tx_trie_root: p.tx_trie_root.try_into().unwrap_or_default(),
             parent_hash: p.parent_hash.try_into().unwrap_or_default(),
             number: p.number,
@@ -963,7 +1021,7 @@ impl From<block_header::Raw> for domain::block::RawBlockHeader {
                 .account_state_root
                 .try_into()
                 .unwrap_or_default(),
-        }
+        })
     }
 }
 
@@ -982,16 +1040,20 @@ impl From<domain::block::RawBlockHeader> for block_header::Raw {
     }
 }
 
-impl From<BlockHeader> for domain::block::BlockHeader {
-    fn from(p: BlockHeader) -> Self {
-        Self {
-            raw_data: p.raw_data.unwrap_or_default().into(),
+impl TryFrom<BlockHeader> for domain::block::BlockHeader {
+    type Error = ProtoConvError;
+    fn try_from(p: BlockHeader) -> Result<Self, Self::Error> {
+        Ok(Self {
+            raw_data: p
+                .raw_data
+                .map(TryInto::try_into)
+                .ok_or(ProtoConvError::Missing("raw block header"))??,
             witness_signature: p
                 .witness_signature
                 .as_slice()
                 .try_into()
                 .expect("failed to build recoverable signature from bytes"),
-        }
+        })
     }
 }
 
@@ -1004,12 +1066,17 @@ impl From<domain::block::BlockHeader> for BlockHeader {
     }
 }
 
-impl From<Block> for domain::block::Block {
-    fn from(p: Block) -> Self {
-        Self {
-            transactions: p.transactions.into_iter().map(Into::into).collect(),
-            block_header: p.block_header.map(Into::into),
-        }
+impl TryFrom<Block> for domain::block::Block {
+    type Error = ProtoConvError;
+    fn try_from(p: Block) -> Result<Self, Self::Error> {
+        Ok(Self {
+            transactions: p
+                .transactions
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+            block_header: p.block_header.map(TryInto::try_into).transpose()?,
+        })
     }
 }
 
@@ -1022,13 +1089,21 @@ impl From<domain::block::Block> for Block {
     }
 }
 
-impl From<BlockExtention> for domain::block::BlockExtention {
-    fn from(p: BlockExtention) -> Self {
-        Self {
-            transactions: p.transactions.into_iter().map(Into::into).collect(),
-            block_header: p.block_header.unwrap_or_default().into(),
+impl TryFrom<BlockExtention> for domain::block::BlockExtention {
+    type Error = ProtoConvError;
+    fn try_from(p: BlockExtention) -> Result<Self, Self::Error> {
+        Ok(Self {
+            transactions: p
+                .transactions
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+            block_header: p
+                .block_header
+                .ok_or(ProtoConvError::Missing("block header"))?
+                .try_into()?,
             blockid: p.blockid.try_into().unwrap_or_default(),
-        }
+        })
     }
 }
 

@@ -6,6 +6,7 @@ use crate::domain::estimate::ResourceState;
 use crate::domain::transaction::TxCode;
 use crate::domain::trx::Trx;
 use crate::domain::{Hash32, Message};
+use crate::protocol::ProtoConvError;
 use crate::protocol::transaction::result::ContractResult;
 
 #[derive(thiserror::Error)]
@@ -28,6 +29,8 @@ pub enum Error {
     Transport(#[from] tonic::transport::Error),
     #[error("bad header: {0}")]
     BadHeader(#[from] http::header::InvalidHeaderName),
+    #[error("failed to decode proto: {0}")]
+    Decode(#[from] prost::DecodeError),
     #[error("bad header value: {0}")]
     BadHeaderValue(#[from] http::header::InvalidHeaderValue),
     #[error("signature failure: {0}")]
@@ -65,6 +68,8 @@ pub enum Error {
     },
     #[error("transaction was not confirmed within the expected time")]
     TransactionTimeout,
+    #[error("failed to convert protocol to rust datatype: {0}")]
+    ProtoConv(#[from] ProtoConvError),
 }
 
 crate::impl_debug!(Error);

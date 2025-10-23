@@ -72,8 +72,9 @@ impl From<AssetIssueContract> for domain::contract::AssetIssueContract {
             trx_num: (value.trx_num as i64).into(),
             precision: value.precision,
             num: value.num,
-            start_time: OffsetDateTime::from_tron(value.start_time),
-            end_time: OffsetDateTime::from_tron(value.end_time),
+            start_time: OffsetDateTime::try_from_tron(value.start_time)
+                .unwrap(),
+            end_time: OffsetDateTime::try_from_tron(value.end_time).unwrap(),
             order: value.order,
             vote_score: value.vote_score,
             description: value.description.into(),
@@ -81,9 +82,10 @@ impl From<AssetIssueContract> for domain::contract::AssetIssueContract {
             free_asset_net_limit: value.free_asset_net_limit,
             public_free_asset_net_limit: value.public_free_asset_net_limit,
             public_free_asset_net_usage: value.public_free_asset_net_usage,
-            public_latest_free_net_time: OffsetDateTime::from_tron(
+            public_latest_free_net_time: OffsetDateTime::try_from_tron(
                 value.public_latest_free_net_time,
-            ),
+            )
+            .unwrap(),
         }
     }
 }
@@ -530,7 +532,7 @@ impl From<BlockBalanceTrace> for domain::contract::BlockBalanceTrace {
     fn from(value: BlockBalanceTrace) -> Self {
         domain::contract::BlockBalanceTrace {
             block_identifier: value.block_identifier.unwrap_or_default().into(),
-            timestamp: OffsetDateTime::from_tron(value.timestamp),
+            timestamp: OffsetDateTime::try_from_tron(value.timestamp).unwrap(),
             transaction_balance_trace: value
                 .transaction_balance_trace
                 .into_iter()
