@@ -1,12 +1,28 @@
 # Changelog
 
-## [0.3.4] - 2025-10-22
+## [0.3.5] - 2025-10-23
+
+
+### Bug Fixes
+
+
+- Use TryFrom instead of From for critical protocol type conversions closes #2 (ac6a3d0)
+
+
+## [v0.3.4] - 2025-10-22
 
 
 ### Bug Fixes
 
 
 - Build.rs (66aa79e)
+
+
+
+### Miscellaneous
+
+
+- Release (afa4145)
 
 
 ## [v0.3.3] - 2025-10-22
