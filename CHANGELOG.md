@@ -1,12 +1,28 @@
 # Changelog
 
-## [0.3.5] - 2025-10-23
+## [0.4.0] - 2025-10-24
+
+
+### Features
+
+
+- Support sec,millis,micros,nanos unix ts from blockchain (64c2887)
+
+
+## [v0.3.5] - 2025-10-23
 
 
 ### Bug Fixes
 
 
 - Use TryFrom instead of From for critical protocol type conversions closes #2 (ac6a3d0)
+
+
+
+### Miscellaneous
+
+
+- Release (7f3fc53)
 
 
 ## [v0.3.4] - 2025-10-22
