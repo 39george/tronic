@@ -26,7 +26,8 @@ impl Tronic {
         let signer: LocalSigner = acc.into();
         let client = Client::builder()
             .provider(
-                GrpcProvider::new(node.grpc_addr(), tronic::client::Auth::None)
+                GrpcProvider::builder()
+                    .connect(node.grpc_addr())
                     .await
                     .unwrap(),
             )

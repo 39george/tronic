@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::time::Duration;
 
 use anyhow::anyhow;
+use bon::Builder;
 use http::Uri;
 
 use crate::Result;
@@ -15,16 +17,33 @@ use crate::protocol::wallet_client::WalletClient;
 use crate::provider::grpc::middleware::auth_channel;
 
 #[derive(Clone)]
-pub struct GrpcProvider {
-    channel: middleware::AuthChannel,
+pub struct RateLimit {
+    pub limit: u64,
+    pub duration: Duration,
 }
 
-impl GrpcProvider {
-    pub async fn new(node_uri: Uri, auth: Auth) -> Result<Self> {
-        let scheme = node_uri.scheme().cloned();
+#[derive(Clone, Builder)]
+#[builder(finish_fn(vis = "", name = build_internal))]
+pub struct ConnectOptions {
+    #[builder(into)]
+    pub auth: Option<Auth>,
+
+    #[builder(into)]
+    pub rate_limit: Option<RateLimit>,
+}
+
+impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
+    pub async fn connect(self, uri: impl AsRef<str>) -> Result<GrpcProvider> {
+        let uri: Uri = uri.as_ref().parse()?;
+        let opts = self.build_internal();
+        let scheme = uri.scheme().cloned();
 
         #[allow(unused_mut)]
-        let mut builder = tonic::transport::Channel::builder(node_uri);
+        let mut builder = tonic::transport::Channel::builder(uri);
+
+        if let Some(RateLimit { limit, duration }) = opts.rate_limit {
+            builder = builder.rate_limit(limit, duration);
+        }
 
         #[cfg(not(feature = "tonic-tls"))]
         if scheme.is_some_and(|s| s.eq(&http::uri::Scheme::HTTPS)) {
@@ -45,15 +64,28 @@ impl GrpcProvider {
         let channel = builder.connect().await?;
         let channel = auth_channel(
             channel,
-            match auth {
-                Auth::Bearer { name, secret } => Some(middleware::BHAuth {
-                    bearer_name: name.parse()?,
-                    bearer_secret: secret,
-                }),
-                Auth::None => None,
+            match opts.auth {
+                Some(Auth::Bearer { name, secret }) => {
+                    Some(middleware::BHAuth {
+                        bearer_name: name.parse()?,
+                        bearer_secret: secret,
+                    })
+                }
+                None => None,
             },
         );
-        Ok(Self { channel })
+        Ok(GrpcProvider { channel })
+    }
+}
+
+#[derive(Clone)]
+pub struct GrpcProvider {
+    channel: middleware::AuthChannel,
+}
+
+impl GrpcProvider {
+    pub fn builder() -> ConnectOptionsBuilder {
+        ConnectOptions::builder()
     }
     fn wallet_client(&self) -> WalletClient<middleware::AuthChannel> {
         WalletClient::new(self.channel.clone())

@@ -65,10 +65,8 @@ impl Node {
 
                 let signing_key = SigningKey::from_slice(&hex::decode("da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0").unwrap()).unwrap();
 
-                let provider = GrpcProvider::new(
-                    format!("http://localhost:{}", grpc_port).parse().unwrap(),
-                    tronic::client::Auth::None,
-                ).await.unwrap();
+                let provider = GrpcProvider::builder().connect(
+                    format!("http://localhost:{}", grpc_port)).await.unwrap();
                 
                 let zion = Client::builder()
                     .provider(provider)
@@ -103,10 +101,8 @@ impl Node {
         }
     }
 
-    pub fn grpc_addr(&self) -> http::Uri {
+    pub fn grpc_addr(&self) -> String {
         format!("http://localhost:{}", self.grpc_port)
-            .parse()
-            .unwrap()
     }
 
     pub fn zion_addr(&self) -> TronAddress {

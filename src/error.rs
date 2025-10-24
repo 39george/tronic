@@ -29,6 +29,8 @@ pub enum Error {
     Transport(#[from] tonic::transport::Error),
     #[error("bad header: {0}")]
     BadHeader(#[from] http::header::InvalidHeaderName),
+    #[error("invalid uri: {0}")]
+    InvalidUri(#[from] http::uri::InvalidUri),
     #[error("failed to decode proto: {0}")]
     Decode(#[from] prost::DecodeError),
     #[error("bad header value: {0}")]

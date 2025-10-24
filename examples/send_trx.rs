@@ -28,11 +28,9 @@ async fn main() -> anyhow::Result<()> {
     // Create client
     let client = Client::builder()
         .provider(
-            GrpcProvider::new(
-                "http://grpc.nile.trongrid.io:50051".parse()?,
-                tronic::client::Auth::None,
-            )
-            .await?,
+            GrpcProvider::builder()
+                .connect("http://grpc.trongrid.io:50051")
+                .await?,
         )
         .signer(signer)
         .build();
