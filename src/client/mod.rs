@@ -22,7 +22,7 @@ pub enum Auth {
 }
 
 #[derive(bon::Builder, Clone)]
-pub struct Client<P, S = LocalSigner> {
+pub struct Client<P, S> {
     pub(crate) provider: P,
     signer: Option<S>,
 }
