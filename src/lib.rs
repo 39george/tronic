@@ -3,6 +3,8 @@
 #![deny(clippy::expect_used)]
 // #![feature(error_generic_member_access)]
 
+pub use provider::RateLimit;
+
 #[allow(warnings)]
 pub(crate) mod protocol;
 

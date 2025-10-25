@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::Duration;
 
 use anyhow::anyhow;
 use bon::Builder;
@@ -16,12 +15,6 @@ use crate::protocol;
 use crate::protocol::wallet_client::WalletClient;
 use crate::provider::grpc::middleware::auth_channel;
 
-#[derive(Clone)]
-pub struct RateLimit {
-    pub limit: u64,
-    pub duration: Duration,
-}
-
 #[derive(Clone, Builder)]
 #[builder(finish_fn(vis = "", name = build_internal))]
 pub struct ConnectOptions {
@@ -29,7 +22,7 @@ pub struct ConnectOptions {
     pub auth: Option<Auth>,
 
     #[builder(into)]
-    pub rate_limit: Option<RateLimit>,
+    pub rate_limit: Option<super::RateLimit>,
 }
 
 impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
@@ -41,7 +34,7 @@ impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
         #[allow(unused_mut)]
         let mut builder = tonic::transport::Channel::builder(uri);
 
-        if let Some(RateLimit { limit, duration }) = opts.rate_limit {
+        if let Some(super::RateLimit { limit, duration }) = opts.rate_limit {
             builder = builder.rate_limit(limit, duration);
         }
 

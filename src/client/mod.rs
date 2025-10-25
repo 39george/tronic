@@ -9,7 +9,7 @@ use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::listener::ListenerHandle;
 use crate::provider::TronProvider;
-use crate::signer::PrehashSigner;
+use crate::signer::{LocalSigner, PrehashSigner};
 
 use builder::PermissionHandler;
 
@@ -22,7 +22,7 @@ pub enum Auth {
 }
 
 #[derive(bon::Builder, Clone)]
-pub struct Client<P, S> {
+pub struct Client<P, S = LocalSigner> {
     pub(crate) provider: P,
     signer: Option<S>,
 }
