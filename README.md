@@ -9,33 +9,33 @@
 
 ---
 
-## ✨ Features
+## Features
 
 ### Core Infrastructure
-- 🧱 **Typed Smart Contract Calls** — Powered by `alloy-sol-types` macros for compile-time safety
-- 📡 **Dual Protocol Support** — Both gRPC (via `tonic`) and JSON-RPC providers (WIP)
-- 🔐 **Pluggable Signers** — Local, or custom async signing backends
-- ⚡ **Async-First** — Built on Tokio for high-performance blockchain interaction
+-  **Typed Smart Contract Calls** — Powered by `alloy-sol-types` macros for compile-time safety
+-  **Dual Protocol Support** — Both gRPC (via `tonic`) and JSON-RPC providers (WIP)
+-  **Pluggable Signers** — Local, or custom async signing backends
+-  **Async-First** — Built on Tokio for high-performance blockchain interaction
 
 ### Account Management
-- 🔑 **Multi-Signature Support** — Complete workflow for threshold signatures
-- 🏦 **Permission Management** — Modify account permissions programmatically
-- ❄️ **Resource Delegation** — Handle bandwidth/energy freezing/unfreezing (WIP)
+-  **Multi-Signature Support** — Complete workflow for threshold signatures
+-  **Permission Management** — Modify account permissions programmatically
+-  **Resource Delegation** — Handle bandwidth/energy freezing/unfreezing (WIP)
 
 ### Smart Contract Interaction
-- 📝 **TRC-20** — Type-safe token transfers with `alloy`-style builders
-- 📜 **Contract ABI Codegen** — Generate types from Solidity ABIs (need to implement a wrapper by hand currently)
-- 🔍 **Event Filtering** — Rich event subscription and historical querying
-- 🧮 **Transaction Estimation** — Precise energy & bandwidth calculation with fallback modes
+-  **TRC-20** — Type-safe token transfers with `alloy`-style builders
+-  **Contract ABI Codegen** — Generate types from Solidity ABIs (need to implement a wrapper by hand currently)
+-  **Event Filtering** — Rich event subscription and historical querying
+-  **Transaction Estimation** — Precise energy & bandwidth calculation with fallback modes
 
 ### Advanced Transaction Features
-- 🚦 **Transaction Batching** — Group multiple operations atomically (WIP)
-- ⏱️ **Deadline Handling** — Automatic/manual transaction expiration management
+-  **Transaction Batching** — Group multiple operations atomically (WIP)
+-  **Deadline Handling** — Automatic/manual transaction expiration management
 
 ---
 
 
-## 🚀 Quickstart
+## Quickstart
 
 ```rust
 use tronic::client::Client;
@@ -69,7 +69,7 @@ let txid = client
     .await?;
 ```
 
-## 📖 Learn by Example
+## Learn by Example
 
 Explore practical usage scenarios in our [examples directory](https://github.com/39george/tronic/tree/main/examples):
 
