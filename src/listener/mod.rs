@@ -1,15 +1,20 @@
-use futures::{Stream, StreamExt};
+use futures::stream::FuturesOrdered;
+use futures::{Stream, StreamExt, TryStreamExt};
+use std::collections::VecDeque;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::time::{Duration, sleep};
 
+use crate::Result;
 use crate::client::Client;
 use crate::domain::block::BlockExtention;
 use crate::provider::TronProvider;
 use crate::{listener::subscriber::BlockSubscriber, signer::PrehashSigner};
 
 pub mod subscriber;
+
+const MAX_BLOCKS_PER_FETCH: i64 = 100;
 
 pub struct ListenerHandle {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
@@ -85,6 +90,7 @@ where
             listener: self,
             delay: Box::pin(sleep(Duration::from_secs(0))),
             fut: None,
+            pending_blocks: VecDeque::new(),
         }
     }
 }
@@ -93,8 +99,9 @@ struct BlockStream<P, S> {
     listener: Listener<P, S>,
     delay: Pin<Box<tokio::time::Sleep>>,
     fut: Option<
-        Pin<Box<dyn Future<Output = Option<(i64, BlockExtention)>> + Send>>,
+        Pin<Box<dyn Future<Output = Result<Vec<BlockExtention>>> + Send>>,
     >,
+    pending_blocks: VecDeque<BlockExtention>,
 }
 
 impl<P, S> Unpin for BlockStream<P, S> {}
@@ -111,6 +118,10 @@ where
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Item>> {
+        if let Some(block) = self.pending_blocks.pop_front() {
+            return Poll::Ready(Some(block));
+        }
+
         if self.delay.as_mut().poll(cx).is_pending() {
             return Poll::Pending;
         }
@@ -121,16 +132,33 @@ where
             let last_block = self.listener.last_block_number;
 
             self.fut = Some(Box::pin(async move {
-                let block = client.provider.get_now_block().await.ok();
-                block.and_then(|b| {
-                    let number = b.block_header.raw_data.number;
+                let latest_block = client.provider.get_now_block().await?;
+                let latest_number = latest_block.block_header.raw_data.number;
 
-                    if number <= last_block {
-                        return None;
-                    }
+                if last_block == -1 {
+                    return Ok(vec![latest_block]);
+                }
 
-                    Some((number, b))
-                })
+                if latest_number <= last_block {
+                    return Ok(Vec::new());
+                }
+
+                let first_needed = last_block + 1;
+                let batch_end_number = (first_needed + MAX_BLOCKS_PER_FETCH
+                    - 1)
+                .min(latest_number);
+
+                let futures: FuturesOrdered<_> = (first_needed
+                    ..=batch_end_number)
+                    .map(|num| {
+                        let provider = client.provider();
+                        async move { provider.get_block_by_number(num).await }
+                    })
+                    .collect();
+
+                let blocks_to_send: Vec<_> = futures.try_collect().await?;
+
+                Ok(blocks_to_send)
             }));
         }
 
@@ -138,15 +166,23 @@ where
 
         let fut = self.fut.as_mut().unwrap();
         match fut.as_mut().poll(cx) {
-            Poll::Ready(Some((new_number, msg))) => {
-                self.listener.last_block_number = new_number;
+            Poll::Ready(Ok(blocks)) => {
+                self.fut = None;
                 self.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
-                self.fut = None;
-                Poll::Ready(Some(msg))
+                if !blocks.is_empty() {
+                    self.listener.last_block_number =
+                        blocks.last().unwrap().block_header.raw_data.number;
+                    self.pending_blocks.extend(blocks);
+                    let block = self.pending_blocks.pop_front();
+                    Poll::Ready(block)
+                } else {
+                    Poll::Pending
+                }
             }
-            Poll::Ready(None) => {
+            Poll::Ready(Err(e)) => {
+                tracing::error!("failed to fetch blocks in listener: {e:#?}");
                 self.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);

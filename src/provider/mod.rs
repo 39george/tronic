@@ -52,6 +52,10 @@ pub trait TronProvider {
         contract: domain::contract::TriggerSmartContract,
     ) -> Result<domain::transaction::TransactionExtention>;
     async fn get_now_block(&self) -> Result<domain::block::BlockExtention>;
+    async fn get_block_by_number(
+        &self,
+        block_num: i64,
+    ) -> Result<domain::block::BlockExtention>;
     async fn account_permission_update(
         &self,
         contract: domain::contract::AccountPermissionUpdateContract,
@@ -95,8 +99,6 @@ pub trait TronProvider {
     //     &self,
     //     contract_address: TronAddress
     // ) -> Result<ContractInfo>;
-
-    // async fn get_block_by_number(&self, block_num: i64) -> Result<Block>;
 
     // async fn get_block_by_id(&self, block_id: [u8; 32]) -> Result<Block>;
 

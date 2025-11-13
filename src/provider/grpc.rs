@@ -225,6 +225,17 @@ impl crate::provider::TronProvider for GrpcProvider {
             .into_inner();
         Ok(now_block.try_into()?)
     }
+    async fn get_block_by_number(
+        &self,
+        block_num: i64,
+    ) -> Result<domain::block::BlockExtention> {
+        let mut node = self.wallet_client();
+        let block = node
+            .get_block_by_num2(protocol::NumberMessage { num: block_num })
+            .await?
+            .into_inner();
+        Ok(block.try_into()?)
+    }
     async fn account_permission_update(
         &self,
         contract: domain::contract::AccountPermissionUpdateContract,
