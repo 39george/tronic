@@ -820,7 +820,7 @@ where
             })
             .ok_or_else(|| {
                 Error::Unexpected(anyhow!(
-                    "missing address to check trc20 balance for"
+                    "missing address to trigger contract for"
                 ))
             })?;
 
