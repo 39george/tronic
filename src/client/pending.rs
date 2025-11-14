@@ -184,7 +184,7 @@ where
             if self.can_spend_trx_for_fee
                 && missing.len() == suggested_trx_topup.len()
                 && suggested_trx_topup.iter().map(|(_, trx)| *trx).sum::<Trx>()
-                    < *account_balance
+                    <= *account_balance
             {
                 return Ok(());
             }
