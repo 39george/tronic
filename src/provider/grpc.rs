@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Duration;
 
 use anyhow::anyhow;
 use bon::Builder;
@@ -23,6 +24,12 @@ pub struct ConnectOptions {
 
     #[builder(into)]
     pub rate_limit: Option<super::RateLimit>,
+    pub http2_keep_alive_interval: Option<Duration>,
+    pub keep_alive_timeout: Option<Duration>,
+    pub keep_alive_while_idle: Option<bool>,
+    pub tcp_keepalive: Option<Duration>,
+    pub connect_timeout: Option<Duration>,
+    pub concurrency_limit: Option<usize>,
 }
 
 impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
@@ -32,10 +39,26 @@ impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
         let scheme = uri.scheme().cloned();
 
         #[allow(unused_mut)]
-        let mut builder = tonic::transport::Channel::builder(uri);
+        let mut builder = tonic::transport::Channel::builder(uri)
+            .tcp_keepalive(opts.tcp_keepalive);
 
         if let Some(super::RateLimit { limit, duration }) = opts.rate_limit {
             builder = builder.rate_limit(limit, duration);
+        }
+        if let Some(param) = opts.http2_keep_alive_interval {
+            builder = builder.http2_keep_alive_interval(param);
+        }
+        if let Some(param) = opts.keep_alive_timeout {
+            builder = builder.keep_alive_timeout(param);
+        }
+        if let Some(param) = opts.keep_alive_while_idle {
+            builder = builder.keep_alive_while_idle(param);
+        }
+        if let Some(param) = opts.connect_timeout {
+            builder = builder.connect_timeout(param);
+        }
+        if let Some(param) = opts.concurrency_limit {
+            builder = builder.concurrency_limit(param);
         }
 
         #[cfg(not(feature = "tonic-tls"))]
