@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 
+use crate::Result;
 use crate::contracts::AbiEncode;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::{self, Trx};
 use crate::domain::{self, Hash32};
 use crate::error::Error;
-use crate::Result;
 
 #[derive(Clone, Copy, Debug)]
 pub struct MockProvider;
@@ -116,6 +116,12 @@ impl crate::provider::TronProvider for MockProvider {
         &self,
         _: TronAddress,
     ) -> Result<domain::account::DelegatedResourceAccountIndex> {
+        Err(Error::Unexpected(anyhow!("mock provider")))
+    }
+    async fn get_block_by_number(
+        &self,
+        _block_num: i64,
+    ) -> Result<domain::block::BlockExtention> {
         Err(Error::Unexpected(anyhow!("mock provider")))
     }
 }
