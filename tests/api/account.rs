@@ -56,7 +56,7 @@ async fn freeze_energy() {
         .get_account_resources(address)
         .await
         .unwrap();
-    let bandwidth =
+    let energy =
         available_energy(resources.energy_limit, resources.total_energy_limit);
-    assert_eq!(bandwidth, 180_000_000_000);
+    assert_eq!(energy, 180_000_000_000);
 }
