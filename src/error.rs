@@ -12,11 +12,7 @@ use crate::protocol::transaction::result::ContractResult;
 #[derive(thiserror::Error)]
 pub enum Error {
     #[error("unexpected error: {0}")]
-    Unexpected(
-        #[from]
-        // #[backtrace]
-        anyhow::Error,
-    ),
+    Unexpected(#[from] anyhow::Error),
     #[error("not found: {0}")]
     NotFound(String),
     #[error("tron address is not on blockchain (0 incoming transactions)")]

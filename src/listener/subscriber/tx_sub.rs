@@ -1,33 +1,40 @@
 use std::future::Future;
 
+use futures::{StreamExt, stream};
+
 use crate::Filter;
 use crate::client::Client;
-use crate::domain::Hash32;
 use crate::domain::block::BlockExtention;
-use crate::domain::transaction::{Transaction, TransactionExtention};
+use crate::domain::transaction::TransactionExtention;
+use crate::listener::{ListenerError, ListenerMsg};
 use crate::provider::TronProvider;
 
 use super::BlockSubscriber;
 
 #[async_trait::async_trait]
-impl<F, Fut> Filter<TransactionExtention> for F
+impl<F> Filter<BlockExtention> for F
 where
-    F: Fn(TransactionExtention) -> Fut + Send + Sync + Clone,
-    Fut: Future<Output = bool> + Send,
+    F: Fn(&TransactionExtention) -> bool + Send + Sync,
 {
-    async fn filter(&self, by: TransactionExtention) -> bool {
-        self(by).await
+    type Item = TransactionExtention;
+    async fn filter(&self, content: BlockExtention) -> Vec<Self::Item> {
+        content
+            .transactions
+            .into_iter()
+            .filter(|tx| self(tx))
+            .collect::<Vec<_>>()
     }
 }
 
-// Default filter type that always returns true
+// Default filter type that returns all
 #[derive(Clone)]
 pub struct DefaultFilter;
 
 #[async_trait::async_trait]
-impl Filter<TransactionExtention> for DefaultFilter {
-    async fn filter(&self, _: TransactionExtention) -> bool {
-        true
+impl Filter<BlockExtention> for DefaultFilter {
+    type Item = TransactionExtention;
+    async fn filter(&self, content: BlockExtention) -> Vec<Self::Item> {
+        content.transactions
     }
 }
 
@@ -53,7 +60,7 @@ where
 impl<P, S, F, H> TxSubscriber<P, S, F, H> {
     pub fn with_filter<NewF>(self, filter: NewF) -> TxSubscriber<P, S, NewF, H>
     where
-        NewF: Filter<TransactionExtention>,
+        NewF: Filter<BlockExtention>,
     {
         TxSubscriber {
             client: self.client,
@@ -66,19 +73,29 @@ impl<P, S, F, H> TxSubscriber<P, S, F, H> {
 #[async_trait::async_trait]
 impl<P, S, F, H, Fut> BlockSubscriber for TxSubscriber<P, S, F, H>
 where
-    F: Filter<TransactionExtention> + Send + Sync + Clone,
-    H: FnOnce(Transaction, Hash32) -> Fut + Send + Sync + Clone,
+    F: Filter<BlockExtention, Item = TransactionExtention> + Send + Sync,
+    H: Fn(Result<TransactionExtention, ListenerError>) -> Fut
+        + Send
+        + Sync
+        + Clone,
     Fut: Future<Output = ()> + Send,
     P: TronProvider + Sync,
     S: Sync,
 {
-    async fn handle(&self, msg: BlockExtention) {
-        for txext in msg.transactions {
-            if (self.filter.clone()).filter(txext.clone()).await
-                && let Some(tx) = txext.transaction
-            {
-                (self.handler.clone())(tx, txext.txid).await;
+    async fn handle(&self, msg: ListenerMsg) {
+        let block = match msg {
+            Ok(be) => be,
+            Err(e) => {
+                (self.handler.clone())(Err(e)).await;
+                return;
             }
-        }
+        };
+        let txs = self.filter.filter(block).await;
+        stream::iter(txs)
+            .for_each_concurrent(16, |txext| {
+                let h = self.handler.clone();
+                async move { h(Ok(txext)).await }
+            })
+            .await;
     }
 }

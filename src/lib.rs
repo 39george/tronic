@@ -23,7 +23,8 @@ type Result<T> = std::result::Result<T, error::Error>;
 /// Trait to filter by some criteria
 #[async_trait::async_trait]
 pub trait Filter<T> {
-    async fn filter(&self, by: T) -> bool;
+    type Item;
+    async fn filter(&self, content: T) -> Vec<Self::Item>;
 }
 
 pub fn error_chain_fmt(

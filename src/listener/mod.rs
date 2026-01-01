@@ -3,6 +3,7 @@ use futures::{Stream, StreamExt, TryStreamExt};
 use std::collections::VecDeque;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::time::{Duration, sleep};
 
@@ -16,9 +17,40 @@ pub mod subscriber;
 
 const MAX_BLOCKS_PER_FETCH: i64 = 100;
 
+#[derive(Clone, Debug)]
+pub struct ListenerError(Arc<crate::error::Error>);
+
+impl std::ops::Deref for ListenerError {
+    type Target = crate::error::Error;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<crate::error::Error> for ListenerError {
+    fn from(e: crate::error::Error) -> Self {
+        Self(std::sync::Arc::new(e))
+    }
+}
+
+impl std::fmt::Display for ListenerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&*self.0, f)
+    }
+}
+
+impl std::error::Error for ListenerError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
+pub type ListenerMsg =
+    std::result::Result<crate::domain::block::BlockExtention, ListenerError>;
+
 pub struct ListenerHandle {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
-    rx: tokio::sync::broadcast::Receiver<BlockExtention>,
+    rx: tokio::sync::broadcast::Receiver<ListenerMsg>,
 }
 
 impl ListenerHandle {
@@ -28,8 +60,19 @@ impl ListenerHandle {
     ) {
         let mut rx = self.rx.resubscribe();
         tokio::spawn(async move {
-            while let Ok(msg) = rx.recv().await {
-                subscriber.handle(msg).await;
+            loop {
+                match rx.recv().await {
+                    Ok(msg) => subscriber.handle(msg).await,
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(
+                        n,
+                    )) => {
+                        tracing::warn!("subscriber lagged by {n} messages");
+                        continue;
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                        break;
+                    }
+                }
             }
         });
     }
@@ -68,7 +111,7 @@ where
             loop {
                 tokio::select! {
                     Some(msg) = block_stream.next() => {
-                        if let Err(e) = tx.send(msg.clone()) {
+                        if let Err(e) = tx.send(msg) {
                             tracing::error!("failed to send block msg: {e}");
                         }
                     }
@@ -85,7 +128,7 @@ where
             rx,
         }
     }
-    pub(crate) fn block_stream(self) -> impl Stream<Item = BlockExtention> {
+    pub(crate) fn block_stream(self) -> impl Stream<Item = ListenerMsg> {
         BlockStream {
             listener: self,
             delay: Box::pin(sleep(Duration::from_secs(0))),
@@ -112,14 +155,14 @@ where
     S: PrehashSigner + Clone + Send + Sync + 'static,
     S::Error: std::fmt::Debug,
 {
-    type Item = BlockExtention;
+    type Item = ListenerMsg;
 
     fn poll_next(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         if let Some(block) = self.pending_blocks.pop_front() {
-            return Poll::Ready(Some(block));
+            return Poll::Ready(Some(Ok(block)));
         }
 
         if self.delay.as_mut().poll(cx).is_pending() {
@@ -175,19 +218,18 @@ where
                     self.listener.last_block_number =
                         blocks.last().unwrap().block_header.raw_data.number;
                     self.pending_blocks.extend(blocks);
-                    let block = self.pending_blocks.pop_front();
-                    Poll::Ready(block)
+                    let block = self.pending_blocks.pop_front().unwrap();
+                    Poll::Ready(Some(Ok(block)))
                 } else {
                     Poll::Pending
                 }
             }
             Poll::Ready(Err(e)) => {
-                tracing::error!("failed to fetch blocks in listener: {e:#?}");
                 self.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
                 self.fut = None;
-                Poll::Pending
+                return Poll::Ready(Some(Err(ListenerError::from(e))));
             }
             Poll::Pending => Poll::Pending,
         }

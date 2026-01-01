@@ -18,6 +18,7 @@ use crate::domain::trx::Trx;
 use crate::domain::{Hash32, RecoverableSignature};
 use crate::error;
 use crate::error::Error;
+use crate::listener::ListenerError;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
 use crate::utility::generate_txid;
@@ -265,7 +266,7 @@ where
         self,
         ctx: &S::Ctx,
         confirmations: i32,
-    ) -> Result<TransactionInfo>
+    ) -> std::result::Result<TransactionInfo, ListenerError>
     where
         P: Clone + Send + Sync + 'static,
         S: Send + Sync + 'static,
@@ -406,7 +407,7 @@ where
     pub async fn broadcast_get_receipt(
         self,
         confirmations: i32,
-    ) -> Result<TransactionInfo>
+    ) -> std::result::Result<TransactionInfo, ListenerError>
     where
         P: Clone + Send + Sync + 'static,
         S: Send + Sync + 'static,
@@ -481,7 +482,7 @@ async fn transaction_receipt<P, S>(
     confirmations: i32,
     client: Client<P, S>,
     txid: Hash32,
-) -> std::result::Result<TransactionInfo, Error>
+) -> std::result::Result<TransactionInfo, ListenerError>
 where
     P: TronProvider + Clone + Send + Sync + 'static,
     S: PrehashSigner + Clone + Send + Sync + 'static,
@@ -498,6 +499,7 @@ where
     let mut initial_tx_info: Option<TransactionInfo> = None;
 
     while let Some(block_ext) = block_stream.next().await {
+        let block_ext = block_ext?;
         // Only check if we got a new block
         if block_ext.block_header.raw_data.number > last_block_number {
             last_block_number = block_ext.block_header.raw_data.number;
@@ -533,7 +535,8 @@ where
                                     txid,
                                     result: tx_info.result,
                                     msg: tx_info.res_message,
-                                });
+                                }
+                                .into());
                             }
                         }
                     }
@@ -541,7 +544,7 @@ where
                 Err(e) => {
                     // If we had initial confirmation but now get an error, that's bad
                     if initial_tx_info.is_some() {
-                        return Err(e);
+                        return Err(e.into());
                     }
                     // Otherwise just continue waiting
                 }
@@ -549,5 +552,5 @@ where
         }
     }
 
-    Err(Error::TransactionTimeout)
+    Err(Error::TransactionTimeout.into())
 }

@@ -19,9 +19,12 @@ use tronic::{
         token::{InMemoryTokenRegistry, usdt::Usdt},
         trc20::Trc20Call,
     },
-    domain::{Hash32, transaction::Transaction},
+    domain::transaction::TransactionExtention,
     extractor::DynamicTrc20Extractor,
-    listener::subscriber::{filters::AddressFilter, tx_sub::TxSubscriber},
+    listener::{
+        ListenerError,
+        subscriber::{filters::AddressFilter, tx_sub::TxSubscriber},
+    },
     provider::grpc::GrpcProvider,
     signer::LocalSigner,
 };
@@ -51,18 +54,19 @@ async fn main() -> anyhow::Result<()> {
 
     // Configure an address filter to watch specific accounts
     let filter = AddressFilter::new(|| async move {
-        Some(
-            vec!["TDqSquXBgUCLYvYC4XZgrprLK589dkhSCf".parse().unwrap()]
-                .into_iter()
-                .collect(),
-        )
+        vec!["TDqSquXBgUCLYvYC4XZgrprLK589dkhSCf".parse().unwrap()]
+            .into_iter()
+            .collect()
     })
     .with_extractor::<DynamicTrc20Extractor>()
     .with_registry(registry);
 
     // Subscribe to transactions and decode TRC-20 transfers
-    let subscriber =
-        TxSubscriber::new(&client, |t: Transaction, txid: Hash32| async move {
+    let subscriber = TxSubscriber::new(
+        &client,
+        |t: Result<TransactionExtention, ListenerError>| async move {
+            let extention = t.unwrap();
+            let t = extention.transaction.unwrap();
             if let Some(c) = t.get_contract() {
                 if let Some(trg) = c.trigger_smart_contract()
                     && let Ok(trc20) = Trc20Call::<Usdt>::try_from_data(
@@ -89,15 +93,16 @@ async fn main() -> anyhow::Result<()> {
                             transfer_call.amount,
                             trg.contract_address,
                             message,
-                            txid
+                            extention.txid
                         );
                     }
                 } else {
                     println!("\nTransaction: {t:?}");
                 }
             }
-        })
-        .with_filter(filter);
+        },
+    )
+    .with_filter(filter);
     listener_handle.subscribe(subscriber);
     match tokio::signal::ctrl_c().await {
         Ok(()) => {
