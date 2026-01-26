@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use anyhow::{Context, anyhow};
+use eyre::{Context, ContextCompat, eyre};
 use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 
 use crate::domain::address::TronAddress;
@@ -309,7 +309,7 @@ impl From<RecoverableSignature> for Vec<u8> {
 }
 
 impl TryFrom<&[u8]> for RecoverableSignature {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         // if value.len() != 65 {
         //     return Err(anyhow!(
@@ -322,7 +322,7 @@ impl TryFrom<&[u8]> for RecoverableSignature {
         } else if value.len() == 65 {
             value
         } else {
-            return Err(anyhow!(
+            return Err(eyre!(
                 "Bad signature length: {}, should be 65 or 68",
                 value.len()
             ));
@@ -333,10 +333,10 @@ impl TryFrom<&[u8]> for RecoverableSignature {
             0..=3 => recovery_byte,        // some direct recovery IDs
             27..=30 => recovery_byte - 27, // Per [TIP 120](https://github.com/tronprotocol/tips/issues/120)
             31..=34 => recovery_byte - 31, // older/broken clients that added 4
-            _ => return Err(anyhow!("Invalid recovery byte: {recovery_byte}")),
+            _ => return Err(eyre!("Invalid recovery byte: {recovery_byte}")),
         };
         let recovery_id = RecoveryId::from_byte(recovery_byte_normalized)
-            .context(format!("can't parse recovery byte: {recovery_byte}"))?;
+            .wrap_err(format!("can't parse recovery byte: {recovery_byte}"))?;
 
         Ok(RecoverableSignature {
             signature: Signature::from_slice(&value[..64])

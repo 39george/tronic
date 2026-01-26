@@ -1,7 +1,7 @@
 use core::fmt::{Debug, Display};
 use core::str::FromStr;
 
-use anyhow::anyhow;
+use eyre::eyre;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 
@@ -25,11 +25,11 @@ impl TronAddress {
     ]);
 
     /// Construct new address from bytes (expected with 0x41 prefix)
-    pub fn new(bytes: [u8; 21]) -> Result<Self, anyhow::Error> {
+    pub fn new(bytes: [u8; 21]) -> Result<Self, eyre::Error> {
         if bytes[0] == 0x41 {
             Ok(Self(bytes))
         } else {
-            Err(anyhow!("bad address"))
+            Err(eyre!("bad address"))
         }
     }
 
@@ -46,7 +46,7 @@ impl TronAddress {
             .expect("valid key must produce Tron address")
     }
 
-    pub fn from_pk(pk_bytes: &[u8]) -> Result<Self, anyhow::Error> {
+    pub fn from_pk(pk_bytes: &[u8]) -> Result<Self, eyre::Error> {
         let verifying_key =
             &k256::ecdsa::VerifyingKey::from_sec1_bytes(pk_bytes)?;
         let addr = verifying_key.try_into()?;
@@ -77,15 +77,15 @@ impl Default for TronAddress {
 
 /// Parse address from base58 or hex string
 impl FromStr for TronAddress {
-    type Err = anyhow::Error;
+    type Err = eyre::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let bytes = bs58::decode(s)
             .with_check(None)
             .into_vec()
             .or_else(|_| hex::decode(s))
-            .map_err(|_| anyhow!("bad address"))?;
-        Ok(Self(bytes.try_into().map_err(|_| anyhow!("bad address"))?))
+            .map_err(|_| eyre!("bad address"))?;
+        Ok(Self(bytes.try_into().map_err(|_| eyre!("bad address"))?))
     }
 }
 
@@ -113,18 +113,18 @@ impl TryFrom<&k256::ecdsa::VerifyingKey> for TronAddress {
 }
 
 impl TryFrom<&[u8]> for TronAddress {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(slice: &[u8]) -> Result<Self, Self::Error> {
         let bytes: [u8; 21] = slice.try_into().map_err(|_| {
-            anyhow!("slice length must be 21 bytes, got: {}", slice.len())
+            eyre!("slice length must be 21 bytes, got: {}", slice.len())
         })?;
         Self::new(bytes)
     }
 }
 
 impl TryFrom<&Vec<u8>> for TronAddress {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(vec: &Vec<u8>) -> Result<Self, Self::Error> {
         Self::try_from(vec.as_slice())

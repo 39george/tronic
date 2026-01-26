@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use alloy_primitives::U256;
-use anyhow::anyhow;
+use eyre::eyre;
 
 use crate::{
     client::{Client, pending::PendingTransaction},
@@ -363,9 +363,7 @@ where
         let owner = transfer
             .owner
             .or_else(|| transfer.client.signer_address())
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
         let call = transfer.contract.transfer(transfer.to, transfer.amount);
         let contract_address = transfer.contract.address();
 
@@ -446,7 +444,7 @@ where
             .owner
             .or_else(|| balance_of.client.signer_address())
             .ok_or_else(|| {
-                Error::Unexpected(anyhow!(
+                Error::Unexpected(eyre!(
                     "missing address to check trc20 balance for"
                 ))
             })?;
@@ -468,10 +466,10 @@ where
                 let balance_bytes: [u8; 32] = result.try_into().unwrap(); // We sure in length
                 alloy_primitives::U256::from_be_bytes(balance_bytes)
             } else {
-                return Err(anyhow!("unexpected constant result length").into());
+                return Err(eyre!("unexpected constant result length").into());
             }
         } else {
-            return Err(anyhow::anyhow!("no constant result returned",).into());
+            return Err(eyre!("no constant result returned",).into());
         };
 
         Ok(T::from(balance))

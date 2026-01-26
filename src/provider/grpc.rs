@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use anyhow::anyhow;
 use bon::Builder;
+use eyre::eyre;
 use http::Uri;
 
 use crate::Result;
@@ -63,7 +63,7 @@ impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
 
         #[cfg(not(feature = "tonic-tls"))]
         if scheme.is_some_and(|s| s.eq(&http::uri::Scheme::HTTPS)) {
-            return Err(Error::Unexpected(anyhow!(
+            return Err(Error::Unexpected(eyre!(
                 "enable tonic-tls feature to use https"
             )));
         }
@@ -113,7 +113,7 @@ impl GrpcProvider {
             message,
         }) = ret
         {
-            Err(anyhow!(
+            Err(eyre!(
                 "failed: {}, code: {:#?}",
                 String::from_utf8_lossy(&message),
                 protocol::r#return::ResponseCode::try_from(code).unwrap(),
@@ -149,7 +149,7 @@ impl crate::provider::TronProvider for GrpcProvider {
             {
                 return Err(Error::NoAccount(owner))
             }
-            Err(Error::Unexpected(anyhow!(
+            Err(Error::Unexpected(eyre!(
                 "txid is empty: {}",
                 String::from_utf8_lossy(
                     &txext.result.unwrap_or_default().message

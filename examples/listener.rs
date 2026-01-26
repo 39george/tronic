@@ -30,7 +30,7 @@ use tronic::{
 };
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> eyre::Result<()> {
     // Create a Tronic client with GRPC provider
     let client = Client::builder()
         .provider(

@@ -19,7 +19,7 @@ pub fn read_data() -> io::Result<String> {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> eyre::Result<()> {
     println!("Using tron nile testnet (grpc.nile.trongrid.io:50051)");
 
     print!("Enter owner account private key (hex format): ");

@@ -1,5 +1,5 @@
-use anyhow::anyhow;
 use derivative::Derivative;
+use eyre::eyre;
 use time::OffsetDateTime;
 
 use crate::Result;
@@ -57,7 +57,7 @@ where
                 trx_balance.client.signer.as_ref().and_then(|s| s.address())
             })
             .ok_or_else(|| {
-                Error::Unexpected(anyhow!(
+                Error::Unexpected(eyre!(
                     "missing address to check trx balance for"
                 ))
             })?;
@@ -95,9 +95,7 @@ where
             .or_else(|| {
                 transfer.client.signer.as_ref().and_then(|s| s.address())
             })
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
         // Check balance
         {
@@ -296,9 +294,7 @@ where
         let owner = freeze
             .owner
             .or_else(|| freeze.client.signer.as_ref().and_then(|s| s.address()))
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
         let latest_block =
             freeze.client.provider.get_now_block().await.unwrap();
@@ -354,9 +350,7 @@ where
             .or_else(|| {
                 unfreeze.client.signer.as_ref().and_then(|s| s.address())
             })
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
         let account = unfreeze.client.provider.get_account(owner).await?;
         let frozen_sum: Trx = account
@@ -424,9 +418,7 @@ where
             .or_else(|| {
                 unfreeze.client.signer.as_ref().and_then(|s| s.address())
             })
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
         let account = unfreeze.client.provider.get_account(owner).await?;
         if account.unfrozen_v2.is_empty() {
@@ -489,9 +481,7 @@ where
             .or_else(|| {
                 delegate.client.signer.as_ref().and_then(|s| s.address())
             })
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
         // TODO: Check has enough resources
 
@@ -552,9 +542,7 @@ where
             .or_else(|| {
                 undelegate.client.signer.as_ref().and_then(|s| s.address())
             })
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
         let total_delegated: Trx = undelegate
             .client
@@ -628,9 +616,7 @@ where
             .or_else(|| {
                 withdraw.client.signer.as_ref().and_then(|s| s.address())
             })
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
         let account = withdraw.client.provider.get_account(owner).await?;
         let unfrozen_sum: Trx = account
@@ -719,9 +705,7 @@ where
         let owner = create
             .owner
             .or_else(|| create.client.signer.as_ref().and_then(|s| s.address()))
-            .ok_or_else(|| {
-                Error::Unexpected(anyhow!("missing owner address"))
-            })?;
+            .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
         let parsed_contract: ContractArtifact =
             serde_json::from_str(&create.contract).map_err(|e| {
                 Error::InvalidInput(format!("invalid contract: {e}"))
@@ -819,7 +803,7 @@ where
                     .and_then(|s| s.address())
             })
             .ok_or_else(|| {
-                Error::Unexpected(anyhow!(
+                Error::Unexpected(eyre!(
                     "missing address to trigger contract for"
                 ))
             })?;

@@ -35,7 +35,7 @@ prost = "0.14"
 prost-types = "0.14"
 
 # Misc
-anyhow = "1.0"
+eyre = "0.6"
 thiserror = "2.0"
 async-trait = "0.1"
 time = { version = "0.3", features = ["local-offset", "macros", "parsing"] }

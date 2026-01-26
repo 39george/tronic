@@ -2,7 +2,7 @@ use std::array::TryFromSliceError;
 use std::marker::PhantomData;
 use std::time::Duration;
 
-use anyhow::Context;
+use eyre::ContextCompat;
 use futures::StreamExt;
 use prost::Message;
 use time::OffsetDateTime;
@@ -99,7 +99,7 @@ where
     }
     pub async fn estimate_bandwidth(&self) -> Result<i64> {
         let raw = self.transaction.raw.clone();
-        let contract = raw.contract.first().context("no contract")?;
+        let contract = raw.contract.first().wrap_err("no contract")?;
         let permission_id = contract.permission_id;
         let signature_count = self
             .client
@@ -107,7 +107,7 @@ where
             .get_account(self.owner)
             .await?
             .permission_by_id(permission_id)
-            .context("no permission found")?
+            .wrap_err("no permission found")?
             .required_signatures()
             .context("insufficient keys for threshold")?;
         let txlen = protocol::transaction::Raw::from(raw).encode_to_vec().len();

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::anyhow;
+use eyre::eyre;
 use secrecy::SecretString;
 
 use crate::Result;
@@ -114,14 +114,14 @@ where
         let chain_parameters = self.provider.chain_parameters().await?;
         let energy_price = chain_parameters
             .get("getEnergyFee")
-            .ok_or(anyhow!("not found getTransactionFee"))?;
+            .ok_or(eyre!("not found getTransactionFee"))?;
         Ok((*energy_price).into())
     }
     pub async fn bandwidth_price(&self) -> Result<Trx> {
         let chain_parameters = self.provider.chain_parameters().await?;
         let bandwidth_unit_price = chain_parameters
             .get("getTransactionFee")
-            .ok_or(anyhow!("not found getTransactionFee"))?;
+            .ok_or(eyre!("not found getTransactionFee"))?;
         Ok((*bandwidth_unit_price).into())
     }
     pub async fn check_account(
