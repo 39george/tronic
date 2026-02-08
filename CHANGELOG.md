@@ -1,12 +1,120 @@
 # Changelog
 
-## [0.4.0] - 2025-10-24
+## [v0.5.0] - 2026-02-08
+
+
+### Breaking Changes
+
+
+- BREAKING CHANGE: improve blockchain listener
+Listener now broadcasts `ListenerMsg = Result<BlockExtention, ListenerError>`,
+so subscribers can handle upstream failures (provider, decoding, timeouts)
+instead of silently skipping errors. ListenerError is cheap to clone (Arc)
+and ListenerHandle no longer exits on broadcast lag (Lagged is warned and
+processing continues).
+
+Filtering API is updated to operate on blocks and return a list of matched
+transactions:
+- `Filter<T>` now returns `Vec<Item>` (instead of `bool`)
+- TxSubscriber consumes block-level filters and processes matching txs with
+  bounded concurrency (`for_each_concurrent(16, ...)`)
+- AddressFilter fetches watched addresses once per block (previously: per tx)
+
+Also update pending receipt waiting to work with `ListenerMsg` and bubble
+listener errors up to caller.
+
+BREAKING CHANGE:
+- Subscriber callback signature changed: `handle(msg: ListenerMsg)` where
+  `ListenerMsg = Result<BlockExtention, ListenerError>`
+- `Filter<T>` trait changed to `async fn filter(&self, T) -> Vec<Item>`
+  (update custom filters accordingly)
+- AddressFilter fetcher must return `HashSet<TronAddress>` (no Option) (f562085)
+
+
+- BREAKING CHANGE: migrate from anyhow to eyre (6edbcae)
+
+
+
+### Bug Fixes
+
+
+- Typo (c6902d0)
+
+
+- MockProvider (31cd002)
+
+
+- Mock-provider (aaeb63e)
+
+
+
+### Documentation
+
+
+- Update README.md (c431369)
+
+
+
+### Features
+
+
+- Implement CatchUp for BlockStream (89edd85)
+
+
+- Alloy pay entire trx balance for bandwidth (60dfa79)
+
+
+- More params for grpc provider (bac77a7)
+
+
+- Pending tx v1 format + activation checks + cached energy (88f48f6)
+
+
+
+### Miscellaneous
+
+
+- Update deps (557d414)
+
+
+
+### Refactor
+
+
+- Use default S=LocalSigner for Client, reexport RateLimit type (6095add)
+
+
+- Remove S=LocalSigner (ce67d52)
+
+
+
+### Test
+
+
+- First test for listener (d201b6a)
+
+
+## [v0.4.0] - 2025-10-24
+
+
+### Breaking Changes
+
+
+- BREAKING CHANGE: update GrpcProvider to use builder, add rate_limit option (48379fd)
+
 
 
 ### Features
 
 
 - Support sec,millis,micros,nanos unix ts from blockchain (64c2887)
+
+
+
+### Miscellaneous
+
+
+- Release (b3939e9)
 
 
 ## [v0.3.5] - 2025-10-23
@@ -199,6 +307,13 @@
 ## [v0.3.0] - 2025-08-06
 
 
+### Breaking Changes
+
+
+- BREAKING CHANGE: merge Signature+RecoveryId into RecoverableSignature (84a58c1)
+
+
+
 ### Bug Fixes
 
 
@@ -206,6 +321,13 @@
 
 
 - Fix timestamp generation for new tx (8f9cba7)
+
+
+
+### Documentation
+
+
+- Update README.md (e1a22a9)
 
 
 
@@ -311,6 +433,13 @@
 ## [v0.2.1] - 2025-07-27
 
 
+### Breaking Changes
+
+
+- BREAKING CHANGE: implement multisig, permisisons, better builders (89d9486)
+
+
+
 ### Bug Fixes
 
 
@@ -328,6 +457,12 @@
 
 
 - Update changelog for 0.1.1 (cd8f97d)
+
+
+- Update README.md (0fb194c)
+
+
+- Update README.md (f9ec5d7)
 
 
 
@@ -406,6 +541,16 @@
 
 
 ## [v0.1.1] - 2025-07-25
+
+
+### Breaking Changes
+
+
+- BREAKING CHANGE: improve subscriber filter, add usdt type, conversions (13487b4)
+
+
+- BREAKING CHANGE: new signing method, finish contracts impl (2c18093)
+
 
 
 ### Bug Fixes
@@ -507,6 +652,9 @@
 
 
 ### Miscellaneous
+
+
+- Initial commit (20ff08f)
 
 
 - Add crate metadata, add license files (773d862)

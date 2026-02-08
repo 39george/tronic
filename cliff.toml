@@ -14,9 +14,14 @@ body = """
 
 [git]
 conventional_commits = true
+filter_unconventional = false
 commit_parsers = [
     { message = "^feat", group = "Features" },
     { message = "^fix", group = "Bug Fixes" },
     { message = "^docs", group = "Documentation" },
     { message = "^chore", group = "Miscellaneous" },
+    { message = "^BREAKING CHANGE", group = "Breaking Changes" },
+    { message = "^BREAKING:", group = "Breaking Changes" },
+    { message = "^Update README", group = "Documentation" },
+    { message = "^Initial commit", group = "Miscellaneous" },
 ]
