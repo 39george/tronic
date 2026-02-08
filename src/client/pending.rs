@@ -1,4 +1,5 @@
 use std::array::TryFromSliceError;
+use std::cell::Cell;
 use std::marker::PhantomData;
 use std::time::Duration;
 
@@ -9,9 +10,10 @@ use time::OffsetDateTime;
 use time::ext::NumericalDuration;
 
 use crate::domain::account::AccountResourceUsage;
+use crate::domain::account::{Account, AccountStatus};
 use crate::domain::address::TronAddress;
 use crate::domain::contract::TriggerSmartContract;
-use crate::domain::estimate::{InsufficientResource, Resource, ResourceState};
+use crate::domain::estimate::{MissingResource, Resource, ResourceState};
 use crate::domain::permission::Permission;
 use crate::domain::transaction::{Transaction, TransactionInfo, TxCode};
 use crate::domain::trx::Trx;
@@ -29,6 +31,12 @@ use super::Client;
 
 pub struct AutoSigning;
 pub struct ManualSigning;
+
+#[derive(Clone, Copy, Debug)]
+pub struct ActivationFeeCheck {
+    pub address: TronAddress,
+    pub fee: Trx,
+}
 
 // Todo: it's possible to implement PendingTransactionCache
 // here to reduce api calls count, and make interaction faster.
@@ -49,8 +57,17 @@ pub struct PendingTransaction<'a, P, S, M = AutoSigning> {
     pub(super) txid: Hash32,
     pub(super) _mode: PhantomData<M>,
     pub(super) owner: TronAddress,
-    pub(super) additional_fee: Trx,
+
+    /// TRX which must be available by this transaction aside from bandwidth or energy fees
+    pub(super) base_trx_required: Trx,
+
+    /// If address does not exist at estimate time
+    pub(super) activation_checks: Vec<ActivationFeeCheck>,
+
     pub(super) can_spend_trx_for_fee: bool,
+
+    /// Cache energy in this PendingTransaction lifecycle
+    pub(super) cached_energy: Cell<Option<i64>>,
 }
 
 impl<'a, P, S, M> PendingTransaction<'a, P, S, M>
@@ -63,7 +80,8 @@ where
         client: &'a Client<P, S>,
         transaction: Transaction,
         owner: TronAddress,
-        additional_fee: Trx,
+        base_trx_required: Trx,
+        activation_checks: Vec<ActivationFeeCheck>,
         can_spend_trx_for_fee: bool,
     ) -> Result<Self> {
         let mut pending_transaction = Self {
@@ -72,13 +90,13 @@ where
             txid: Default::default(),
             _mode: PhantomData,
             owner,
-            additional_fee,
+            base_trx_required,
+            activation_checks,
             can_spend_trx_for_fee,
+            cached_energy: Cell::new(None),
         };
-        let energy = pending_transaction.estimate_energy().await?;
-        let energy_price = client.energy_price().await?;
-        pending_transaction.transaction.raw.fee_limit =
-            (((energy as f64) * 1.5) as i64 * energy_price.to_sun()).into();
+
+        pending_transaction.update_fee_limit().await?;
         pending_transaction.refresh_txid().await?;
         Ok(pending_transaction)
     }
@@ -97,117 +115,259 @@ where
         self.txid = txid;
         Ok(())
     }
-    pub async fn estimate_bandwidth(&self) -> Result<i64> {
+    fn ensure_unsigned(&self) -> Result<()> {
+        if !self.transaction.signature.is_empty() {
+            return Err(Error::PreconditionFailed(
+                "operation is only allowed for unsigned transaction".into(),
+            ));
+        }
+        Ok(())
+    }
+    fn only_fee_resources_missing(missing: &[MissingResource]) -> bool {
+        missing.iter().all(|m| {
+            matches!(
+                m,
+                MissingResource::Energy { .. }
+                    | MissingResource::Bandwidth { .. }
+            )
+        })
+    }
+    fn can_cover_missing_with_trx_fee(&self, state: &ResourceState) -> bool {
+        if state.insufficient.is_none() {
+            return true;
+        }
+        if !self.can_spend_trx_for_fee {
+            return false;
+        }
+        let ins = state.insufficient.as_ref().unwrap();
+        if !Self::only_fee_resources_missing(&ins.missing) {
+            return false;
+        }
+        let suggested: Trx =
+            ins.suggested_trx_topup.iter().map(|(_, t)| *t).sum();
+        suggested <= state.remaining.trx
+    }
+    fn fee_limit_fallback(&self) -> Trx {
+        if let Some(c) = self.transaction.raw.contract.first() {
+            match c.contract_type {
+                domain::contract::ContractType::CreateSmartContract(_) => {
+                    trx!(1000.0 TRX)
+                }
+                domain::contract::ContractType::TriggerSmartContract(_) => {
+                    trx!(200.0 TRX)
+                }
+                _ => trx!(50.0 TRX),
+            }
+        } else {
+            trx!(50.0 TRX)
+        }
+    }
+    async fn update_fee_limit(&mut self) -> Result<()> {
+        let fee_limit_trx = match self.estimate_energy_cached().await {
+            Ok(Some(energy)) => {
+                let energy_price = self.client.energy_price().await?;
+                let sun =
+                    (((energy as f64) * 1.5) as i64) * energy_price.to_sun();
+                Trx::from_sun(sun)
+            }
+            Ok(None) => self.fee_limit_fallback(),
+            Err(e) => return Err(e),
+        };
+
+        self.transaction.raw.fee_limit = fee_limit_trx.to_sun().into();
+        Ok(())
+    }
+    /// Re-estimate energy, update fee_limit, refresh txid. Only for unsigned tx.
+    pub async fn reset_estimates(&mut self) -> Result<()> {
+        self.ensure_unsigned()?;
+        self.cached_energy.set(None);
+
+        self.update_fee_limit().await?;
+        self.refresh_txid().await?;
+        Ok(())
+    }
+    fn estimate_bandwidth_with_permission(
+        &self,
+        permission: &Permission,
+    ) -> Result<i64> {
         let raw = self.transaction.raw.clone();
-        let contract = raw.contract.first().wrap_err("no contract")?;
-        let permission_id = contract.permission_id;
-        let signature_count = self
-            .client
-            .provider
-            .get_account(self.owner)
-            .await?
-            .permission_by_id(permission_id)
-            .wrap_err("no permission found")?
+        let signature_count = permission
             .required_signatures()
             .context("insufficient keys for threshold")?;
         let txlen = protocol::transaction::Raw::from(raw).encode_to_vec().len();
         Ok(utility::estimate_bandwidth(txlen as i64, signature_count))
     }
-    pub async fn estimate_energy(&self) -> Result<i64> {
+    async fn activation_fee(&self) -> Result<Trx> {
+        let mut total = Trx::ZERO;
+        for c in &self.activation_checks {
+            let st = self.client.check_account(c.address).await?;
+            if matches!(st, AccountStatus::NotExists) {
+                total += c.fee;
+            }
+        }
+        Ok(total)
+    }
+    async fn required_trx(&self) -> Result<Trx> {
+        Ok(self.base_trx_required + self.activation_fee().await?)
+    }
+    async fn estimate_energy_cached(&self) -> Result<Option<i64>> {
+        if let Some(v) = self.cached_energy.get() {
+            return Ok(Some(v));
+        }
+        let v = self.estimate_energy().await;
+        self.cached_energy.set(v);
+        Ok(v)
+    }
+    async fn estimate_transaction_with_account(
+        &self,
+        account: &Account,
+    ) -> Result<ResourceState> {
+        let permission_id = self
+            .transaction
+            .raw
+            .contract
+            .first()
+            .context("no contract found")?
+            .permission_id;
+
+        let permission = account
+            .permission_by_id(permission_id)
+            .context("no permission found")?;
+
+        let bandwidth = self.estimate_bandwidth_with_permission(&permission)?;
+
+        let (resources, energy, required_trx, energy_price) = tokio::try_join!(
+            self.client.provider.get_account_resources(self.owner),
+            self.estimate_energy_cached(),
+            self.required_trx(),
+            self.client.energy_price()
+        )?;
+
+        let required = Resource {
+            bandwidth,
+            energy: energy.unwrap_or_else(|| {
+                let fee_limit_sun = self.transaction.raw.fee_limit.to_sun();
+                let price_sun = energy_price.to_sun().max(1);
+                (fee_limit_sun + price_sun - 1) / price_sun
+            }),
+            trx: required_trx,
+        };
+
+        ResourceState::estimate(
+            self.client,
+            &resources,
+            required,
+            account.balance,
+        )
+        .await
+    }
+    /// Validate without requiring signatures
+    pub(crate) async fn validate_unsigned(&self) -> Result<()> {
+        if self.transaction.raw.expiration < OffsetDateTime::now_utc() {
+            return Err(Error::Expired(self.transaction.raw.expiration));
+        }
+        let account = self.client.provider.get_account(self.owner).await?;
+        let state = self.estimate_transaction_with_account(&account).await?;
+        if !self.can_cover_missing_with_trx_fee(&state) {
+            return Err(Error::InsufficientResources(state));
+        }
+        Ok(())
+    }
+    pub async fn estimate_bandwidth(&self) -> Result<i64> {
+        let raw = self.transaction.raw.clone();
+        let contract = raw.contract.first().wrap_err("no contract")?;
+        let permission_id = contract.permission_id;
+
+        let account = self.client.provider.get_account(self.owner).await?;
+        let permission = account
+            .permission_by_id(permission_id)
+            .wrap_err("no permission found")?;
+
+        self.estimate_bandwidth_with_permission(&permission)
+    }
+    pub async fn estimate_energy(&self) -> Option<i64> {
+        let safe_call = |c: TriggerSmartContract| async move {
+            match self.client.provider.trigger_constant_contract(c).await {
+                Ok(txext) => Some(txext.energy_used),
+                Err(e) => {
+                    tracing::warn!(
+                        ?e,
+                        "energy estimation failed, fallback to fee_limit"
+                    );
+                    None
+                }
+            }
+        };
         if let Some(contract) = self.transaction.raw.contract.first() {
             match contract.contract_type {
-                domain::contract::ContractType::TriggerSmartContract(
-                    ref contract,
-                ) => {
-                    let txext = self
-                        .client
-                        .provider
-                        .trigger_constant_contract(contract.clone())
-                        .await?;
-                    return Ok(txext.energy_used);
+                domain::contract::ContractType::TriggerSmartContract(ref c) => {
+                    let energy = safe_call(c.clone()).await;
+                    return energy;
                 }
                 domain::contract::ContractType::CreateSmartContract(
                     ref contract,
                 ) => {
                     let bytecode = contract.new_contract.bytecode.clone();
-                    let txext = self
-                        .client
-                        .provider
-                        .trigger_constant_contract(TriggerSmartContract {
-                            owner_address: contract.owner_address,
-                            data: bytecode.into(),
-                            ..Default::default()
-                        })
-                        .await?;
-                    return Ok(txext.energy_used);
+                    let energy = safe_call(TriggerSmartContract {
+                        owner_address: contract.owner_address,
+                        data: bytecode.into(),
+                        call_token_value: contract.call_token_value,
+                        ..Default::default()
+                    })
+                    .await;
+                    return energy;
+                }
+                domain::contract::ContractType::TransferContract(_) => {
+                    return Some(0);
                 }
                 _ => (),
             }
         }
-        Ok(0)
+        None
     }
     pub async fn estimate_transaction(&self) -> Result<ResourceState> {
-        let (resources, balance, bandwidth, energy) = tokio::try_join!(
-            self.client.provider.get_account_resources(self.owner),
-            self.client.trx_balance().address(self.owner).get(),
-            self.estimate_bandwidth(),
-            self.estimate_energy()
-        )?;
-        let required = Resource {
-            bandwidth,
-            energy,
-            trx: self.additional_fee,
-        };
-        ResourceState::estimate(self.client, &resources, required, balance)
-            .await
+        let account = self.client.provider.get_account(self.owner).await?;
+        self.estimate_transaction_with_account(&account).await
     }
     pub(crate) async fn validate_transaction(&self) -> Result<()> {
         let txid = self.txid;
+
         let signers = self
             .transaction
             .signature
             .iter()
             .map(|s| s.recover_address(&txid))
             .collect::<Result<Vec<_>>>()?;
-        if !self.extract_permission().await?.enough_sign_weight(signers) {
+
+        let account = self.client.provider.get_account(self.owner).await?;
+
+        let permission_id = self
+            .transaction
+            .raw
+            .contract
+            .first()
+            .context("no contract found")?
+            .permission_id;
+
+        let permission = account
+            .permission_by_id(permission_id)
+            .context("no permission found")?;
+
+        if !permission.enough_sign_weight(signers) {
             return Err(Error::PreconditionFailed("not enough weight".into()));
         }
+
         if self.transaction.raw.expiration < OffsetDateTime::now_utc() {
             return Err(Error::Expired(self.transaction.raw.expiration));
         }
-        let resource_state = self.estimate_transaction().await?;
-        if let Some(InsufficientResource {
-            missing,
-            suggested_trx_topup,
-            account_balance,
-        }) = &resource_state.insufficient
-        {
-            if self.can_spend_trx_for_fee
-                && missing.len() == suggested_trx_topup.len()
-                && suggested_trx_topup.iter().map(|(_, trx)| *trx).sum::<Trx>()
-                    <= *account_balance
-            {
-                return Ok(());
-            }
-            return Err(Error::InsufficientResources(resource_state));
+
+        let state = self.estimate_transaction_with_account(&account).await?;
+
+        if !self.can_cover_missing_with_trx_fee(&state) {
+            return Err(Error::InsufficientResources(state));
         }
+
         Ok(())
-    }
-    async fn extract_permission(&self) -> Result<Permission> {
-        let permission = self
-            .client
-            .account_permissions(self.owner)
-            .await?
-            .permission_by_id(
-                self.transaction
-                    .raw
-                    .contract
-                    .first()
-                    .context("no contract found")?
-                    .permission_id,
-            )
-            .context("no permission found")?;
-        Ok(permission)
     }
     pub fn txid(&self) -> Hash32 {
         self.txid
@@ -240,6 +400,8 @@ where
     error::Error: From<S::Error>,
 {
     pub async fn broadcast(mut self, ctx: &S::Ctx) -> Result<Hash32> {
+        self.validate_unsigned().await?;
+
         let signer =
             self.client
                 .signer
@@ -302,7 +464,7 @@ where
 
         if permission.keys.len() > 1 {
             // Multisig fee
-            self.additional_fee += trx!(1.0 TRX);
+            self.base_trx_required += trx!(1.0 TRX);
         }
 
         Ok(())
@@ -332,7 +494,21 @@ where
             ));
         }
         // Check address contained in permission
-        let permission = self.extract_permission().await?;
+        let permission_id = self
+            .transaction
+            .raw
+            .contract
+            .first()
+            .context("no contract found")?
+            .permission_id;
+
+        let permission = self
+            .client
+            .provider
+            .get_account(self.owner)
+            .await?
+            .permission_by_id(permission_id)
+            .context("no permission found")?;
         if !permission.contains(signing_addr) {
             return Err(Error::InvalidInput(format!(
                 "{signing_addr} is not in permission"
@@ -418,48 +594,111 @@ where
         transaction_receipt(confirmations, client, txid).await
     }
     pub fn serialize(&self) -> Vec<u8> {
+        const MAGIC: &[u8; 4] = b"PTX1";
+
         let transaction = protocol::Transaction::from(self.transaction.clone())
             .encode_to_vec();
-        let tron_address = self.owner.as_bytes();
-        let fee_bytes = self.additional_fee.to_sun().to_le_bytes().to_vec();
 
-        let mut serialized =
-            Vec::with_capacity(32 + 21 + size_of::<Trx>() + transaction.len());
-        serialized.extend_from_slice(self.txid.as_ref()); // 32 bytes
-        serialized.extend_from_slice(tron_address); // 21 bytes
-        serialized.extend_from_slice(&fee_bytes); // 8 bytes
-        serialized.push(self.can_spend_trx_for_fee as u8); // 1 byte
-        serialized.extend_from_slice(&transaction); // Variable length
-        serialized
+        let mut out = Vec::with_capacity(
+            4 + 32
+                + 21
+                + 8
+                + 1
+                + 1
+                + self.activation_checks.len() * (21 + 8)
+                + transaction.len(),
+        );
+
+        out.extend_from_slice(MAGIC);
+        out.extend_from_slice(self.txid.as_ref());
+        out.extend_from_slice(self.owner.as_bytes());
+        out.extend_from_slice(&self.base_trx_required.to_sun().to_le_bytes());
+        out.push(self.can_spend_trx_for_fee as u8);
+
+        out.push(self.activation_checks.len() as u8);
+        for c in &self.activation_checks {
+            out.extend_from_slice(c.address.as_bytes());
+            out.extend_from_slice(&c.fee.to_sun().to_le_bytes());
+        }
+
+        out.extend_from_slice(&transaction);
+        out
     }
     pub fn try_deserialize(
         client: &'a Client<P, S>,
         data: &[u8],
     ) -> Result<Self> {
-        // Minimum data length: 32 (txid) + 21 (address) + 8 (Trx) + 1 (min protobuf)
-        if data.len() < 62 {
+        const MAGIC: &[u8; 4] = b"PTX1";
+
+        // MIN: 4 + 32 + 21 + 8 + 1 + 1
+        if data.len() < 67 {
             return Err(Error::InvalidInput(format!(
-                "min data length is 62, got {}",
+                "min data length is 67, got {}",
                 data.len()
             )));
         }
 
-        let (txid_bytes, remaining) = data.split_at(32);
-        let (address_bytes, remaining) = remaining.split_at(21);
-        let (fee_bytes, remaining) = remaining.split_at(8);
-        let (can_spend_byte, transaction_data) = remaining.split_at(1);
+        if &data[..4] != MAGIC {
+            return Err(Error::InvalidInput(
+                "invalid pending tx format".into(),
+            ));
+        }
 
-        let txid: Hash32 =
-            txid_bytes.try_into().map_err(Error::InvalidInput)?;
+        let mut cursor = 4;
+
+        let txid: Hash32 = data[cursor..cursor + 32]
+            .try_into()
+            .map_err(Error::InvalidInput)?;
+        cursor += 32;
+
         let owner = TronAddress::new(
-            *<&[u8; 21]>::try_from(address_bytes)
+            *<&[u8; 21]>::try_from(&data[cursor..cursor + 21])
                 .map_err(|e| Error::InvalidInput(e.to_string()))?,
         )?;
-        let additional_fee = i64::from_le_bytes(fee_bytes.try_into().map_err(
-            |e: TryFromSliceError| Error::InvalidInput(e.to_string()),
-        )?)
-        .into();
-        let can_spend_trx_for_fee = can_spend_byte[0] != 0;
+        cursor += 21;
+
+        let base_trx_required: Trx =
+            i64::from_le_bytes(data[cursor..cursor + 8].try_into().map_err(
+                |e: TryFromSliceError| Error::InvalidInput(e.to_string()),
+            )?)
+            .into();
+        cursor += 8;
+
+        let can_spend_trx_for_fee = data[cursor] != 0;
+        cursor += 1;
+
+        let checks_count = data[cursor] as usize;
+        cursor += 1;
+
+        let need = cursor + checks_count * (21 + 8);
+        if data.len() < need {
+            return Err(Error::InvalidInput(format!(
+                "not enough bytes for activation checks: need {}, got {}",
+                need,
+                data.len()
+            )));
+        }
+
+        let mut activation_checks = Vec::with_capacity(checks_count);
+        for _ in 0..checks_count {
+            let addr = TronAddress::new(
+                *<&[u8; 21]>::try_from(&data[cursor..cursor + 21])
+                    .map_err(|e| Error::InvalidInput(e.to_string()))?,
+            )?;
+            cursor += 21;
+
+            let fee: Trx = i64::from_le_bytes(
+                data[cursor..cursor + 8].try_into().map_err(
+                    |e: TryFromSliceError| Error::InvalidInput(e.to_string()),
+                )?,
+            )
+            .into();
+            cursor += 8;
+
+            activation_checks.push(ActivationFeeCheck { address: addr, fee });
+        }
+
+        let transaction_data = &data[cursor..];
 
         let transaction: domain::transaction::Transaction =
             protocol::Transaction::decode(transaction_data)?
@@ -468,12 +707,14 @@ where
 
         Ok(Self {
             client,
-            txid,
-            owner,
             transaction,
-            additional_fee,
+            txid,
             _mode: PhantomData,
+            owner,
+            base_trx_required,
+            activation_checks,
             can_spend_trx_for_fee,
+            cached_energy: Cell::new(None),
         })
     }
 }

@@ -9,7 +9,7 @@ use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::listener::ListenerHandle;
 use crate::provider::TronProvider;
-use crate::signer::{LocalSigner, PrehashSigner};
+use crate::signer::PrehashSigner;
 
 use builder::PermissionHandler;
 

@@ -6,13 +6,14 @@ use tronic::domain::transaction::TxCode;
 use tronic::provider::TronProvider;
 use tronic::trx;
 
-use crate::helpers::{Tronic, NODE};
+use crate::helpers::{NODE, Tronic};
 
 #[tokio::test]
 async fn multisig_trx_transfer() {
     let tronic = Tronic::new().await;
     let zion = NODE.read().zion_addr();
-    let multisig_participant = NODE.read().new_account().await;
+    let multisig_participant =
+        NODE.read().new_account(trx!(100_000.0 TRX)).await;
 
     // Configure permissions
     let mut permissions = tronic

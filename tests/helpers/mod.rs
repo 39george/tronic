@@ -3,9 +3,9 @@ use std::ops::Deref;
 use alloy_primitives::U256;
 
 use tronic::client::pending::AutoSigning;
-use tronic::domain::Hash32;
 use tronic::domain::transaction::TransactionInfo;
 use tronic::provider::TronProvider;
+use tronic::trx;
 use tronic::{
     client::Client, contracts::token::usdt::Usdt, provider::grpc::GrpcProvider,
     signer::LocalSigner,
@@ -32,7 +32,7 @@ impl Deref for Tronic {
 impl Tronic {
     pub async fn new() -> Self {
         let node = NODE.read();
-        let acc = node.new_account().await;
+        let acc = node.new_account(trx!(100_000.0 TRX)).await;
         let signer: LocalSigner = acc.into();
         let client = Client::builder()
             .provider(

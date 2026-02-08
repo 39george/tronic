@@ -4,11 +4,13 @@ use alloy_primitives::U256;
 use eyre::eyre;
 
 use crate::{
-    client::{Client, pending::PendingTransaction},
+    client::{
+        Client,
+        pending::{ActivationFeeCheck, PendingTransaction},
+    },
     contracts::{AbiDecode, AbiEncode, token::Token},
     domain::{
         Message,
-        account::AccountStatus,
         address::TronAddress,
         contract::{Contract, TriggerSmartContract},
         transaction::Transaction,
@@ -345,7 +347,8 @@ pub struct Trc20Transfer<'a, P, S, T> {
     pub(super) call_value: Option<Trx>,
     pub(super) call_token_value: Option<Trx>,
     pub(super) token_id: Option<i64>,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, T, State: trc20_transfer_builder::IsComplete>
@@ -404,18 +407,17 @@ where
             &latest_block,
             transfer.memo.unwrap_or_default(),
         );
-        let check = transfer.client.check_account(transfer.to).await?;
-        let additional_fee = if matches!(check, AccountStatus::NotExists) {
-            trx!(0.1 TRX)
-        } else {
-            Trx::ZERO
-        };
+        let activation_checks = vec![ActivationFeeCheck {
+            address: transfer.to,
+            fee: trx!(0.1 TRX),
+        }];
         PendingTransaction::new(
             transfer.client,
             transaction,
             owner,
-            additional_fee,
-            transfer.can_spend_trx_for_fee.unwrap_or_default(),
+            transfer.call_value.unwrap_or_default(),
+            activation_checks,
+            transfer.can_spend_trx_for_fee,
         )
         .await
     }

@@ -5,7 +5,6 @@ use time::OffsetDateTime;
 use crate::Result;
 use crate::domain::Message;
 use crate::domain::account::Account;
-use crate::domain::account::AccountStatus;
 use crate::domain::address::TronAddress;
 use crate::domain::contract::Abi;
 use crate::domain::contract::AccountPermissionUpdateContract;
@@ -32,7 +31,7 @@ use crate::trx;
 
 use super::Client;
 use super::TronProvider;
-use super::pending::PendingTransaction;
+use super::pending::{ActivationFeeCheck, PendingTransaction};
 
 #[derive(bon::Builder)]
 #[builder(start_fn = with_client)]
@@ -78,7 +77,8 @@ pub struct Transfer<'a, P, S> {
     pub(super) amount: Trx,
     pub(super) owner: Option<TronAddress>,
     pub(super) memo: Option<Message>,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, State: transfer_builder::IsComplete>
@@ -97,18 +97,6 @@ where
             })
             .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
-        // Check balance
-        {
-            let balance =
-                transfer.client.trx_balance().address(owner).get().await?;
-            if transfer.amount > balance {
-                return Err(Error::InsufficientBalance {
-                    balance,
-                    need: transfer.amount,
-                });
-            }
-        }
-
         let latest_block = transfer.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
@@ -125,18 +113,17 @@ where
             &latest_block,
             transfer.memo.unwrap_or_default(),
         );
-        let check = transfer.client.check_account(transfer.to).await?;
-        let additional_fee = if matches!(check, AccountStatus::NotExists) {
-            trx!(1.0 TRX)
-        } else {
-            Trx::ZERO
-        };
+        let activation_checks = vec![ActivationFeeCheck {
+            address: transfer.to,
+            fee: trx!(1.0 TRX),
+        }];
         PendingTransaction::new(
             transfer.client,
             transaction,
             owner,
-            additional_fee,
-            transfer.can_spend_trx_for_fee.unwrap_or_default(),
+            transfer.amount,
+            activation_checks,
+            transfer.can_spend_trx_for_fee,
         )
         .await
     }
@@ -246,7 +233,7 @@ where
             ));
         }
 
-        let latest_block = self.client.provider.get_now_block().await.unwrap();
+        let latest_block = self.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -263,7 +250,8 @@ where
             self.client,
             transaction,
             self.owner,
-            trx!(100.0 TRX),
+            trx!(100.0 TRX), // Fee
+            Vec::new(),
             true,
         )
         .await
@@ -279,7 +267,8 @@ pub struct FreezeBalance<'a, P, S> {
     pub(super) owner: Option<TronAddress>,
     pub(super) amount: Trx,
     pub(super) resource: ResourceCode,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, State: freeze_balance_builder::IsComplete>
@@ -296,8 +285,7 @@ where
             .or_else(|| freeze.client.signer.as_ref().and_then(|s| s.address()))
             .ok_or_else(|| Error::Unexpected(eyre!("missing owner address")))?;
 
-        let latest_block =
-            freeze.client.provider.get_now_block().await.unwrap();
+        let latest_block = freeze.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -318,7 +306,8 @@ where
             transaction,
             owner,
             freeze.amount,
-            freeze.can_spend_trx_for_fee.unwrap_or_default(),
+            Vec::new(),
+            freeze.can_spend_trx_for_fee,
         )
         .await
     }
@@ -333,7 +322,8 @@ pub struct UnfreezeBalance<'a, P, S> {
     pub(super) owner: Option<TronAddress>,
     pub(super) amount: Trx,
     pub(super) resource: ResourceCode,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, State: unfreeze_balance_builder::IsComplete>
@@ -366,8 +356,7 @@ where
             });
         }
 
-        let latest_block =
-            unfreeze.client.provider.get_now_block().await.unwrap();
+        let latest_block = unfreeze.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -387,8 +376,9 @@ where
             unfreeze.client,
             transaction,
             owner,
-            unfreeze.amount,
-            unfreeze.can_spend_trx_for_fee.unwrap_or_default(),
+            Trx::ZERO,
+            Vec::new(),
+            unfreeze.can_spend_trx_for_fee,
         )
         .await
     }
@@ -401,7 +391,7 @@ pub struct CancelAllUnfreeze<'a, P, S> {
     #[builder(start_fn)]
     pub(super) client: &'a Client<P, S>,
     pub(super) owner: Option<TronAddress>,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, State: cancel_all_unfreeze_builder::IsComplete>
@@ -427,8 +417,7 @@ where
             ));
         }
 
-        let latest_block =
-            unfreeze.client.provider.get_now_block().await.unwrap();
+        let latest_block = unfreeze.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -447,7 +436,8 @@ where
             transaction,
             owner,
             Trx::ZERO,
-            unfreeze.can_spend_trx_for_fee.unwrap_or_default(),
+            Vec::new(),
+            unfreeze.can_spend_trx_for_fee,
         )
         .await
     }
@@ -463,7 +453,8 @@ pub struct Delegate<'a, P, S> {
     pub(super) amount: Trx,
     pub(super) receiver: TronAddress,
     pub(super) resource: ResourceCode,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
     pub(super) lock_period: Option<time::Duration>,
 }
 
@@ -485,8 +476,7 @@ where
 
         // TODO: Check has enough resources
 
-        let latest_block =
-            delegate.client.provider.get_now_block().await.unwrap();
+        let latest_block = delegate.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -509,7 +499,8 @@ where
             transaction,
             owner,
             delegate.amount,
-            delegate.can_spend_trx_for_fee.unwrap_or_default(),
+            Vec::new(),
+            delegate.can_spend_trx_for_fee,
         )
         .await
     }
@@ -525,7 +516,8 @@ pub struct Undelegate<'a, P, S> {
     pub(super) amount: Trx,
     pub(super) receiver: TronAddress,
     pub(super) resource: ResourceCode,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, State: undelegate_builder::IsComplete>
@@ -562,8 +554,7 @@ where
             ));
         }
 
-        let latest_block =
-            undelegate.client.provider.get_now_block().await.unwrap();
+        let latest_block = undelegate.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -584,8 +575,9 @@ where
             undelegate.client,
             transaction,
             owner,
-            undelegate.amount,
-            undelegate.can_spend_trx_for_fee.unwrap_or_default(),
+            Trx::ZERO,
+            Vec::new(),
+            undelegate.can_spend_trx_for_fee,
         )
         .await
     }
@@ -599,7 +591,8 @@ pub struct WithdrawUnfreeze<'a, P, S> {
     pub(super) client: &'a Client<P, S>,
     pub(super) owner: Option<TronAddress>,
     pub(super) resource: ResourceCode,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
 }
 
 impl<'a, P, S, State: withdraw_unfreeze_builder::IsComplete>
@@ -635,8 +628,7 @@ where
             )));
         }
 
-        let latest_block =
-            withdraw.client.provider.get_now_block().await.unwrap();
+        let latest_block = withdraw.client.provider.get_now_block().await?;
         let transaction = Transaction::new(
             Contract {
                 contract_type:
@@ -655,7 +647,8 @@ where
             transaction,
             owner,
             Trx::ZERO,
-            withdraw.can_spend_trx_for_fee.unwrap_or_default(),
+            Vec::new(),
+            withdraw.can_spend_trx_for_fee,
         )
         .await
     }
@@ -685,7 +678,8 @@ pub struct CreateContract<'a, P, S> {
     pub(super) memo: Option<Message>,
     pub(super) call_token_value: Option<Trx>,
     pub(super) token_id: Option<i64>,
-    pub(super) can_spend_trx_for_fee: Option<bool>,
+    #[builder(default = true)]
+    pub(super) can_spend_trx_for_fee: bool,
     // Consume user's resource percentage. It should be an integer between [0, 100].
     // If 0, means it does not consume user's resource until the developer's resource has been used up.
     pub(super) consume_user_resource_percent: i64,
@@ -711,8 +705,7 @@ where
                 Error::InvalidInput(format!("invalid contract: {e}"))
             })?;
 
-        let latest_block =
-            create.client.provider.get_now_block().await.unwrap();
+        let latest_block = create.client.provider.get_now_block().await?;
         let mut bytecode = hex::decode(
             parsed_contract
                 .bytecode
@@ -764,7 +757,8 @@ where
             transaction,
             owner,
             Trx::ZERO,
-            create.can_spend_trx_for_fee.unwrap_or_default(),
+            Vec::new(),
+            create.can_spend_trx_for_fee,
         )
         .await
     }

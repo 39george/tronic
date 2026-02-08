@@ -157,20 +157,16 @@ pub(crate) fn calculate_topup(
         .map(|res| match res {
             MissingResource::Energy {
                 required,
-                available: _,
+                available,
             } => {
-                // let deficit = required.saturating_sub(*available);
-                // (res.clone(), energy_price * deficit)
-                (res.clone(), energy_price * required)
+                let deficit = required.saturating_sub(*available);
+                (res.clone(), energy_price * deficit)
             }
+            // Warn: we can't calculate deficit if we selected free_b here
             MissingResource::Bandwidth {
                 required,
                 available: _,
-            } => {
-                // let deficit = required.saturating_sub(*available);
-                // (res.clone(), bandwidth_price * deficit)
-                (res.clone(), bandwidth_price * required)
-            }
+            } => (res.clone(), bandwidth_price * required),
             MissingResource::Trx {
                 required,
                 available,

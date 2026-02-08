@@ -1,5 +1,6 @@
 use k256::ecdsa::SigningKey;
 use tronic::domain::address::TronAddress;
+use tronic::domain::trx::Trx;
 use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::Command;
@@ -8,7 +9,6 @@ use tronic::client::pending::AutoSigning;
 use tronic::client::Client;
 use tronic::provider::grpc::GrpcProvider;
 use tronic::signer::LocalSigner;
-use tronic::trx;
 
 #[static_init::dynamic(drop)]
 pub static mut NODE: Node = Node::start("test_tron_container");
@@ -16,7 +16,7 @@ pub static mut NODE: Node = Node::start("test_tron_container");
 pub struct Node {
     container_name: String,
     grpc_port: u16,
-    tx: tokio::sync::mpsc::Sender<tokio::sync::oneshot::Sender<LocalSigner>>,
+    tx: tokio::sync::mpsc::Sender<(tokio::sync::oneshot::Sender<LocalSigner>, Trx)>,
     zion_addr: TronAddress,
 }
 
@@ -27,7 +27,7 @@ impl Node {
         // Create the runtime first
         let rt = Runtime::new().unwrap();
 
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<tokio::sync::oneshot::Sender<LocalSigner>>(1000);
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<(tokio::sync::oneshot::Sender<LocalSigner>, Trx)>(1000);
         
         // Use the runtime to block on async operations
         std::thread::spawn(move || {
@@ -73,12 +73,12 @@ impl Node {
                     .signer(LocalSigner::from(signing_key))
                     .build();
 
-                while let Some(tx) = rx.recv().await {
+                while let Some((tx, balance)) = rx.recv().await {
                     let signer = LocalSigner::rand();
                     let _ = zion
                         .send_trx()
                         .to(signer.address())
-                        .amount(trx!(100_000.0 TRX))
+                        .amount(balance)
                         .build::<AutoSigning>()
                         .await
                         .unwrap()
@@ -109,9 +109,9 @@ impl Node {
         self.zion_addr
     }
 
-    pub async fn new_account(&self) -> LocalSigner {
+    pub async fn new_account(&self, balance: Trx) -> LocalSigner {
         let (tx, rx) = tokio::sync::oneshot::channel();
-        self.tx.send(tx).await.unwrap();
+        self.tx.send((tx, balance)).await.unwrap();
         rx.await.unwrap()
     }
 }
