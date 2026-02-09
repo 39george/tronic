@@ -1,6 +1,6 @@
 [package]
 name = "tronic"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2024"
 description = "A modular, async-first Rust client for the Tron blockchain."
 authors = ["39george <39george.enjoy@gmail.com>"]

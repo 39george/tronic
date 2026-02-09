@@ -6,7 +6,26 @@
 ### Bug Fixes
 
 
+- Wrap mutex into Arc (b4ccf73)
+
+
+- Use blocks for mutex guards (6576a83)
+
+
+## [v0.5.1] - 2026-02-09
+
+
+### Bug Fixes
+
+
 - Use Mutex instead of Cell (e9e388f)
+
+
+
+### Miscellaneous
+
+
+- V0.5.1 (ed9be9a)
 
 
 ## [v0.5.0] - 2026-02-08
