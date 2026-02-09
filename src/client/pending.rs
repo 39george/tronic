@@ -1,9 +1,9 @@
 use std::array::TryFromSliceError;
-use std::cell::Cell;
 use std::marker::PhantomData;
+use std::sync::Mutex;
 use std::time::Duration;
 
-use eyre::ContextCompat;
+use eyre::{Context, ContextCompat, eyre};
 use futures::StreamExt;
 use prost::Message;
 use time::OffsetDateTime;
@@ -67,7 +67,7 @@ pub struct PendingTransaction<'a, P, S, M = AutoSigning> {
     pub(super) can_spend_trx_for_fee: bool,
 
     /// Cache energy in this PendingTransaction lifecycle
-    pub(super) cached_energy: Cell<Option<i64>>,
+    pub(super) cached_energy: Mutex<Option<i64>>,
 }
 
 impl<'a, P, S, M> PendingTransaction<'a, P, S, M>
@@ -93,7 +93,7 @@ where
             base_trx_required,
             activation_checks,
             can_spend_trx_for_fee,
-            cached_energy: Cell::new(None),
+            cached_energy: Mutex::new(None),
         };
 
         pending_transaction.update_fee_limit().await?;
@@ -180,7 +180,13 @@ where
     /// Re-estimate energy, update fee_limit, refresh txid. Only for unsigned tx.
     pub async fn reset_estimates(&mut self) -> Result<()> {
         self.ensure_unsigned()?;
-        self.cached_energy.set(None);
+
+        let mut guard = self
+            .cached_energy
+            .lock()
+            .map_err(|e| eyre!("failed to acquire mutex: {e:#?}"))?;
+        *guard = None;
+        drop(guard);
 
         self.update_fee_limit().await?;
         self.refresh_txid().await?;
@@ -211,11 +217,15 @@ where
         Ok(self.base_trx_required + self.activation_fee().await?)
     }
     async fn estimate_energy_cached(&self) -> Result<Option<i64>> {
-        if let Some(v) = self.cached_energy.get() {
+        let mut guard = self
+            .cached_energy
+            .lock()
+            .map_err(|e| eyre!("failed to acquire mutex: {e:#?}"))?;
+        if let Some(v) = *guard {
             return Ok(Some(v));
         }
         let v = self.estimate_energy().await;
-        self.cached_energy.set(v);
+        *guard = v;
         Ok(v)
     }
     async fn estimate_transaction_with_account(
@@ -714,7 +724,7 @@ where
             base_trx_required,
             activation_checks,
             can_spend_trx_for_fee,
-            cached_energy: Cell::new(None),
+            cached_energy: Mutex::new(None),
         })
     }
 }
