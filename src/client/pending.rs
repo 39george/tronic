@@ -1,9 +1,9 @@
 use std::array::TryFromSliceError;
 use std::marker::PhantomData;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use eyre::{Context, ContextCompat, eyre};
+use eyre::{ContextCompat, eyre};
 use futures::StreamExt;
 use prost::Message;
 use time::OffsetDateTime;
@@ -67,7 +67,7 @@ pub struct PendingTransaction<'a, P, S, M = AutoSigning> {
     pub(super) can_spend_trx_for_fee: bool,
 
     /// Cache energy in this PendingTransaction lifecycle
-    pub(super) cached_energy: Mutex<Option<i64>>,
+    pub(super) cached_energy: Arc<Mutex<Option<i64>>>,
 }
 
 impl<'a, P, S, M> PendingTransaction<'a, P, S, M>
@@ -93,7 +93,7 @@ where
             base_trx_required,
             activation_checks,
             can_spend_trx_for_fee,
-            cached_energy: Mutex::new(None),
+            cached_energy: Arc::new(Mutex::new(None)),
         };
 
         pending_transaction.update_fee_limit().await?;
@@ -724,7 +724,7 @@ where
             base_trx_required,
             activation_checks,
             can_spend_trx_for_fee,
-            cached_energy: Mutex::new(None),
+            cached_energy: Arc::new(Mutex::new(None)),
         })
     }
 }
