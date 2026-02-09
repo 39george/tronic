@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.5.1] - 2026-02-09
+
+
+### Bug Fixes
+
+
+- Use Mutex instead of Cell (e9e388f)
+
+
 ## [v0.5.0] - 2026-02-08
 
 
@@ -75,6 +84,9 @@ BREAKING CHANGE:
 
 
 - Update deps (557d414)
+
+
+- V0.5.0 (44ae4dc)
 
 
 
