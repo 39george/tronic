@@ -181,12 +181,13 @@ where
     pub async fn reset_estimates(&mut self) -> Result<()> {
         self.ensure_unsigned()?;
 
-        let mut guard = self
-            .cached_energy
-            .lock()
-            .map_err(|e| eyre!("failed to acquire mutex: {e:#?}"))?;
-        *guard = None;
-        drop(guard);
+        {
+            let mut guard = self
+                .cached_energy
+                .lock()
+                .map_err(|e| eyre!("failed to acquire mutex: {e:#?}"))?;
+            *guard = None;
+        }
 
         self.update_fee_limit().await?;
         self.refresh_txid().await?;
@@ -217,14 +218,22 @@ where
         Ok(self.base_trx_required + self.activation_fee().await?)
     }
     async fn estimate_energy_cached(&self) -> Result<Option<i64>> {
+        {
+            let guard = self
+                .cached_energy
+                .lock()
+                .map_err(|e| eyre!("failed to acquire mutex: {e:#?}"))?;
+            if let Some(v) = *guard {
+                return Ok(Some(v));
+            }
+        }
+
+        let v = self.estimate_energy().await;
+
         let mut guard = self
             .cached_energy
             .lock()
             .map_err(|e| eyre!("failed to acquire mutex: {e:#?}"))?;
-        if let Some(v) = *guard {
-            return Ok(Some(v));
-        }
-        let v = self.estimate_energy().await;
         *guard = v;
         Ok(v)
     }
