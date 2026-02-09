@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.5.1] - 2026-02-09
+## [v0.5.2] - 2026-02-09
 
 
 ### Bug Fixes
@@ -10,6 +10,13 @@
 
 
 - Use blocks for mutex guards (6576a83)
+
+
+
+### Miscellaneous
+
+
+- V0.5.1 (b541067)
 
 
 ## [v0.5.1] - 2026-02-09
