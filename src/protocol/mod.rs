@@ -232,7 +232,7 @@ impl TryFrom<Transaction> for domain::transaction::Transaction {
     fn try_from(t: Transaction) -> Result<Self, Self::Error> {
         let raw = t.raw_data.ok_or(ProtoConvError::Missing("raw_data"))?;
         Ok(Self {
-            raw: raw.try_into()?, // ← пропагируем проверку длины
+            raw: raw.try_into()?,
             signature: t
                 .signature
                 .into_iter()
@@ -240,7 +240,12 @@ impl TryFrom<Transaction> for domain::transaction::Transaction {
                     TryInto::<RecoverableSignature>::try_into(s.as_slice())
                 })
                 .collect::<Result<_, _>>()
-                .map_err(|_| ProtoConvError::Missing("signature"))?,
+                .inspect_err(|e| {
+                    tracing::error!(
+                        "failed to parse RecoverableSignature: {e:#?}"
+                    )
+                })
+                .unwrap_or_default(),
             result: t.ret.into_iter().map(Into::into).collect(),
         })
     }
