@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.5.4] - 2026-04-09
+
+
+### Miscellaneous
+
+
+- Update CHANGELOG (2a3e591)
+
+
+
+### Refactor
+
+
+- Use warn instead of error (04c212f)
+
+
 ## [v0.5.3] - 2026-04-09
 
 
