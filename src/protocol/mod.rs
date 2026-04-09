@@ -236,16 +236,18 @@ impl TryFrom<Transaction> for domain::transaction::Transaction {
             signature: t
                 .signature
                 .into_iter()
-                .map(|s| {
-                    TryInto::<RecoverableSignature>::try_into(s.as_slice())
+                .filter_map(|s| {
+                    match RecoverableSignature::try_from(s.as_slice()) {
+                        Ok(sig) => Some(sig),
+                        Err(e) => {
+                            tracing::error!(
+                                "failed to parse RecoverableSignature: {e:#?}"
+                            );
+                            None
+                        }
+                    }
                 })
-                .collect::<Result<_, _>>()
-                .inspect_err(|e| {
-                    tracing::error!(
-                        "failed to parse RecoverableSignature: {e:#?}"
-                    )
-                })
-                .unwrap_or_default(),
+                .collect(),
             result: t.ret.into_iter().map(Into::into).collect(),
         })
     }
