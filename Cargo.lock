@@ -3188,7 +3188,7 @@ dependencies = [
 
 [[package]]
 name = "tronic"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-macro",

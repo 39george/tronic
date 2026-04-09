@@ -240,7 +240,7 @@ impl TryFrom<Transaction> for domain::transaction::Transaction {
                     match RecoverableSignature::try_from(s.as_slice()) {
                         Ok(sig) => Some(sig),
                         Err(e) => {
-                            tracing::error!(
+                            tracing::warn!(
                                 "failed to parse RecoverableSignature: {e:#?}"
                             );
                             None
