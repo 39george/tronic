@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.5.2] - 2026-02-09
+## [v0.5.3] - 2026-04-09
 
 
 ### Bug Fixes
@@ -17,6 +17,19 @@
 
 
 - V0.5.1 (b541067)
+
+
+- V0.5.2 (35a4376)
+
+
+
+### Refactor
+
+
+- Soft fail on bad signatures in transactions (7fd2761)
+
+
+- Error msg for each signature in TryFrom (528029b)
 
 
 ## [v0.5.1] - 2026-02-09
