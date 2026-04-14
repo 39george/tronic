@@ -127,7 +127,7 @@ impl GrpcProvider {
 
 #[async_trait::async_trait]
 impl crate::provider::TronProvider for GrpcProvider {
-    async fn trasnfer_contract(
+    async fn transfer_contract(
         &self,
         owner: domain::address::TronAddress,
         to: domain::address::TronAddress,

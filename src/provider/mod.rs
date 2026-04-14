@@ -19,7 +19,7 @@ pub struct RateLimit {
 
 #[async_trait::async_trait]
 pub trait TronProvider {
-    async fn trasnfer_contract(
+    async fn transfer_contract(
         &self,
         owner: TronAddress,
         to: TronAddress,
