@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.5.5] - 2026-05-25
+
+
+### Features
+
+
+- Add pluggable block cache (27b3d75)
+
+
+
+### Miscellaneous
+
+
+- Fix typo (01840db)
+
+
+- Bump version (33e0deb)
+
+
 ## [v0.5.4] - 2026-04-09
 
 
