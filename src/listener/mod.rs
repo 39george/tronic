@@ -10,9 +10,11 @@ use tokio::time::{Duration, sleep};
 use crate::Result;
 use crate::client::Client;
 use crate::domain::block::BlockExtention;
+use crate::listener::block_cache::{BlockCache, InMemoryBlockCache};
 use crate::provider::TronProvider;
 use crate::{listener::subscriber::BlockSubscriber, signer::PrehashSigner};
 
+pub mod block_cache;
 pub mod subscriber;
 
 const MAX_BLOCKS_PER_FETCH: i64 = 100;
@@ -22,6 +24,7 @@ pub struct ListenerError(Arc<crate::error::Error>);
 
 impl std::ops::Deref for ListenerError {
     type Target = crate::error::Error;
+
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -29,7 +32,7 @@ impl std::ops::Deref for ListenerError {
 
 impl From<crate::error::Error> for ListenerError {
     fn from(e: crate::error::Error) -> Self {
-        Self(std::sync::Arc::new(e))
+        Self(Arc::new(e))
     }
 }
 
@@ -59,6 +62,7 @@ impl ListenerHandle {
         subscriber: S,
     ) {
         let mut rx = self.rx.resubscribe();
+
         tokio::spawn(async move {
             loop {
                 match rx.recv().await {
@@ -80,17 +84,19 @@ impl ListenerHandle {
 
 impl Drop for ListenerHandle {
     fn drop(&mut self) {
-        let _ = self.shutdown.take().unwrap().send(());
+        if let Some(shutdown) = self.shutdown.take() {
+            let _ = shutdown.send(());
+        }
     }
 }
 
-pub struct Listener<P, S> {
+pub struct Listener<P, S, BC = InMemoryBlockCache> {
     client: Client<P, S>,
-    last_block_number: i64,
+    block_cache: BC,
     interval: Duration,
 }
 
-impl<P, S> Listener<P, S>
+impl<P, S> Listener<P, S, InMemoryBlockCache>
 where
     P: TronProvider + Clone + Send + Sync + 'static,
     S: PrehashSigner + Clone + Send + Sync + 'static,
@@ -99,14 +105,48 @@ where
     pub fn new(client: Client<P, S>, block_poll_interval: Duration) -> Self {
         Self {
             client,
-            last_block_number: -1,
+            block_cache: InMemoryBlockCache::default(),
             interval: block_poll_interval,
         }
     }
+}
+
+impl<P, S, BC> Listener<P, S, BC>
+where
+    P: TronProvider + Clone + Send + Sync + 'static,
+    S: PrehashSigner + Clone + Send + Sync + 'static,
+    S::Error: std::fmt::Debug,
+    BC: BlockCache + Clone,
+{
+    pub fn new_with_block_cache(
+        client: Client<P, S>,
+        block_poll_interval: Duration,
+        block_cache: BC,
+    ) -> Self {
+        Self {
+            client,
+            block_cache,
+            interval: block_poll_interval,
+        }
+    }
+
+    pub fn with_block_cache<BC2>(self, block_cache: BC2) -> Listener<P, S, BC2>
+    where
+        BC2: BlockCache + Clone,
+    {
+        Listener {
+            client: self.client,
+            block_cache,
+            interval: self.interval,
+        }
+    }
+
     pub async fn run(self) -> ListenerHandle {
         let (shutdown_tx, mut shutdown_rx) = tokio::sync::oneshot::channel();
         let (tx, rx) = tokio::sync::broadcast::channel(128);
+
         let mut block_stream = self.block_stream();
+
         tokio::spawn(async move {
             loop {
                 tokio::select! {
@@ -115,7 +155,6 @@ where
                             tracing::error!("failed to send block msg: {e}");
                         }
                     }
-                    //  WARN: attempting to .await it after it has already completed will panic
                     _ = &mut shutdown_rx => {
                         tracing::info!("exiting from listener");
                         break;
@@ -123,11 +162,13 @@ where
                 }
             }
         });
+
         ListenerHandle {
             shutdown: Some(shutdown_tx),
             rx,
         }
     }
+
     pub(crate) fn block_stream(self) -> impl Stream<Item = ListenerMsg> {
         BlockStream {
             listener: self,
@@ -138,8 +179,8 @@ where
     }
 }
 
-struct BlockStream<P, S> {
-    listener: Listener<P, S>,
+struct BlockStream<P, S, BC> {
+    listener: Listener<P, S, BC>,
     delay: Pin<Box<tokio::time::Sleep>>,
     fut: Option<
         Pin<Box<dyn Future<Output = Result<Vec<BlockExtention>>> + Send>>,
@@ -147,13 +188,14 @@ struct BlockStream<P, S> {
     pending_blocks: VecDeque<BlockExtention>,
 }
 
-impl<P, S> Unpin for BlockStream<P, S> {}
+impl<P, S, BC> Unpin for BlockStream<P, S, BC> {}
 
-impl<P, S> Stream for BlockStream<P, S>
+impl<P, S, BC> Stream for BlockStream<P, S, BC>
 where
     P: TronProvider + Clone + Send + Sync + 'static,
     S: PrehashSigner + Clone + Send + Sync + 'static,
     S::Error: std::fmt::Debug,
+    BC: BlockCache + Clone,
 {
     type Item = ListenerMsg;
 
@@ -169,37 +211,53 @@ where
             return Poll::Pending;
         }
 
-        // If we don't already have a future, build one
         if self.fut.is_none() {
             let client = self.listener.client.clone();
-            let last_block = self.listener.last_block_number;
+            let block_cache = self.listener.block_cache.clone();
 
             self.fut = Some(Box::pin(async move {
+                let last_block =
+                    match block_cache.load_latest_seen_block().await {
+                        Ok(Some(block_number)) => block_number,
+                        Ok(None) => -1,
+                        Err(e) => return Err(e.into()),
+                    };
+
                 let latest_block = client.provider.get_now_block().await?;
                 let latest_number = latest_block.block_header.raw_data.number;
 
-                if last_block == -1 {
-                    return Ok(vec![latest_block]);
+                let blocks_to_send = if last_block == -1 {
+                    vec![latest_block]
+                } else if latest_number <= last_block {
+                    Vec::new()
+                } else {
+                    let first_needed = last_block + 1;
+                    let batch_end_number =
+                        (first_needed + MAX_BLOCKS_PER_FETCH - 1)
+                            .min(latest_number);
+
+                    let futures: FuturesOrdered<_> =
+                        (first_needed..=batch_end_number)
+                            .map(|num| {
+                                let provider = client.provider();
+                                async move {
+                                    provider.get_block_by_number(num).await
+                                }
+                            })
+                            .collect();
+
+                    futures.try_collect().await?
+                };
+
+                if let Some(last_block) = blocks_to_send.last() {
+                    let block_number = last_block.block_header.raw_data.number;
+
+                    if let Err(e) =
+                        block_cache.store_latest_seen_block(block_number).await
+                    {
+                        return Err(e.into());
+                    }
                 }
-
-                if latest_number <= last_block {
-                    return Ok(Vec::new());
-                }
-
-                let first_needed = last_block + 1;
-                let batch_end_number = (first_needed + MAX_BLOCKS_PER_FETCH
-                    - 1)
-                .min(latest_number);
-
-                let futures: FuturesOrdered<_> = (first_needed
-                    ..=batch_end_number)
-                    .map(|num| {
-                        let provider = client.provider();
-                        async move { provider.get_block_by_number(num).await }
-                    })
-                    .collect();
-
-                let blocks_to_send: Vec<_> = futures.try_collect().await?;
 
                 Ok(blocks_to_send)
             }));
@@ -207,29 +265,38 @@ where
 
         let interval = self.listener.interval;
 
-        let fut = self.fut.as_mut().unwrap();
-        match fut.as_mut().poll(cx) {
+        let poll_result = {
+            let fut = self.fut.as_mut().expect("future must exist");
+            fut.as_mut().poll(cx)
+        };
+
+        match poll_result {
             Poll::Ready(Ok(blocks)) => {
                 self.fut = None;
                 self.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
-                if !blocks.is_empty() {
-                    self.listener.last_block_number =
-                        blocks.last().unwrap().block_header.raw_data.number;
-                    self.pending_blocks.extend(blocks);
-                    let block = self.pending_blocks.pop_front().unwrap();
-                    Poll::Ready(Some(Ok(block)))
-                } else {
-                    Poll::Pending
+
+                if blocks.is_empty() {
+                    return Poll::Pending;
                 }
+
+                self.pending_blocks.extend(blocks);
+
+                let block = self
+                    .pending_blocks
+                    .pop_front()
+                    .expect("pending blocks must not be empty");
+
+                Poll::Ready(Some(Ok(block)))
             }
             Poll::Ready(Err(e)) => {
+                self.fut = None;
                 self.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
-                self.fut = None;
-                return Poll::Ready(Some(Err(ListenerError::from(e))));
+
+                Poll::Ready(Some(Err(ListenerError::from(e))))
             }
             Poll::Pending => Poll::Pending,
         }
