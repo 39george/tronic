@@ -20,7 +20,7 @@ impl MockProvider {
 
 #[async_trait::async_trait]
 impl crate::provider::TronProvider for MockProvider {
-    async fn trasnfer_contract(
+    async fn transfer_contract(
         &self,
         _: domain::address::TronAddress,
         _: domain::address::TronAddress,
