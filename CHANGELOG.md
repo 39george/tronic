@@ -1,5 +1,21 @@
 # Changelog
 
+## [v0.5.6] - 2026-05-26
+
+
+### Bug Fixes
+
+
+- Typo (d773e3a)
+
+
+
+### Miscellaneous
+
+
+- Bump version (930d2a1)
+
+
 ## [v0.5.5] - 2026-05-25
 
 
@@ -17,6 +33,9 @@
 
 
 - Bump version (33e0deb)
+
+
+- Update CHANGELOG (26a6e4f)
 
 
 ## [v0.5.4] - 2026-04-09
