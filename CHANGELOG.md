@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.5.7] - 2026-06-23
+
+
+### Features
+
+
+- Add grpc retries (86d871d)
+
+
+
+### Miscellaneous
+
+
+- Update changelog (ccd5318)
+
+
+- Bump lockfile (b259a9c)
+
+
 ## [v0.5.6] - 2026-05-26
 
 
