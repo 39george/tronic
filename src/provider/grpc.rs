@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::future::Future;
 use std::time::Duration;
 
 use bon::Builder;
@@ -30,6 +31,7 @@ pub struct ConnectOptions {
     pub tcp_keepalive: Option<Duration>,
     pub connect_timeout: Option<Duration>,
     pub concurrency_limit: Option<usize>,
+    pub retry_enabled: Option<bool>,
 }
 
 impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
@@ -90,13 +92,17 @@ impl<State: connect_options_builder::IsComplete> ConnectOptionsBuilder<State> {
                 None => None,
             },
         );
-        Ok(GrpcProvider { channel })
+        Ok(GrpcProvider {
+            channel,
+            retry_enabled: opts.retry_enabled.unwrap_or(true),
+        })
     }
 }
 
 #[derive(Clone)]
 pub struct GrpcProvider {
     channel: middleware::AuthChannel,
+    retry_enabled: bool,
 }
 
 impl GrpcProvider {
@@ -123,6 +129,62 @@ impl GrpcProvider {
             Ok(())
         }
     }
+    async fn retry_grpc<T, Fut, F>(
+        &self,
+        op: &'static str,
+        mut f: F,
+    ) -> Result<T>
+    where
+        F: FnMut() -> Fut,
+        Fut: Future<Output = std::result::Result<T, tonic::Status>>,
+    {
+        use tonic::Code;
+        fn is_retryable_grpc_error(status: &tonic::Status) -> bool {
+            matches!(
+                status.code(),
+                Code::Unavailable
+                    | Code::DeadlineExceeded
+                    | Code::ResourceExhausted
+                    | Code::Unknown
+                    | Code::Internal
+            )
+        }
+
+        if !self.retry_enabled {
+            return f().await.map_err(Into::into);
+        }
+
+        let mut delay = Duration::from_millis(200);
+        let max_attempts = 3;
+
+        for attempt in 1..=max_attempts {
+            match f().await {
+                Ok(value) => return Ok(value),
+
+                Err(status)
+                    if is_retryable_grpc_error(&status)
+                        && attempt < max_attempts =>
+                {
+                    tracing::warn!(
+                        op,
+                        attempt,
+                        code = ?status.code(),
+                        error = %status,
+                        "grpc request failed, retrying"
+                    );
+
+                    tokio::time::sleep(delay).await;
+                    delay *= 2;
+                }
+
+                Err(status) => {
+                    return Err(status.into());
+                }
+            }
+        }
+
+        unreachable!()
+    }
 }
 
 #[async_trait::async_trait]
@@ -133,16 +195,20 @@ impl crate::provider::TronProvider for GrpcProvider {
         to: domain::address::TronAddress,
         amount: trx::Trx,
     ) -> Result<domain::transaction::TransactionExtention> {
-        let grpc_transfer_contract = protocol::TransferContract {
-            owner_address: owner.as_bytes().to_vec(),
-            to_address: to.as_bytes().to_vec(),
-            amount: amount.to_sun(),
-        };
-        let mut node = self.wallet_client();
-        let txext = node
-            .create_transaction2(grpc_transfer_contract)
-            .await?
-            .into_inner();
+        let txext = self
+            .retry_grpc("transfer_contract", || {
+                let grpc_transfer_contract = protocol::TransferContract {
+                    owner_address: owner.as_bytes().to_vec(),
+                    to_address: to.as_bytes().to_vec(),
+                    amount: amount.to_sun(),
+                };
+                let mut node = self.wallet_client();
+                async move {
+                    node.create_transaction2(grpc_transfer_contract)
+                        .await
+                }
+            })
+            .await?.into_inner();
         if txext.txid.is_empty() {
             if let Some(ref r) = txext.result
                 && r.message == b"Contract validate error : Validate TransferContract error, no OwnerAccount."
@@ -165,16 +231,18 @@ impl crate::provider::TronProvider for GrpcProvider {
         contract: TronAddress,
         call: A,
     ) -> Result<domain::transaction::TransactionExtention> {
-        let contract = protocol::TriggerSmartContract {
-            owner_address: owner.as_bytes().to_vec(),
-            contract_address: contract.as_bytes().to_vec(),
-            data: call.encode(),
-            ..Default::default()
-        };
-
-        let mut node = self.wallet_client();
-        let reply = node
-            .trigger_contract(contract)
+        let call = call.encode();
+        let reply = self
+            .retry_grpc("trigger_smart_contract", || {
+                let contract = protocol::TriggerSmartContract {
+                    owner_address: owner.as_bytes().to_vec(),
+                    contract_address: contract.as_bytes().to_vec(),
+                    data: call.clone(),
+                    ..Default::default()
+                };
+                let mut node = self.wallet_client();
+                async move { node.trigger_contract(contract).await }
+            })
             .await
             .map(|r| r.into_inner())?;
         Self::return_to_result(reply.result.clone())?;
@@ -184,7 +252,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         &self,
         transaction: domain::transaction::Transaction,
     ) -> Result<()> {
-        let mut node = WalletClient::new(self.channel.clone());
+        let mut node = self.wallet_client();
         let transaction: protocol::Transaction = transaction.into();
         let response =
             node.broadcast_transaction(transaction).await?.into_inner();
@@ -195,176 +263,307 @@ impl crate::provider::TronProvider for GrpcProvider {
         &self,
         contract: domain::contract::TriggerSmartContract,
     ) -> Result<i64> {
-        let mut node = self.wallet_client();
         let contract: protocol::TriggerSmartContract = contract.into();
-        let msg = node.estimate_energy(contract).await?.into_inner();
+
+        let msg = self
+            .retry_grpc("estimate_energy", || {
+                let mut node = self.wallet_client();
+                let contract = contract.clone();
+
+                async move { node.estimate_energy(contract).await }
+            })
+            .await?
+            .into_inner();
+
         Self::return_to_result(msg.result.clone())?;
         Ok(msg.energy_required)
     }
+
     async fn get_account(
         &self,
         address: TronAddress,
     ) -> Result<domain::account::Account> {
-        let mut node = self.wallet_client();
         let account = protocol::Account {
             address: address.as_bytes().to_vec(),
             ..Default::default()
         };
-        let account: domain::account::Account =
-            node.get_account(account).await?.into_inner().try_into()?;
+
+        let account = self
+            .retry_grpc("get_account", || {
+                let mut node = self.wallet_client();
+                let account = account.clone();
+
+                async move { node.get_account(account).await }
+            })
+            .await?
+            .into_inner()
+            .try_into()?;
+
         Ok(account)
     }
+
     async fn get_account_resources(
         &self,
         address: TronAddress,
     ) -> Result<domain::account::AccountResourceUsage> {
-        let mut node = self.wallet_client();
         let account = protocol::Account {
             address: address.as_bytes().to_vec(),
             ..Default::default()
         };
-        let account_resource =
-            node.get_account_resource(account).await?.into_inner();
+
+        let account_resource = self
+            .retry_grpc("get_account_resources", || {
+                let mut node = self.wallet_client();
+                let account = account.clone();
+
+                async move { node.get_account_resource(account).await }
+            })
+            .await?
+            .into_inner();
+
         Ok(account_resource.into())
     }
+
     async fn trigger_constant_contract(
         &self,
         contract: domain::contract::TriggerSmartContract,
     ) -> Result<domain::transaction::TransactionExtention> {
-        let mut node = self.wallet_client();
         let contract: protocol::TriggerSmartContract = contract.into();
-        let txext = node
-            .trigger_constant_contract(contract)
-            .await
-            .map(|r| r.into_inner())?;
+
+        let txext = self
+            .retry_grpc("trigger_constant_contract", || {
+                let mut node = self.wallet_client();
+                let contract = contract.clone();
+
+                async move { node.trigger_constant_contract(contract).await }
+            })
+            .await?
+            .into_inner();
+
         Self::return_to_result(txext.result.clone())?;
         Ok(txext.try_into()?)
     }
+
     async fn get_now_block(&self) -> Result<domain::block::BlockExtention> {
-        let mut node = self.wallet_client();
-        let now_block = node
-            .get_now_block2(protocol::EmptyMessage::default())
+        let now_block = self
+            .retry_grpc("get_now_block", || {
+                let mut node = self.wallet_client();
+
+                async move {
+                    node.get_now_block2(protocol::EmptyMessage::default()).await
+                }
+            })
             .await?
             .into_inner();
+
         Ok(now_block.try_into()?)
     }
+
     async fn get_block_by_number(
         &self,
         block_num: i64,
     ) -> Result<domain::block::BlockExtention> {
-        let mut node = self.wallet_client();
-        let block = node
-            .get_block_by_num2(protocol::NumberMessage { num: block_num })
+        let block = self
+            .retry_grpc("get_block_by_number", || {
+                let mut node = self.wallet_client();
+
+                async move {
+                    node.get_block_by_num2(protocol::NumberMessage {
+                        num: block_num,
+                    })
+                    .await
+                }
+            })
             .await?
             .into_inner();
+
         Ok(block.try_into()?)
     }
+
     async fn account_permission_update(
         &self,
         contract: domain::contract::AccountPermissionUpdateContract,
     ) -> Result<domain::transaction::TransactionExtention> {
-        let mut node = self.wallet_client();
         let contract: protocol::AccountPermissionUpdateContract =
             contract.into();
-        let txext =
-            node.account_permission_update(contract).await?.into_inner();
+
+        let txext = self
+            .retry_grpc("account_permission_update", || {
+                let mut node = self.wallet_client();
+                let contract = contract.clone();
+
+                async move { node.account_permission_update(contract).await }
+            })
+            .await?
+            .into_inner();
+
         Self::return_to_result(txext.result.clone())?;
         Ok(txext.try_into()?)
     }
+
     async fn get_transaction_by_id(
         &self,
         txid: Hash32,
     ) -> Result<domain::transaction::Transaction> {
-        let mut node = self.wallet_client();
-        let transaction = node
-            .get_transaction_by_id(protocol::BytesMessage::from(txid))
+        let txid = protocol::BytesMessage::from(txid);
+
+        let transaction = self
+            .retry_grpc("get_transaction_by_id", || {
+                let mut node = self.wallet_client();
+                let txid = txid.clone();
+
+                async move { node.get_transaction_by_id(txid).await }
+            })
             .await?
             .into_inner();
+
         Ok(transaction.try_into()?)
     }
+
     async fn get_transaction_info(
         &self,
         txid: Hash32,
     ) -> Result<domain::transaction::TransactionInfo> {
-        let mut node = self.wallet_client();
-        let transaction = node
-            .get_transaction_info_by_id(protocol::BytesMessage::from(txid))
+        let txid = protocol::BytesMessage::from(txid);
+
+        let transaction = self
+            .retry_grpc("get_transaction_info", || {
+                let mut node = self.wallet_client();
+                let txid = txid.clone();
+
+                async move { node.get_transaction_info_by_id(txid).await }
+            })
             .await?
             .into_inner();
+
         Ok(transaction.try_into()?)
     }
+
     async fn chain_parameters(&self) -> Result<HashMap<String, i64>> {
-        let mut node = WalletClient::new(self.channel.clone());
-        let chain_parameters = node
-            .get_chain_parameters(protocol::EmptyMessage::default())
+        let chain_parameters = self
+            .retry_grpc("chain_parameters", || {
+                let mut node = self.wallet_client();
+
+                async move {
+                    node.get_chain_parameters(protocol::EmptyMessage::default())
+                        .await
+                }
+            })
             .await?
             .into_inner()
             .chain_parameter
             .into_iter()
             .map(|ch_p| (ch_p.key, ch_p.value))
             .collect::<HashMap<_, _>>();
+
         Ok(chain_parameters)
     }
+
     async fn freeze_balance(
         &self,
         contract: domain::contract::FreezeBalanceV2Contract,
     ) -> Result<domain::transaction::TransactionExtention> {
-        let mut node = WalletClient::new(self.channel.clone());
         let contract: protocol::FreezeBalanceV2Contract = contract.into();
-        let txext = node.freeze_balance_v2(contract).await?.into_inner();
+
+        let txext = self
+            .retry_grpc("freeze_balance", || {
+                let mut node = self.wallet_client();
+                let contract = contract.clone();
+
+                async move { node.freeze_balance_v2(contract).await }
+            })
+            .await?
+            .into_inner();
+
         Self::return_to_result(txext.result.clone())?;
         Ok(txext.try_into()?)
     }
+
     async fn unfreeze_balance(
         &self,
         contract: domain::contract::UnfreezeBalanceV2Contract,
     ) -> Result<domain::transaction::TransactionExtention> {
-        let mut node = WalletClient::new(self.channel.clone());
         let contract: protocol::UnfreezeBalanceV2Contract = contract.into();
-        let txext = node.unfreeze_balance_v2(contract).await?.into_inner();
-        Self::return_to_result(txext.result.clone())?;
-        Ok(txext.try_into()?)
-    }
-    async fn get_reward(&self, address: TronAddress) -> Result<Trx> {
-        let mut node = WalletClient::new(self.channel.clone());
-        let number = node
-            .get_reward_info(protocol::BytesMessage {
-                value: address.as_bytes().to_vec(),
+
+        let txext = self
+            .retry_grpc("unfreeze_balance", || {
+                let mut node = self.wallet_client();
+                let contract = contract.clone();
+
+                async move { node.unfreeze_balance_v2(contract).await }
             })
             .await?
             .into_inner();
+
+        Self::return_to_result(txext.result.clone())?;
+        Ok(txext.try_into()?)
+    }
+
+    async fn get_reward(&self, address: TronAddress) -> Result<Trx> {
+        let message = protocol::BytesMessage {
+            value: address.as_bytes().to_vec(),
+        };
+
+        let number = self
+            .retry_grpc("get_reward", || {
+                let mut node = self.wallet_client();
+                let message = message.clone();
+
+                async move { node.get_reward_info(message).await }
+            })
+            .await?
+            .into_inner();
+
         Ok(number.num.into())
     }
+
     async fn get_delegated_resource(
         &self,
         from_address: TronAddress,
         to_address: TronAddress,
     ) -> Result<Vec<domain::account::DelegatedResource>> {
-        let mut node = WalletClient::new(self.channel.clone());
-        let list = node
-            .get_delegated_resource_v2(protocol::DelegatedResourceMessage {
-                from_address: from_address.as_bytes().to_vec(),
-                to_address: to_address.as_bytes().to_vec(),
+        let message = protocol::DelegatedResourceMessage {
+            from_address: from_address.as_bytes().to_vec(),
+            to_address: to_address.as_bytes().to_vec(),
+        };
+
+        let list = self
+            .retry_grpc("get_delegated_resource", || {
+                let mut node = self.wallet_client();
+                let message = message.clone();
+
+                async move { node.get_delegated_resource_v2(message).await }
             })
             .await?
             .into_inner()
             .delegated_resource;
+
         Ok(list
             .into_iter()
             .map(TryInto::<domain::account::DelegatedResource>::try_into)
             .collect::<std::result::Result<Vec<_>, _>>()?)
     }
+
     async fn get_delegated_resource_account(
         &self,
         address: TronAddress,
     ) -> Result<domain::account::DelegatedResourceAccountIndex> {
-        let mut node = WalletClient::new(self.channel.clone());
-        let index = node
-            .get_delegated_resource_account_index_v2(protocol::BytesMessage {
-                value: address.as_bytes().to_vec(),
+        let message = protocol::BytesMessage {
+            value: address.as_bytes().to_vec(),
+        };
+
+        let index = self
+            .retry_grpc("get_delegated_resource_account", || {
+                let mut node = self.wallet_client();
+                let message = message.clone();
+
+                async move {
+                    node.get_delegated_resource_account_index_v2(message).await
+                }
             })
             .await?
             .into_inner();
+
         Ok(index.try_into()?)
     }
 }
