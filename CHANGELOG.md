@@ -1,5 +1,27 @@
 # Changelog
 
+## [v0.6.0] - 2026-07-03
+
+
+### Features
+
+
+- PQ1 support (0cdc887)
+
+
+
+### Miscellaneous
+
+
+- V0.5.7 release (9681d33)
+
+
+- Bump Cargo.lock (31ea500)
+
+
+- V0.6.0 release (765c42c)
+
+
 ## [v0.5.7] - 2026-06-23
 
 
