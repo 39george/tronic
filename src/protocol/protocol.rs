@@ -7,6 +7,8 @@ pub struct Endpoint {
     pub port: i32,
     #[prost(bytes = "vec", tag = "3")]
     pub node_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "4")]
+    pub address_ipv6: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PingMessage {
@@ -447,7 +449,7 @@ pub mod account {
     /// frozen balance
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct Frozen {
-        /// the frozen trx balance
+        /// the frozen trx or asset balance
         #[prost(int64, tag = "1")]
         pub frozen_balance: i64,
         /// the expire time
@@ -509,6 +511,19 @@ pub struct Key {
     pub address: ::prost::alloc::vec::Vec<u8>,
     #[prost(int64, tag = "2")]
     pub weight: i64,
+}
+/// Per-signer post-quantum authentication witness for a transaction or block.
+/// The signing public key is carried in-band; node verifies binding via
+/// derived_addr = 0x41 ‖ deriveHash(scheme, public_key)\[12..32\]
+/// and matches against Permission.keys\[\].address.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PqAuthSig {
+    #[prost(enumeration = "PqScheme", tag = "1")]
+    pub scheme: i32,
+    #[prost(bytes = "vec", tag = "2")]
+    pub public_key: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "3")]
+    pub signature: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DelegatedResource {
@@ -695,6 +710,13 @@ pub struct Transaction {
     pub signature: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     #[prost(message, repeated, tag = "5")]
     pub ret: ::prost::alloc::vec::Vec<transaction::Result>,
+    /// Post-quantum authentication signatures. Each entry binds a signing
+    /// public key to its derived address and the corresponding signature.
+    /// ECDSA signatures (`signature` above) and PQAuthSig entries may co-exist
+    /// on multi-sig transactions, contributing weight independently to the
+    /// permission's threshold.
+    #[prost(message, repeated, tag = "6")]
+    pub pq_auth_sig: ::prost::alloc::vec::Vec<PqAuthSig>,
 }
 /// Nested message and enum types in `Transaction`.
 pub mod transaction {
@@ -989,6 +1011,7 @@ pub mod transaction {
             JvmStackOverFlow = 12,
             Unknown = 13,
             TransferFailed = 14,
+            /// please fill in the order according to the serial number
             InvalidCode = 15,
         }
         impl ContractResult {
@@ -1189,6 +1212,13 @@ pub struct BlockHeader {
     pub raw_data: ::core::option::Option<block_header::Raw>,
     #[prost(bytes = "vec", tag = "2")]
     pub witness_signature: ::prost::alloc::vec::Vec<u8>,
+    /// Post-quantum block signature. Exactly one of {witness_signature,
+    /// pq_auth_sig} SHALL be present per block: SRs with an ECDSA-only Witness
+    /// Permission set witness_signature; SRs whose Witness Permission carries a
+    /// PQ-derived Key set pq_auth_sig instead. The verifier dispatches by which
+    /// field is populated.
+    #[prost(message, optional, tag = "3")]
+    pub pq_auth_sig: ::core::option::Option<PqAuthSig>,
 }
 /// Nested message and enum types in `BlockHeader`.
 pub mod block_header {
@@ -1425,6 +1455,9 @@ pub struct HelloMessage {
     pub head_block_id: ::core::option::Option<hello_message::BlockId>,
     #[prost(bytes = "vec", tag = "7")]
     pub address: ::prost::alloc::vec::Vec<u8>,
+    /// Legacy ECDSA signature over Sha256Hash(timestamp). Mutually exclusive
+    /// with pq_auth_sig — exactly one of the two must be set by an active
+    /// witness when fast-forward is enabled.
     #[prost(bytes = "vec", tag = "8")]
     pub signature: ::prost::alloc::vec::Vec<u8>,
     #[prost(int32, tag = "9")]
@@ -1433,6 +1466,12 @@ pub struct HelloMessage {
     pub lowest_block_num: i64,
     #[prost(bytes = "vec", tag = "11")]
     pub code_version: ::prost::alloc::vec::Vec<u8>,
+    /// Post-quantum auth signature over Sha256Hash(timestamp). Set instead of
+    /// `signature` when the local witness is PQ-only. Verifier only accepts this
+    /// field after the proposal for the entry's scheme is activated on chain
+    /// (ALLOW_FN_DSA_512 for FN_DSA_512, ALLOW_ML_DSA_44 for ML_DSA_44).
+    #[prost(message, optional, tag = "12")]
+    pub pq_auth_sig: ::core::option::Option<PqAuthSig>,
 }
 /// Nested message and enum types in `HelloMessage`.
 pub mod hello_message {
@@ -2014,6 +2053,39 @@ impl AccountType {
         }
     }
 }
+/// Post-quantum signature scheme identifier used by PQAuthSig.
+/// 0 = proto3 default, never registered.
+/// Values 3..15 are unassigned; allocation requires a TIP + governance proposal.
+/// proto3 `reserved` is deliberately not used here — it would block future allocation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum PqScheme {
+    UnknownPqScheme = 0,
+    FnDsa512 = 1,
+    MlDsa44 = 2,
+}
+impl PqScheme {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::UnknownPqScheme => "UNKNOWN_PQ_SCHEME",
+            Self::FnDsa512 => "FN_DSA_512",
+            Self::MlDsa44 => "ML_DSA_44",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "UNKNOWN_PQ_SCHEME" => Some(Self::UnknownPqScheme),
+            "FN_DSA_512" => Some(Self::FnDsa512),
+            "ML_DSA_44" => Some(Self::MlDsa44),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ReasonCode {
@@ -2132,6 +2204,7 @@ pub struct AssetIssueContract {
     pub total_supply: i64,
     #[prost(message, repeated, tag = "5")]
     pub frozen_supply: ::prost::alloc::vec::Vec<asset_issue_contract::FrozenSupply>,
+    /// The fields trx_num and num define the exchange rate: num tokens can be purchased with trx_num TRX. This avoids using decimals.
     #[prost(int32, tag = "6")]
     pub trx_num: i32,
     #[prost(int32, tag = "7")]
@@ -2164,6 +2237,7 @@ pub struct AssetIssueContract {
 pub mod asset_issue_contract {
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
     pub struct FrozenSupply {
+        /// asset amount
         #[prost(int64, tag = "1")]
         pub frozen_amount: i64,
         #[prost(int64, tag = "2")]
@@ -3088,6 +3162,10 @@ pub struct CanDelegatedMaxSizeRequestMessage {
     pub r#type: i32,
     #[prost(bytes = "vec", tag = "2")]
     pub owner_address: ::prost::alloc::vec::Vec<u8>,
+    /// Optional. When set to a registered scheme, the BANDWIDTH estimate
+    /// reserves room for the PQAuthSig wire size instead of an ECDSA signature
+    #[prost(enumeration = "PqScheme", tag = "3")]
+    pub pq_scheme: i32,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CanDelegatedMaxSizeResponseMessage {
@@ -3796,6 +3874,7 @@ pub struct IvkDecryptTrc20Parameters {
     pub ak: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "6")]
     pub nk: ::prost::alloc::vec::Vec<u8>,
+    #[deprecated]
     #[prost(string, repeated, tag = "7")]
     pub events: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
@@ -3809,6 +3888,7 @@ pub struct OvkDecryptTrc20Parameters {
     pub ovk: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "4")]
     pub shielded_trc20_contract_address: ::prost::alloc::vec::Vec<u8>,
+    #[deprecated]
     #[prost(string, repeated, tag = "5")]
     pub events: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
@@ -5940,6 +6020,29 @@ pub mod wallet_client {
                 .insert(GrpcMethod::new("protocol.Wallet", "ListWitnesses"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn get_paginated_now_witness_list(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PaginatedMessage>,
+        ) -> std::result::Result<tonic::Response<super::WitnessList>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/protocol.Wallet/GetPaginatedNowWitnessList",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("protocol.Wallet", "GetPaginatedNowWitnessList"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn get_delegated_resource(
             &mut self,
             request: impl tonic::IntoRequest<super::DelegatedResourceMessage>,
@@ -6545,7 +6648,7 @@ pub mod wallet_client {
                 .insert(GrpcMethod::new("protocol.Wallet", "UpdateBrokerage"));
             self.inner.unary(req, path, codec).await
         }
-        /// for shiededTransaction
+        /// for shieldedTransaction
         pub async fn create_shielded_transaction(
             &mut self,
             request: impl tonic::IntoRequest<super::PrivateParameters>,
@@ -7524,6 +7627,32 @@ pub mod wallet_solidity_client {
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("protocol.WalletSolidity", "ListWitnesses"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_paginated_now_witness_list(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PaginatedMessage>,
+        ) -> std::result::Result<tonic::Response<super::WitnessList>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/protocol.WalletSolidity/GetPaginatedNowWitnessList",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "protocol.WalletSolidity",
+                        "GetPaginatedNowWitnessList",
+                    ),
+                );
             self.inner.unary(req, path, codec).await
         }
         pub async fn get_asset_issue_list(

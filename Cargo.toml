@@ -49,6 +49,7 @@ getset = "0.1"
 
 # Crypto
 k256 = "0.13"
+ml-dsa = "0.1"
 hex = "0.4"
 secrecy = "0.10"
 sha2 = "0.10"

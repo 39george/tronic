@@ -11,14 +11,9 @@ use crate::{
     utility::TronOffsetDateTime,
 };
 
-// #[path = "google.api.rs"]
-// mod google_api;
 mod protocol;
 
 pub mod contracts_conversions;
-
-// pub const TRON_PROTOCOL_FILE_DESCRIPTOR_SET: &[u8] =
-//     tonic::include_file_descriptor_set!("tron_protocol_descriptor");
 
 // ────────────────────────────── Transaction ─────────────────────────────── //
 
@@ -32,6 +27,8 @@ pub enum ProtoConvError {
     BadRefBlockHash { got: usize },
     #[error("bad timestamp: {0}")]
     IncorrectTimestamp(#[from] time::error::ComponentRange),
+    #[error("invalid signature: {0}")]
+    InvalidSignature(String),
 }
 
 impl From<Hash32> for BytesMessage {
@@ -241,7 +238,7 @@ impl TryFrom<Transaction> for domain::transaction::Transaction {
                         Ok(sig) => Some(sig),
                         Err(e) => {
                             tracing::warn!(
-                                "failed to parse RecoverableSignature: {e:#?}"
+                                "Protocol violation: failed to parse RecoverableSignature: {e:#?}"
                             );
                             None
                         }
@@ -249,7 +246,113 @@ impl TryFrom<Transaction> for domain::transaction::Transaction {
                 })
                 .collect(),
             result: t.ret.into_iter().map(Into::into).collect(),
+            pq_auth_sig: t
+                .pq_auth_sig
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
         })
+    }
+}
+
+impl_enum_conversions! {
+    r#return::ResponseCode => domain::ResponseCode {
+        Success,
+        Sigerror,
+        ContractValidateError,
+        ContractExeError,
+        BandwithError,
+        DupTransactionError,
+        TaposError,
+        TooBigTransactionError,
+        TransactionExpirationError,
+        ServerBusy,
+        NoConnection,
+        NotEnoughEffectiveConnection,
+        BlockUnsolidified,
+        OtherError
+    }
+}
+
+impl From<Return> for domain::Return {
+    fn from(r: Return) -> Self {
+        domain::Return {
+            result: r.result,
+            code: r.code().into(),
+            message: String::from_utf8_lossy(&r.message).into(),
+        }
+    }
+}
+
+impl From<domain::Return> for Return {
+    fn from(r: domain::Return) -> Self {
+        Return {
+            result: r.result,
+            code: r#return::ResponseCode::from(r.code) as i32,
+            message: r.message.as_bytes().into(),
+        }
+    }
+}
+
+impl From<PqScheme> for domain::PqScheme {
+    fn from(t: PqScheme) -> Self {
+        match t {
+            PqScheme::UnknownPqScheme => domain::PqScheme::Unknown,
+            PqScheme::FnDsa512 => domain::PqScheme::FnDsa512,
+            PqScheme::MlDsa44 => domain::PqScheme::MlDsa44,
+        }
+    }
+}
+
+impl From<domain::PqScheme> for PqScheme {
+    fn from(t: domain::PqScheme) -> Self {
+        match t {
+            domain::PqScheme::Unknown => PqScheme::UnknownPqScheme,
+            domain::PqScheme::FnDsa512 => PqScheme::FnDsa512,
+            domain::PqScheme::MlDsa44 => PqScheme::MlDsa44,
+        }
+    }
+}
+
+impl TryFrom<PqAuthSig> for domain::PqAuthSig {
+    type Error = ProtoConvError;
+    fn try_from(t: PqAuthSig) -> Result<Self, Self::Error> {
+        let scheme = t.scheme();
+        let signature = match scheme {
+            PqScheme::UnknownPqScheme => domain::PqSig::Unknown(t.signature),
+            PqScheme::FnDsa512 => domain::PqSig::FnDsa512(t.signature),
+            PqScheme::MlDsa44 => domain::PqSig::MlDsa44(
+                ml_dsa::Signature::<ml_dsa::MlDsa44>::decode(
+                    &ml_dsa::EncodedSignature::<ml_dsa::MlDsa44>::try_from(
+                        &t.signature,
+                    )
+                    .map_err(|e| {
+                        ProtoConvError::InvalidSignature(e.to_string())
+                    })?,
+                )
+                .ok_or(ProtoConvError::InvalidSignature("".into()))?,
+            ),
+        };
+        Ok(domain::PqAuthSig {
+            scheme: scheme.into(),
+            public_key: t.public_key,
+            signature,
+        })
+    }
+}
+
+impl From<domain::PqAuthSig> for PqAuthSig {
+    fn from(t: domain::PqAuthSig) -> Self {
+        let (signature, scheme) = match t.signature {
+            domain::PqSig::Unknown(s) => (s, PqScheme::UnknownPqScheme),
+            domain::PqSig::FnDsa512(s) => (s, PqScheme::FnDsa512),
+            domain::PqSig::MlDsa44(s) => (s.encode().into(), PqScheme::MlDsa44),
+        };
+        PqAuthSig {
+            scheme: scheme as i32,
+            public_key: t.public_key,
+            signature,
+        }
     }
 }
 
@@ -259,6 +362,7 @@ impl From<domain::transaction::Transaction> for Transaction {
             raw_data: Some(t.raw.into()),
             signature: t.signature.into_iter().map(Into::into).collect(),
             ret: t.result.into_iter().map(Into::into).collect(),
+            pq_auth_sig: t.pq_auth_sig.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -278,6 +382,13 @@ impl TryFrom<TransactionExtention>
             constant_result: txext.constant_result,
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
+            result: txext.result.map(Into::into),
+            logs: txext.logs.into_iter().map(Into::into).collect(),
+            internal_transactions: txext
+                .internal_transactions
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         })
     }
 }
@@ -290,7 +401,7 @@ impl From<domain::transaction::TransactionExtention> for TransactionExtention {
             constant_result: txext.constant_result,
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
-            result: todo!(),
+            result: txext.result.map(Into::into),
             logs: todo!(),
             internal_transactions: todo!(),
         }
@@ -1050,16 +1161,26 @@ impl From<domain::block::RawBlockHeader> for block_header::Raw {
 impl TryFrom<BlockHeader> for domain::block::BlockHeader {
     type Error = ProtoConvError;
     fn try_from(p: BlockHeader) -> Result<Self, Self::Error> {
+        let raw_data = p
+            .raw_data
+            .ok_or(ProtoConvError::Missing("raw block header"))?
+            .try_into()?;
+
+        let witness_signature = if p.witness_signature.is_empty() {
+            None
+        } else {
+            Some(
+                RecoverableSignature::try_from(p.witness_signature.as_slice())
+                    .map_err(|e| {
+                        ProtoConvError::InvalidSignature(e.to_string())
+                    })?,
+            )
+        };
+
         Ok(Self {
-            raw_data: p
-                .raw_data
-                .map(TryInto::try_into)
-                .ok_or(ProtoConvError::Missing("raw block header"))??,
-            witness_signature: p
-                .witness_signature
-                .as_slice()
-                .try_into()
-                .expect("failed to build recoverable signature from bytes"),
+            raw_data,
+            witness_signature,
+            pq_auth_sig: p.pq_auth_sig.map(TryInto::try_into).transpose()?,
         })
     }
 }
@@ -1068,7 +1189,11 @@ impl From<domain::block::BlockHeader> for BlockHeader {
     fn from(d: domain::block::BlockHeader) -> Self {
         Self {
             raw_data: Some(d.raw_data.into()),
-            witness_signature: d.witness_signature.into(),
+            witness_signature: d
+                .witness_signature
+                .map(Into::into)
+                .unwrap_or_default(),
+            pq_auth_sig: d.pq_auth_sig.map(Into::into),
         }
     }
 }

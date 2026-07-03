@@ -97,6 +97,7 @@ pub struct Transaction {
     pub raw: RawTransaction,
     pub signature: Vec<RecoverableSignature>,
     pub result: Vec<TransactionResult>,
+    pub pq_auth_sig: Vec<super::PqAuthSig>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -106,6 +107,9 @@ pub struct TransactionExtention {
     pub constant_result: Vec<Vec<u8>>,
     pub energy_used: i64,
     pub energy_penalty: i64,
+    pub result: Option<super::Return>,
+    pub logs: Vec<Log>,
+    pub internal_transactions: Vec<InternalTransaction>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

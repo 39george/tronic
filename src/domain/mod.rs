@@ -345,3 +345,49 @@ impl TryFrom<&[u8]> for RecoverableSignature {
         })
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ResponseCode {
+    Success = 0,
+    Sigerror = 1,
+    ContractValidateError = 2,
+    ContractExeError = 3,
+    BandwithError = 4,
+    DupTransactionError = 5,
+    TaposError = 6,
+    TooBigTransactionError = 7,
+    TransactionExpirationError = 8,
+    ServerBusy = 9,
+    NoConnection = 10,
+    NotEnoughEffectiveConnection = 11,
+    BlockUnsolidified = 12,
+    OtherError = 20,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Return {
+    pub result: bool,
+    pub code: ResponseCode,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PqScheme {
+    FnDsa512,
+    MlDsa44,
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PqSig {
+    MlDsa44(ml_dsa::Signature<ml_dsa::MlDsa44>),
+    FnDsa512(Vec<u8>),
+    Unknown(Vec<u8>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PqAuthSig {
+    pub scheme: PqScheme,
+    pub public_key: Vec<u8>,
+    pub signature: PqSig,
+}

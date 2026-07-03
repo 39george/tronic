@@ -6,15 +6,24 @@ import "core/contract/common.proto";
 
 package protocol;
 
-
 option java_package = "org.tron.protos"; //Specify the name of the package that generated the Java file
 option java_outer_classname = "Protocol"; //Specify the class name of the generated Java file
-option go_package = "github.com/tronprotocol/grpc-gateway/core";
+option go_package = "github.com/tronprotocol/protocol/core";
 
 enum AccountType {
   Normal = 0;
   AssetIssue = 1;
   Contract = 2;
+}
+
+// Post-quantum signature scheme identifier used by PQAuthSig.
+// 0 = proto3 default, never registered.
+// Values 3..15 are unassigned; allocation requires a TIP + governance proposal.
+// proto3 `reserved` is deliberately not used here — it would block future allocation.
+enum PQScheme {
+  UNKNOWN_PQ_SCHEME = 0;
+  FN_DSA_512 = 1;
+  ML_DSA_44 = 2;
 }
 
 // AccountId, (name, address) use name, (null, address) use address, (name, null) use name,
@@ -132,7 +141,7 @@ message ChainParameters {
 message Account {
   /* frozen balance */
   message Frozen {
-    int64 frozen_balance = 1; // the frozen trx balance
+    int64 frozen_balance = 1; // the frozen trx or asset balance
     int64 expire_time = 2; // the expire time
   }
   // account nick name
@@ -242,7 +251,17 @@ message Account {
 
 message Key {
   bytes address = 1;
-  int64 weight = 2;
+  int64 weight  = 2;
+}
+
+// Per-signer post-quantum authentication witness for a transaction or block.
+// The signing public key is carried in-band; node verifies binding via
+//   derived_addr = 0x41 ‖ deriveHash(scheme, public_key)[12..32]
+// and matches against Permission.keys[].address.
+message PQAuthSig {
+  PQScheme scheme     = 1;
+  bytes    public_key = 2;
+  bytes    signature  = 3;
 }
 
 message DelegatedResource {
@@ -407,6 +426,7 @@ message Transaction {
       UNKNOWN = 13;
       TRANSFER_FAILED = 14;
       INVALID_CODE = 15;
+      // please fill in the order according to the serial number
     }
     int64 fee = 1;
     code ret = 2;
@@ -448,6 +468,12 @@ message Transaction {
   // only support size = 1,  repeated list here for muti-sig extension
   repeated bytes signature = 2;
   repeated Result ret = 5;
+  // Post-quantum authentication signatures. Each entry binds a signing
+  // public key to its derived address and the corresponding signature.
+  // ECDSA signatures (`signature` above) and PQAuthSig entries may co-exist
+  // on multi-sig transactions, contributing weight independently to the
+  // permission's threshold.
+  repeated PQAuthSig pq_auth_sig = 6;
 }
 
 message TransactionInfo {
@@ -514,6 +540,12 @@ message BlockHeader {
   }
   raw raw_data = 1;
   bytes witness_signature = 2;
+  // Post-quantum block signature. Exactly one of {witness_signature,
+  // pq_auth_sig} SHALL be present per block: SRs with an ECDSA-only Witness
+  // Permission set witness_signature; SRs whose Witness Permission carries a
+  // PQ-derived Key set pq_auth_sig instead. The verifier dispatches by which
+  // field is populated.
+  PQAuthSig pq_auth_sig = 3;
 }
 
 // block
@@ -600,7 +632,7 @@ enum ReasonCode {
   CONNECT_FAIL = 0x21;
   TOO_MANY_PEERS_WITH_SAME_IP = 0x22;
   LIGHT_NODE_SYNC_FAIL = 0x23;
-  BELOW_THAN_ME = 0X24;
+  BELOW_THAN_ME = 0x24;
   NOT_WITNESS = 0x25;
   NO_SUCH_MESSAGE = 0x26;
   UNKNOWN = 0xFF;
@@ -623,10 +655,18 @@ message HelloMessage {
   BlockId solidBlockId = 5;
   BlockId headBlockId = 6;
   bytes address = 7;
+  // Legacy ECDSA signature over Sha256Hash(timestamp). Mutually exclusive
+  // with pq_auth_sig — exactly one of the two must be set by an active
+  // witness when fast-forward is enabled.
   bytes signature = 8;
   int32 nodeType = 9;
   int64 lowestBlockNum = 10;
   bytes codeVersion = 11;
+  // Post-quantum auth signature over Sha256Hash(timestamp). Set instead of
+  // `signature` when the local witness is PQ-only. Verifier only accepts this
+  // field after the proposal for the entry's scheme is activated on chain
+  // (ALLOW_FN_DSA_512 for FN_DSA_512, ALLOW_ML_DSA_44 for ML_DSA_44).
+  PQAuthSig pq_auth_sig = 12;
 }
 
 message InternalTransaction {

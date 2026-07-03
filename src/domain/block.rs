@@ -24,7 +24,10 @@ pub struct RawBlockHeader {
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockHeader {
     pub raw_data: RawBlockHeader,
-    pub witness_signature: RecoverableSignature,
+    /// Legacy ECDSA signature.
+    pub witness_signature: Option<RecoverableSignature>,
+    /// Post-quantum signatures.
+    pub pq_auth_sig: Option<super::PqAuthSig>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
