@@ -4,20 +4,20 @@ use futures::{StreamExt, stream};
 
 use crate::Filter;
 use crate::client::Client;
-use crate::domain::block::BlockExtention;
-use crate::domain::transaction::TransactionExtention;
+use crate::domain::block::BlockExtension;
+use crate::domain::transaction::TransactionExtension;
 use crate::listener::{ListenerError, ListenerMsg};
 use crate::provider::TronProvider;
 
 use super::BlockSubscriber;
 
 #[async_trait::async_trait]
-impl<F> Filter<BlockExtention> for F
+impl<F> Filter<BlockExtension> for F
 where
-    F: Fn(&TransactionExtention) -> bool + Send + Sync,
+    F: Fn(&TransactionExtension) -> bool + Send + Sync,
 {
-    type Item = TransactionExtention;
-    async fn filter(&self, content: BlockExtention) -> Vec<Self::Item> {
+    type Item = TransactionExtension;
+    async fn filter(&self, content: BlockExtension) -> Vec<Self::Item> {
         content
             .transactions
             .into_iter()
@@ -31,9 +31,9 @@ where
 pub struct DefaultFilter;
 
 #[async_trait::async_trait]
-impl Filter<BlockExtention> for DefaultFilter {
-    type Item = TransactionExtention;
-    async fn filter(&self, content: BlockExtention) -> Vec<Self::Item> {
+impl Filter<BlockExtension> for DefaultFilter {
+    type Item = TransactionExtension;
+    async fn filter(&self, content: BlockExtension) -> Vec<Self::Item> {
         content.transactions
     }
 }
@@ -60,7 +60,7 @@ where
 impl<P, S, F, H> TxSubscriber<P, S, F, H> {
     pub fn with_filter<NewF>(self, filter: NewF) -> TxSubscriber<P, S, NewF, H>
     where
-        NewF: Filter<BlockExtention>,
+        NewF: Filter<BlockExtension>,
     {
         TxSubscriber {
             client: self.client,
@@ -73,8 +73,8 @@ impl<P, S, F, H> TxSubscriber<P, S, F, H> {
 #[async_trait::async_trait]
 impl<P, S, F, H, Fut> BlockSubscriber for TxSubscriber<P, S, F, H>
 where
-    F: Filter<BlockExtention, Item = TransactionExtention> + Send + Sync,
-    H: Fn(Result<TransactionExtention, ListenerError>) -> Fut
+    F: Filter<BlockExtension, Item = TransactionExtension> + Send + Sync,
+    H: Fn(Result<TransactionExtension, ListenerError>) -> Fut
         + Send
         + Sync
         + Clone,

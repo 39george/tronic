@@ -458,12 +458,12 @@ where
             data: call.encode().into(),
             ..Default::default()
         };
-        let mut extention = balance_of
+        let mut extension = balance_of
             .client
             .provider()
             .trigger_constant_contract(trigger)
             .await?;
-        let balance = if let Some(result) = extention.constant_result.pop() {
+        let balance = if let Some(result) = extension.constant_result.pop() {
             if result.len() == 32 {
                 let balance_bytes: [u8; 32] = result.try_into().unwrap(); // We sure in length
                 alloy_primitives::U256::from_be_bytes(balance_bytes)

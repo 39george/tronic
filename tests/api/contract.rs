@@ -14,7 +14,7 @@ use tronic::domain::Hash32;
 use tronic::domain::account::AccountStatus;
 use tronic::domain::address::TronAddress;
 use tronic::domain::estimate::MissingResource;
-use tronic::domain::transaction::{TransactionExtention, TxCode};
+use tronic::domain::transaction::{TransactionExtension, TxCode};
 use tronic::extractor::DynamicTrc20Extractor;
 use tronic::listener::subscriber::filters::AddressFilter;
 use tronic::listener::subscriber::tx_sub::TxSubscriber;
@@ -30,7 +30,7 @@ async fn deploy_trc20_contract() {
     let tronic = Tronic::new().await;
     let initial_supply = Usdt::from_decimal(10_000_000.0).unwrap();
     let txinfo = tronic.deploy_mycoin(100, 10_000_000).await;
-    assert_eq!(txinfo.result, TxCode::Sucess);
+    assert_eq!(txinfo.result, TxCode::Success);
 
     let upload_contract_addr = txinfo.contract_address;
     let owner_balance = tronic
@@ -118,7 +118,7 @@ async fn listener_catches_trc20_transfer() {
 async fn activation_fee_rechecked_if_tx_broadcast_later() {
     let tronic = Tronic::new().await;
     let deploy_info = tronic.deploy_mycoin(100, 10_000_000).await;
-    assert_eq!(deploy_info.result, TxCode::Sucess);
+    assert_eq!(deploy_info.result, TxCode::Success);
 
     let token_contract =
         Trc20Contract::<Usdt>::new(deploy_info.contract_address);
@@ -240,7 +240,7 @@ async fn activation_fee_rechecked_if_tx_broadcast_later() {
     ptx.sign(tronic.signer(), &()).await.unwrap();
     let txinfo = ptx.broadcast_get_receipt(1).await.unwrap();
 
-    assert_eq!(txinfo.result, TxCode::Sucess);
+    assert_eq!(txinfo.result, TxCode::Success);
 
     let got = tronic
         .trc20_balance_of()
@@ -254,7 +254,7 @@ async fn activation_fee_rechecked_if_tx_broadcast_later() {
 }
 
 pub fn decode_usdt_transfer(
-    txext: &TransactionExtention,
+    txext: &TransactionExtension,
 ) -> Option<(Hash32, TronAddress, TronAddress, Usdt)> {
     let txid: Hash32 = txext.txid.clone().try_into().ok()?;
 

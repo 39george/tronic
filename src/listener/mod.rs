@@ -9,7 +9,7 @@ use tokio::time::{Duration, sleep};
 
 use crate::Result;
 use crate::client::Client;
-use crate::domain::block::BlockExtention;
+use crate::domain::block::BlockExtension;
 use crate::listener::block_cache::{BlockCache, InMemoryBlockCache};
 use crate::provider::TronProvider;
 use crate::{listener::subscriber::BlockSubscriber, signer::PrehashSigner};
@@ -49,7 +49,7 @@ impl std::error::Error for ListenerError {
 }
 
 pub type ListenerMsg =
-    std::result::Result<crate::domain::block::BlockExtention, ListenerError>;
+    std::result::Result<crate::domain::block::BlockExtension, ListenerError>;
 
 pub struct ListenerHandle {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
@@ -183,9 +183,9 @@ struct BlockStream<P, S, BC> {
     listener: Listener<P, S, BC>,
     delay: Pin<Box<tokio::time::Sleep>>,
     fut: Option<
-        Pin<Box<dyn Future<Output = Result<Vec<BlockExtention>>> + Send>>,
+        Pin<Box<dyn Future<Output = Result<Vec<BlockExtension>>> + Send>>,
     >,
-    pending_blocks: VecDeque<BlockExtention>,
+    pending_blocks: VecDeque<BlockExtension>,
 }
 
 impl<P, S, BC> Unpin for BlockStream<P, S, BC> {}

@@ -24,13 +24,13 @@ pub trait TronProvider {
         owner: TronAddress,
         to: TronAddress,
         amount: Trx,
-    ) -> Result<domain::transaction::TransactionExtention>;
+    ) -> Result<domain::transaction::TransactionExtension>;
     async fn trigger_smart_contract<A: AbiEncode + Send>(
         &self,
         owner: TronAddress,
         contract: TronAddress,
         call: A,
-    ) -> Result<domain::transaction::TransactionExtention>;
+    ) -> Result<domain::transaction::TransactionExtension>;
     async fn broadcast_transaction(
         &self,
         transaction: domain::transaction::Transaction,
@@ -50,16 +50,16 @@ pub trait TronProvider {
     async fn trigger_constant_contract(
         &self,
         contract: domain::contract::TriggerSmartContract,
-    ) -> Result<domain::transaction::TransactionExtention>;
-    async fn get_now_block(&self) -> Result<domain::block::BlockExtention>;
+    ) -> Result<domain::transaction::TransactionExtension>;
+    async fn get_now_block(&self) -> Result<domain::block::BlockExtension>;
     async fn get_block_by_number(
         &self,
         block_num: i64,
-    ) -> Result<domain::block::BlockExtention>;
+    ) -> Result<domain::block::BlockExtension>;
     async fn account_permission_update(
         &self,
         contract: domain::contract::AccountPermissionUpdateContract,
-    ) -> Result<domain::transaction::TransactionExtention>;
+    ) -> Result<domain::transaction::TransactionExtension>;
     async fn get_transaction_by_id(
         &self,
         txid: Hash32,
@@ -72,11 +72,11 @@ pub trait TronProvider {
     async fn freeze_balance(
         &self,
         contract: domain::contract::FreezeBalanceV2Contract,
-    ) -> Result<domain::transaction::TransactionExtention>;
+    ) -> Result<domain::transaction::TransactionExtension>;
     async fn unfreeze_balance(
         &self,
         contract: domain::contract::UnfreezeBalanceV2Contract,
-    ) -> Result<domain::transaction::TransactionExtention>;
+    ) -> Result<domain::transaction::TransactionExtension>;
     async fn get_reward(&self, address: TronAddress) -> Result<Trx>;
     async fn get_delegated_resource(
         &self,

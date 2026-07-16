@@ -150,7 +150,7 @@
 
 
 - BREAKING CHANGE: improve blockchain listener
-Listener now broadcasts `ListenerMsg = Result<BlockExtention, ListenerError>`,
+Listener now broadcasts `ListenerMsg = Result<BlockExtension, ListenerError>`,
 so subscribers can handle upstream failures (provider, decoding, timeouts)
 instead of silently skipping errors. ListenerError is cheap to clone (Arc)
 and ListenerHandle no longer exits on broadcast lag (Lagged is warned and
@@ -168,7 +168,7 @@ listener errors up to caller.
 
 BREAKING CHANGE:
 - Subscriber callback signature changed: `handle(msg: ListenerMsg)` where
-  `ListenerMsg = Result<BlockExtention, ListenerError>`
+  `ListenerMsg = Result<BlockExtension, ListenerError>`
 - `Filter<T>` trait changed to `async fn filter(&self, T) -> Vec<Item>`
   (update custom filters accordingly)
 - AddressFilter fetcher must return `HashSet<TronAddress>` (no Option) (f562085)
@@ -557,7 +557,7 @@ BREAKING CHANGE:
 - Make permission getters pub (8d2c6fe)
 
 
-- Make some permission fileds copy (getters) (b75245b)
+- Make some permission fields copy (getters) (b75245b)
 
 
 - Extract trc20 calls to separate trait (28b1beb)
@@ -582,7 +582,7 @@ BREAKING CHANGE:
 ### Breaking Changes
 
 
-- BREAKING CHANGE: implement multisig, permisisons, better builders (89d9486)
+- BREAKING CHANGE: implement multisig, permissions, better builders (89d9486)
 
 
 
@@ -825,10 +825,10 @@ BREAKING CHANGE:
 ### Refactor
 
 
-- Remove redunant conversion (9153470)
+- Remove redundant conversion (9153470)
 
 
-- Use BlockExtention as event (120cc11)
+- Use BlockExtension as event (120cc11)
 
 
 - Use macro for struct gen (c636de1)

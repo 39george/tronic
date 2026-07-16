@@ -459,7 +459,7 @@ pub struct SmartContract {
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Abi {
-    pub entrys: Vec<Entry>,
+    pub entries: Vec<Entry>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

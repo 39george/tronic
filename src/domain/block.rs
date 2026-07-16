@@ -1,11 +1,11 @@
 use time::OffsetDateTime;
 
 use crate::domain::{
-    Hash32, RecoverableSignature, RefBlockBytes, RefBlockHash,
-    address::TronAddress, transaction::Transaction,
+    address::TronAddress, transaction::Transaction, Hash32, RecoverableSignature, RefBlockBytes,
+    RefBlockHash,
 };
 
-use super::transaction::TransactionExtention;
+use super::transaction::TransactionExtension;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RawBlockHeader {
@@ -31,13 +31,13 @@ pub struct BlockHeader {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct BlockExtention {
-    pub transactions: Vec<TransactionExtention>,
+pub struct BlockExtension {
+    pub transactions: Vec<TransactionExtension>,
     pub block_header: BlockHeader,
     pub blockid: Hash32,
 }
 
-impl BlockExtention {
+impl BlockExtension {
     pub(crate) fn calculate_ref_block_bytes(&self) -> RefBlockBytes {
         let last_2_bytes = (self.block_header.raw_data.number & 0xFFFF) as u16;
         last_2_bytes.to_be_bytes().into()

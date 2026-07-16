@@ -352,7 +352,7 @@ pub enum ResponseCode {
     Sigerror = 1,
     ContractValidateError = 2,
     ContractExeError = 3,
-    BandwithError = 4,
+    BandwidthError = 4,
     DupTransactionError = 5,
     TaposError = 6,
     TooBigTransactionError = 7,

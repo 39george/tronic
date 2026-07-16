@@ -733,7 +733,7 @@ where
                             new_contract: SmartContract {
                                 origin_address: owner,
                                 abi: Abi {
-                                    entrys: parsed_contract.abi,
+                                    entries: parsed_contract.abi,
                                 },
                                 bytecode,
                                 consume_user_resource_percent: create
@@ -809,12 +809,12 @@ where
             ..Default::default()
         };
 
-        let extention = read_contract
+        let extension = read_contract
             .client
             .provider
             .trigger_constant_contract(trigger)
             .await?;
-        let ret = C::decode_ret(extention.constant_result);
+        let ret = C::decode_ret(extension.constant_result);
         Ok(ret)
     }
 }

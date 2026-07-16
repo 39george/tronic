@@ -25,7 +25,7 @@ impl crate::provider::TronProvider for MockProvider {
         _: domain::address::TronAddress,
         _: domain::address::TronAddress,
         _: trx::Trx,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
     async fn trigger_smart_contract<A: AbiEncode + Send>(
@@ -33,7 +33,7 @@ impl crate::provider::TronProvider for MockProvider {
         _: TronAddress,
         _: TronAddress,
         _: A,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
     async fn broadcast_transaction(
@@ -63,16 +63,16 @@ impl crate::provider::TronProvider for MockProvider {
     async fn trigger_constant_contract(
         &self,
         _: domain::contract::TriggerSmartContract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
-    async fn get_now_block(&self) -> Result<domain::block::BlockExtention> {
+    async fn get_now_block(&self) -> Result<domain::block::BlockExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
     async fn account_permission_update(
         &self,
         _: domain::contract::AccountPermissionUpdateContract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
     async fn get_transaction_by_id(
@@ -93,13 +93,13 @@ impl crate::provider::TronProvider for MockProvider {
     async fn freeze_balance(
         &self,
         _: domain::contract::FreezeBalanceV2Contract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
     async fn unfreeze_balance(
         &self,
         _: domain::contract::UnfreezeBalanceV2Contract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
     async fn get_reward(&self, _address: TronAddress) -> Result<Trx> {
@@ -121,7 +121,7 @@ impl crate::provider::TronProvider for MockProvider {
     async fn get_block_by_number(
         &self,
         _block_num: i64,
-    ) -> Result<domain::block::BlockExtention> {
+    ) -> Result<domain::block::BlockExtension> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
 }

@@ -40,7 +40,7 @@ pub struct ActivationFeeCheck {
 
 // Todo: it's possible to implement PendingTransactionCache
 // here to reduce api calls count, and make interaction faster.
-// But expiration for entries is required. For example, for a BlockExtention
+// But expiration for entries is required. For example, for a BlockExtension
 // 1-2 seconds should be enough.
 #[allow(dead_code)]
 struct Cache {
@@ -782,7 +782,7 @@ where
 
                         // Then check if the transaction was successful
                         match tx_info.result {
-                            TxCode::Sucess => {
+                            TxCode::Success => {
                                 confirmation_count += 1;
 
                                 // Return when we reach the required confirmations

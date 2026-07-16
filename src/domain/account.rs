@@ -6,8 +6,8 @@ use time::OffsetDateTime;
 use crate::domain::contract::ResourceCode;
 use crate::domain::{address::TronAddress, trx::Trx};
 
-use super::Message;
 use super::permission::Permission;
+use super::Message;
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum AccountType {
@@ -140,7 +140,7 @@ pub struct Account {
     pub create_time: OffsetDateTime,
     /// this last operation time, including transfer, voting and so on. //FIXME fix grammar
     #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
-    pub latest_opration_time: OffsetDateTime,
+    pub latest_operation_time: OffsetDateTime,
     /// witness block producing allowance
     pub allowance: i64,
     /// last withdraw time
@@ -224,7 +224,7 @@ impl Account {
             // Normal accounts must show activation markers
             _ => {
                 self.create_time != OffsetDateTime::UNIX_EPOCH
-                    || self.latest_opration_time != OffsetDateTime::UNIX_EPOCH
+                    || self.latest_operation_time != OffsetDateTime::UNIX_EPOCH
                     || !self.account_name.is_empty()
             }
         }
@@ -242,7 +242,7 @@ impl Account {
             }
             _ => AccountStatus::Exists {
                 created_at: self.create_time,
-                last_active: self.latest_opration_time,
+                last_active: self.latest_operation_time,
                 account_type: self.account_type.clone(),
             },
         }

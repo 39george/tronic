@@ -19,7 +19,7 @@ use tronic::{
         token::{InMemoryTokenRegistry, usdt::Usdt},
         trc20::Trc20Call,
     },
-    domain::transaction::TransactionExtention,
+    domain::transaction::TransactionExtension,
     extractor::DynamicTrc20Extractor,
     listener::{
         ListenerError,
@@ -64,9 +64,9 @@ async fn main() -> eyre::Result<()> {
     // Subscribe to transactions and decode TRC-20 transfers
     let subscriber = TxSubscriber::new(
         &client,
-        |t: Result<TransactionExtention, ListenerError>| async move {
-            let extention = t.unwrap();
-            let t = extention.transaction.unwrap();
+        |t: Result<TransactionExtension, ListenerError>| async move {
+            let extension = t.unwrap();
+            let t = extension.transaction.unwrap();
             if let Some(c) = t.get_contract() {
                 if let Some(trg) = c.trigger_smart_contract()
                     && let Ok(trc20) = Trc20Call::<Usdt>::try_from_data(
@@ -93,7 +93,7 @@ async fn main() -> eyre::Result<()> {
                             transfer_call.amount,
                             trg.contract_address,
                             message,
-                            extention.txid
+                            extension.txid
                         );
                     }
                 } else {

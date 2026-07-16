@@ -194,7 +194,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         owner: domain::address::TronAddress,
         to: domain::address::TronAddress,
         amount: trx::Trx,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         let txext = self
             .retry_grpc("transfer_contract", || {
                 let grpc_transfer_contract = protocol::TransferContract {
@@ -230,7 +230,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         owner: TronAddress,
         contract: TronAddress,
         call: A,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         let call = call.encode();
         let reply = self
             .retry_grpc("trigger_smart_contract", || {
@@ -327,7 +327,7 @@ impl crate::provider::TronProvider for GrpcProvider {
     async fn trigger_constant_contract(
         &self,
         contract: domain::contract::TriggerSmartContract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         let contract: protocol::TriggerSmartContract = contract.into();
 
         let txext = self
@@ -344,7 +344,7 @@ impl crate::provider::TronProvider for GrpcProvider {
         Ok(txext.try_into()?)
     }
 
-    async fn get_now_block(&self) -> Result<domain::block::BlockExtention> {
+    async fn get_now_block(&self) -> Result<domain::block::BlockExtension> {
         let now_block = self
             .retry_grpc("get_now_block", || {
                 let mut node = self.wallet_client();
@@ -362,7 +362,7 @@ impl crate::provider::TronProvider for GrpcProvider {
     async fn get_block_by_number(
         &self,
         block_num: i64,
-    ) -> Result<domain::block::BlockExtention> {
+    ) -> Result<domain::block::BlockExtension> {
         let block = self
             .retry_grpc("get_block_by_number", || {
                 let mut node = self.wallet_client();
@@ -383,7 +383,7 @@ impl crate::provider::TronProvider for GrpcProvider {
     async fn account_permission_update(
         &self,
         contract: domain::contract::AccountPermissionUpdateContract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         let contract: protocol::AccountPermissionUpdateContract =
             contract.into();
 
@@ -462,7 +462,7 @@ impl crate::provider::TronProvider for GrpcProvider {
     async fn freeze_balance(
         &self,
         contract: domain::contract::FreezeBalanceV2Contract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         let contract: protocol::FreezeBalanceV2Contract = contract.into();
 
         let txext = self
@@ -482,7 +482,7 @@ impl crate::provider::TronProvider for GrpcProvider {
     async fn unfreeze_balance(
         &self,
         contract: domain::contract::UnfreezeBalanceV2Contract,
-    ) -> Result<domain::transaction::TransactionExtention> {
+    ) -> Result<domain::transaction::TransactionExtension> {
         let contract: protocol::UnfreezeBalanceV2Contract = contract.into();
 
         let txext = self

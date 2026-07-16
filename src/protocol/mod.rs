@@ -261,7 +261,7 @@ impl_enum_conversions! {
         Sigerror,
         ContractValidateError,
         ContractExeError,
-        BandwithError,
+        BandwidthError,
         DupTransactionError,
         TaposError,
         TooBigTransactionError,
@@ -367,17 +367,12 @@ impl From<domain::transaction::Transaction> for Transaction {
     }
 }
 
-impl TryFrom<TransactionExtention>
-    for domain::transaction::TransactionExtention
-{
+impl TryFrom<TransactionExtension> for domain::transaction::TransactionExtension {
     type Error = ProtoConvError;
 
-    fn try_from(txext: TransactionExtention) -> Result<Self, Self::Error> {
-        Ok(domain::transaction::TransactionExtention {
-            transaction: txext
-                .transaction
-                .map(TryInto::try_into)
-                .transpose()?,
+    fn try_from(txext: TransactionExtension) -> Result<Self, Self::Error> {
+        Ok(domain::transaction::TransactionExtension {
+            transaction: txext.transaction.map(TryInto::try_into).transpose()?,
             txid: txext.txid.try_into().unwrap_or_default(),
             constant_result: txext.constant_result,
             energy_used: txext.energy_used,
@@ -393,9 +388,9 @@ impl TryFrom<TransactionExtention>
     }
 }
 
-impl From<domain::transaction::TransactionExtention> for TransactionExtention {
-    fn from(txext: domain::transaction::TransactionExtention) -> Self {
-        TransactionExtention {
+impl From<domain::transaction::TransactionExtension> for TransactionExtension {
+    fn from(txext: domain::transaction::TransactionExtension) -> Self {
+        TransactionExtension {
             transaction: txext.transaction.map(Into::into),
             txid: txext.txid.into(),
             constant_result: txext.constant_result,
@@ -535,14 +530,14 @@ impl From<InternalTransaction> for domain::transaction::InternalTransaction {
 
 impl_enum_conversions! {
     transaction_info::Code => domain::transaction::TxCode {
-        Sucess,
+        Success,
         Failed
     }
 }
 
 impl_enum_conversions! {
     transaction::result::Code => domain::transaction::TxCode {
-        Sucess,
+        Success,
         Failed
     }
 }
@@ -910,9 +905,7 @@ impl TryFrom<Account> for domain::account::Account {
             tron_power: a.tron_power.map(TryInto::try_into).transpose()?,
             asset_optimized: a.asset_optimized,
             create_time: OffsetDateTime::try_from_tron(a.create_time)?,
-            latest_opration_time: OffsetDateTime::try_from_tron(
-                a.latest_opration_time,
-            )?,
+            latest_operation_time: OffsetDateTime::try_from_tron(a.latest_operation_time)?,
             allowance: a.allowance,
             latest_withdraw_time: OffsetDateTime::try_from_tron(
                 a.latest_withdraw_time,
@@ -995,7 +988,7 @@ impl From<domain::account::Account> for Account {
             tron_power: a.tron_power.map(Into::into),
             asset_optimized: a.asset_optimized,
             create_time: a.create_time.to_tron(),
-            latest_opration_time: a.latest_opration_time.to_tron(),
+            latest_operation_time: a.latest_operation_time.to_tron(),
             allowance: a.allowance,
             latest_withdraw_time: a.latest_withdraw_time.to_tron(),
             code: a.code,
@@ -1221,9 +1214,9 @@ impl From<domain::block::Block> for Block {
     }
 }
 
-impl TryFrom<BlockExtention> for domain::block::BlockExtention {
+impl TryFrom<BlockExtension> for domain::block::BlockExtension {
     type Error = ProtoConvError;
-    fn try_from(p: BlockExtention) -> Result<Self, Self::Error> {
+    fn try_from(p: BlockExtension) -> Result<Self, Self::Error> {
         Ok(Self {
             transactions: p
                 .transactions
@@ -1239,8 +1232,8 @@ impl TryFrom<BlockExtention> for domain::block::BlockExtention {
     }
 }
 
-impl From<domain::block::BlockExtention> for BlockExtention {
-    fn from(p: domain::block::BlockExtention) -> Self {
+impl From<domain::block::BlockExtension> for BlockExtension {
+    fn from(p: domain::block::BlockExtension) -> Self {
         Self {
             transactions: p.transactions.into_iter().map(Into::into).collect(),
             block_header: Some(p.block_header.into()),

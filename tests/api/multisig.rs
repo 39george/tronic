@@ -47,7 +47,7 @@ async fn multisig_trx_transfer() {
         .unwrap();
     tokio::time::sleep(Duration::from_secs(7)).await;
     let txinfo = tronic.provider().get_transaction_info(txid).await.unwrap();
-    assert_eq!(txinfo.result, TxCode::Sucess);
+    assert_eq!(txinfo.result, TxCode::Success);
 
     // Make multisig transaction
     let mut tx = tronic
@@ -68,5 +68,5 @@ async fn multisig_trx_transfer() {
 
     tokio::time::sleep(Duration::from_secs(7)).await;
     let txinfo = tronic.provider().get_transaction_info(txid).await.unwrap();
-    assert_eq!(txinfo.result, TxCode::Sucess);
+    assert_eq!(txinfo.result, TxCode::Success);
 }

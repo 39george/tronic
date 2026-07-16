@@ -4,9 +4,9 @@ use std::{collections::HashSet, future::Future};
 use crate::Filter;
 use crate::contracts::token::{InMemoryTokenRegistry, TokenRegistry};
 use crate::domain::address::TronAddress;
-use crate::domain::block::BlockExtention;
+use crate::domain::block::BlockExtension;
 use crate::domain::contract::{Contract, TriggerSmartContract};
-use crate::domain::transaction::TransactionExtention;
+use crate::domain::transaction::TransactionExtension;
 use crate::extractor::AddressExtractor;
 
 #[derive(Clone)]
@@ -57,15 +57,15 @@ pub struct FilterCtx<R> {
 }
 
 #[async_trait::async_trait]
-impl<F, Fut, R, E> Filter<BlockExtention> for AddressFilter<F, R, E>
+impl<F, Fut, R, E> Filter<BlockExtension> for AddressFilter<F, R, E>
 where
     F: Fn() -> Fut + Send + Sync,
     Fut: Future<Output = HashSet<TronAddress>> + Send,
     E: AddressExtractor<FilterCtx<R>> + Send + Sync + Clone,
     R: TokenRegistry + Send + Sync + Clone,
 {
-    type Item = TransactionExtention;
-    async fn filter(&self, block: BlockExtention) -> Vec<Self::Item> {
+    type Item = TransactionExtension;
+    async fn filter(&self, block: BlockExtension) -> Vec<Self::Item> {
         let addrs = (self.fetch_addrs)().await;
 
         block
@@ -79,7 +79,7 @@ where
 }
 
 fn contains_addr<R, E>(
-    txext: &TransactionExtention,
+    txext: &TransactionExtension,
     addrs: &HashSet<TronAddress>,
     registry: &R,
 ) -> bool

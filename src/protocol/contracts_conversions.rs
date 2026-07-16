@@ -1127,7 +1127,7 @@ impl From<domain::contract::SmartContract> for SmartContract {
 impl From<smart_contract::Abi> for domain::contract::Abi {
     fn from(value: smart_contract::Abi) -> Self {
         domain::contract::Abi {
-            entrys: value.entrys.into_iter().map(Into::into).collect(),
+            entries: value.entries.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -1135,7 +1135,7 @@ impl From<smart_contract::Abi> for domain::contract::Abi {
 impl From<domain::contract::Abi> for smart_contract::Abi {
     fn from(value: domain::contract::Abi) -> Self {
         smart_contract::Abi {
-            entrys: value.entrys.into_iter().map(Into::into).collect(),
+            entries: value.entries.into_iter().map(Into::into).collect(),
         }
     }
 }

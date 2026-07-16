@@ -7,7 +7,7 @@ use time::ext::NumericalDuration;
 use crate::domain::HexMessage;
 use crate::domain::Message;
 use crate::domain::address::TronAddress;
-use crate::domain::block::BlockExtention;
+use crate::domain::block::BlockExtension;
 use crate::domain::trx::Trx;
 
 use super::Hash32;
@@ -101,7 +101,7 @@ pub struct Transaction {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TransactionExtention {
+pub struct TransactionExtension {
     pub transaction: Option<Transaction>,
     pub txid: Hash32,
     pub constant_result: Vec<Vec<u8>>,
@@ -146,7 +146,7 @@ pub struct InternalTransaction {
     pub hash: Hash32,
     /// the one send trx (TBD: or token) via function
     pub caller_address: TronAddress,
-    /// the one recieve trx (TBD: or token) via function
+    /// the one receive trx (TBD: or token) via function
     pub transfer_to_address: TronAddress,
     pub call_value_info: Vec<CallValueInfo>,
     pub note: Message,
@@ -156,7 +156,7 @@ pub struct InternalTransaction {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TxCode {
-    Sucess = 0,
+    Success = 0,
     Failed = 1,
 }
 
@@ -192,24 +192,19 @@ impl Transaction {
     pub fn get_contract(&self) -> Option<Contract> {
         self.raw.contract.last().cloned()
     }
-    pub fn new(
-        contract: Contract,
-        latest_block: &BlockExtention,
-        memo: Message,
-    ) -> Self {
+    pub fn new(contract: Contract, latest_block: &BlockExtension, memo: Message) -> Self {
         let mut transaction = Transaction::default();
         transaction.raw.timestamp = OffsetDateTime::now_utc();
         transaction.raw.data = memo;
         transaction.raw.contract.push(contract);
         latest_block.fill_header_info_in_transaction(&mut transaction);
         // Setup default expiration
-        transaction.raw.expiration =
-            transaction.raw.timestamp.saturating_add(60.seconds());
+        transaction.raw.expiration = transaction.raw.timestamp.saturating_add(60.seconds());
         transaction
     }
 }
 
-impl TransactionExtention {
+impl TransactionExtension {
     pub fn get_contract(&self) -> Option<Contract> {
         self.transaction.as_ref().and_then(|t| t.get_contract())
     }

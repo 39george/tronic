@@ -370,7 +370,7 @@ pub struct Account {
     pub create_time: i64,
     /// this last operation time, including transfer, voting and so on. //FIXME fix grammar
     #[prost(int64, tag = "10")]
-    pub latest_opration_time: i64,
+    pub latest_operation_time: i64,
     /// witness block producing allowance
     #[prost(int64, tag = "11")]
     pub allowance: i64,
@@ -705,7 +705,7 @@ pub struct MarketOrderDetail {
 pub struct Transaction {
     #[prost(message, optional, tag = "1")]
     pub raw_data: ::core::option::Option<transaction::Raw>,
-    /// only support size = 1,  repeated list here for muti-sig extension
+    /// only support size = 1,  repeated list here for multi-sig extension
     #[prost(bytes = "vec", repeated, tag = "2")]
     pub signature: ::prost::alloc::vec::Vec<::prost::alloc::vec::Vec<u8>>,
     #[prost(message, repeated, tag = "5")]
@@ -959,7 +959,7 @@ pub mod transaction {
         )]
         #[repr(i32)]
         pub enum Code {
-            Sucess = 0,
+            Success = 0,
             Failed = 1,
         }
         impl Code {
@@ -969,14 +969,14 @@ pub mod transaction {
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             pub fn as_str_name(&self) -> &'static str {
                 match self {
-                    Self::Sucess => "SUCESS",
+                    Self::Success => "SUCCESS",
                     Self::Failed => "FAILED",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
             pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
                 match value {
-                    "SUCESS" => Some(Self::Sucess),
+                    "SUCCESS" => Some(Self::Success),
                     "FAILED" => Some(Self::Failed),
                     _ => None,
                 }
@@ -1168,7 +1168,7 @@ pub mod transaction_info {
     )]
     #[repr(i32)]
     pub enum Code {
-        Sucess = 0,
+        Success = 0,
         Failed = 1,
     }
     impl Code {
@@ -1178,14 +1178,14 @@ pub mod transaction_info {
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         pub fn as_str_name(&self) -> &'static str {
             match self {
-                Self::Sucess => "SUCESS",
+                Self::Success => "SUCCESS",
                 Self::Failed => "FAILED",
             }
         }
         /// Creates an enum from field names used in the ProtoBuf definition.
         pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
             match value {
-                "SUCESS" => Some(Self::Sucess),
+                "SUCCESS" => Some(Self::Success),
                 "FAILED" => Some(Self::Failed),
                 _ => None,
             }
@@ -1492,7 +1492,7 @@ pub struct InternalTransaction {
     /// the one send trx (TBD: or token) via function
     #[prost(bytes = "vec", tag = "2")]
     pub caller_address: ::prost::alloc::vec::Vec<u8>,
-    /// the one recieve trx (TBD: or token) via function
+    /// the one receive trx (TBD: or token) via function
     #[prost(bytes = "vec", tag = "3")]
     pub transfer_to_address: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, repeated, tag = "4")]
@@ -2095,7 +2095,7 @@ pub enum ReasonCode {
     DuplicatePeer = 5,
     IncompatibleProtocol = 6,
     RandomElimination = 7,
-    PeerQuiting = 8,
+    PeerQuitting = 8,
     UnexpectedIdentity = 9,
     LocalIdentity = 10,
     PingTimeout = 11,
@@ -2131,7 +2131,7 @@ impl ReasonCode {
             Self::DuplicatePeer => "DUPLICATE_PEER",
             Self::IncompatibleProtocol => "INCOMPATIBLE_PROTOCOL",
             Self::RandomElimination => "RANDOM_ELIMINATION",
-            Self::PeerQuiting => "PEER_QUITING",
+            Self::PeerQuitting => "PEER_QUITTING",
             Self::UnexpectedIdentity => "UNEXPECTED_IDENTITY",
             Self::LocalIdentity => "LOCAL_IDENTITY",
             Self::PingTimeout => "PING_TIMEOUT",
@@ -2164,7 +2164,7 @@ impl ReasonCode {
             "DUPLICATE_PEER" => Some(Self::DuplicatePeer),
             "INCOMPATIBLE_PROTOCOL" => Some(Self::IncompatibleProtocol),
             "RANDOM_ELIMINATION" => Some(Self::RandomElimination),
-            "PEER_QUITING" => Some(Self::PeerQuiting),
+            "PEER_QUITTING" => Some(Self::PeerQuitting),
             "UNEXPECTED_IDENTITY" => Some(Self::UnexpectedIdentity),
             "LOCAL_IDENTITY" => Some(Self::LocalIdentity),
             "PING_TIMEOUT" => Some(Self::PingTimeout),
@@ -2673,7 +2673,7 @@ pub mod smart_contract {
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Abi {
         #[prost(message, repeated, tag = "1")]
-        pub entrys: ::prost::alloc::vec::Vec<abi::Entry>,
+        pub entries: ::prost::alloc::vec::Vec<abi::Entry>,
     }
     /// Nested message and enum types in `ABI`.
     pub mod abi {
@@ -3034,7 +3034,7 @@ pub mod r#return {
         Sigerror = 1,
         ContractValidateError = 2,
         ContractExeError = 3,
-        BandwithError = 4,
+        BandwidthError = 4,
         DupTransactionError = 5,
         TaposError = 6,
         TooBigTransactionError = 7,
@@ -3056,7 +3056,7 @@ pub mod r#return {
                 Self::Sigerror => "SIGERROR",
                 Self::ContractValidateError => "CONTRACT_VALIDATE_ERROR",
                 Self::ContractExeError => "CONTRACT_EXE_ERROR",
-                Self::BandwithError => "BANDWITH_ERROR",
+                Self::BandwidthError => "BANDWIDTH_ERROR",
                 Self::DupTransactionError => "DUP_TRANSACTION_ERROR",
                 Self::TaposError => "TAPOS_ERROR",
                 Self::TooBigTransactionError => "TOO_BIG_TRANSACTION_ERROR",
@@ -3075,7 +3075,7 @@ pub mod r#return {
                 "SIGERROR" => Some(Self::Sigerror),
                 "CONTRACT_VALIDATE_ERROR" => Some(Self::ContractValidateError),
                 "CONTRACT_EXE_ERROR" => Some(Self::ContractExeError),
-                "BANDWITH_ERROR" => Some(Self::BandwithError),
+                "BANDWIDTH_ERROR" => Some(Self::BandwidthError),
                 "DUP_TRANSACTION_ERROR" => Some(Self::DupTransactionError),
                 "TAPOS_ERROR" => Some(Self::TaposError),
                 "TOO_BIG_TRANSACTION_ERROR" => Some(Self::TooBigTransactionError),
@@ -3339,7 +3339,7 @@ pub struct PaginatedMessage {
     pub limit: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TransactionExtention {
+pub struct TransactionExtension {
     #[prost(message, optional, tag = "1")]
     pub transaction: ::core::option::Option<Transaction>,
     /// transaction id =  sha256(transaction.rowdata)
@@ -3366,23 +3366,23 @@ pub struct EstimateEnergyMessage {
     pub energy_required: i64,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BlockExtention {
+pub struct BlockExtension {
     #[prost(message, repeated, tag = "1")]
-    pub transactions: ::prost::alloc::vec::Vec<TransactionExtention>,
+    pub transactions: ::prost::alloc::vec::Vec<TransactionExtension>,
     #[prost(message, optional, tag = "2")]
     pub block_header: ::core::option::Option<BlockHeader>,
     #[prost(bytes = "vec", tag = "3")]
     pub blockid: ::prost::alloc::vec::Vec<u8>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BlockListExtention {
+pub struct BlockListExtension {
     #[prost(message, repeated, tag = "1")]
-    pub block: ::prost::alloc::vec::Vec<BlockExtention>,
+    pub block: ::prost::alloc::vec::Vec<BlockExtension>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TransactionListExtention {
+pub struct TransactionListExtension {
     #[prost(message, repeated, tag = "1")]
-    pub transaction: ::prost::alloc::vec::Vec<TransactionExtention>,
+    pub transaction: ::prost::alloc::vec::Vec<TransactionExtension>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BlockIncrementalMerkleTree {
@@ -3402,7 +3402,7 @@ pub struct TransactionSignWeight {
     #[prost(message, optional, tag = "4")]
     pub result: ::core::option::Option<transaction_sign_weight::Result>,
     #[prost(message, optional, tag = "5")]
-    pub transaction: ::core::option::Option<TransactionExtention>,
+    pub transaction: ::core::option::Option<TransactionExtension>,
 }
 /// Nested message and enum types in `TransactionSignWeight`.
 pub mod transaction_sign_weight {
@@ -3474,7 +3474,7 @@ pub struct TransactionApprovedList {
     #[prost(message, optional, tag = "4")]
     pub result: ::core::option::Option<transaction_approved_list::Result>,
     #[prost(message, optional, tag = "5")]
-    pub transaction: ::core::option::Option<TransactionExtention>,
+    pub transaction: ::core::option::Option<TransactionExtension>,
 }
 /// Nested message and enum types in `TransactionApprovedList`.
 pub mod transaction_approved_list {
@@ -4155,7 +4155,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::TransferContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4244,7 +4244,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::AccountUpdateContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4291,7 +4291,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateSettingContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4316,7 +4316,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateEnergyLimitContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4341,7 +4341,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::VoteWitnessContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4388,7 +4388,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::AssetIssueContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4435,7 +4435,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::WitnessUpdateContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4482,7 +4482,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::AccountCreateContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4529,7 +4529,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::WitnessCreateContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4576,7 +4576,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::TransferAssetContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4623,7 +4623,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ParticipateAssetIssueContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4670,7 +4670,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::FreezeBalanceContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4695,7 +4695,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::FreezeBalanceV2Contract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4742,7 +4742,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UnfreezeBalanceContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4767,7 +4767,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UnfreezeBalanceV2Contract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4814,7 +4814,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UnfreezeAssetContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4861,7 +4861,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::WithdrawBalanceContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4885,7 +4885,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::WithdrawExpireUnfreezeContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4909,7 +4909,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::DelegateResourceContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4933,7 +4933,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UnDelegateResourceContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -4957,7 +4957,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::CancelAllUnfreezeV2Contract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5004,7 +5004,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateAssetContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5028,7 +5028,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ProposalCreateContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5052,7 +5052,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ProposalApproveContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5076,7 +5076,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ProposalDeleteContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5100,7 +5100,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::BuyStorageContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5124,7 +5124,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::BuyStorageBytesContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5148,7 +5148,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::SellStorageContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5172,7 +5172,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ExchangeCreateContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5196,7 +5196,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ExchangeInjectContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5220,7 +5220,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ExchangeWithdrawContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5244,7 +5244,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ExchangeTransactionContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5268,7 +5268,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::MarketSellAssetContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5292,7 +5292,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::MarketCancelOrderContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5613,7 +5613,7 @@ pub mod wallet_client {
         pub async fn get_now_block2(
             &mut self,
             request: impl tonic::IntoRequest<super::EmptyMessage>,
-        ) -> std::result::Result<tonic::Response<super::BlockExtention>, tonic::Status> {
+        ) -> std::result::Result<tonic::Response<super::BlockExtension>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -5657,7 +5657,7 @@ pub mod wallet_client {
         pub async fn get_block_by_num2(
             &mut self,
             request: impl tonic::IntoRequest<super::NumberMessage>,
-        ) -> std::result::Result<tonic::Response<super::BlockExtention>, tonic::Status> {
+        ) -> std::result::Result<tonic::Response<super::BlockExtension>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -5746,7 +5746,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::BlockLimit>,
         ) -> std::result::Result<
-            tonic::Response<super::BlockListExtention>,
+            tonic::Response<super::BlockListExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5793,7 +5793,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::NumberMessage>,
         ) -> std::result::Result<
-            tonic::Response<super::BlockListExtention>,
+            tonic::Response<super::BlockListExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5838,7 +5838,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::CreateSmartContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5907,7 +5907,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::TriggerSmartContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5931,7 +5931,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::TriggerSmartContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -5979,7 +5979,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ClearAbiContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -6491,7 +6491,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::AccountPermissionUpdateContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -6628,7 +6628,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateBrokerageContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -6653,7 +6653,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::PrivateParameters>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -6986,7 +6986,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::PrivateParametersWithoutAsk>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -7248,7 +7248,7 @@ pub mod wallet_client {
             &mut self,
             request: impl tonic::IntoRequest<super::Transaction>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -7386,7 +7386,7 @@ pub mod wallet_client {
         pub async fn get_block(
             &mut self,
             request: impl tonic::IntoRequest<super::BlockReq>,
-        ) -> std::result::Result<tonic::Response<super::BlockExtention>, tonic::Status> {
+        ) -> std::result::Result<tonic::Response<super::BlockExtension>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -7801,7 +7801,7 @@ pub mod wallet_solidity_client {
         pub async fn get_now_block2(
             &mut self,
             request: impl tonic::IntoRequest<super::EmptyMessage>,
-        ) -> std::result::Result<tonic::Response<super::BlockExtention>, tonic::Status> {
+        ) -> std::result::Result<tonic::Response<super::BlockExtension>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -7845,7 +7845,7 @@ pub mod wallet_solidity_client {
         pub async fn get_block_by_num2(
             &mut self,
             request: impl tonic::IntoRequest<super::NumberMessage>,
-        ) -> std::result::Result<tonic::Response<super::BlockExtention>, tonic::Status> {
+        ) -> std::result::Result<tonic::Response<super::BlockExtension>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -8429,7 +8429,7 @@ pub mod wallet_solidity_client {
             &mut self,
             request: impl tonic::IntoRequest<super::TriggerSmartContract>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionExtention>,
+            tonic::Response<super::TransactionExtension>,
             tonic::Status,
         > {
             self.inner
@@ -8656,7 +8656,7 @@ pub mod wallet_solidity_client {
         pub async fn get_block(
             &mut self,
             request: impl tonic::IntoRequest<super::BlockReq>,
-        ) -> std::result::Result<tonic::Response<super::BlockExtention>, tonic::Status> {
+        ) -> std::result::Result<tonic::Response<super::BlockExtension>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -8852,7 +8852,7 @@ pub mod wallet_extension_client {
             &mut self,
             request: impl tonic::IntoRequest<super::AccountPaginated>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionListExtention>,
+            tonic::Response<super::TransactionListExtension>,
             tonic::Status,
         > {
             self.inner
@@ -8909,7 +8909,7 @@ pub mod wallet_extension_client {
             &mut self,
             request: impl tonic::IntoRequest<super::AccountPaginated>,
         ) -> std::result::Result<
-            tonic::Response<super::TransactionListExtention>,
+            tonic::Response<super::TransactionListExtension>,
             tonic::Status,
         > {
             self.inner
