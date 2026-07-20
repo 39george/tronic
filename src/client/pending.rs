@@ -521,16 +521,19 @@ where
             .context("no contract found")?
             .permission_id;
 
-        let permission = self
-            .client
-            .provider
-            .get_account(self.owner)
-            .await?
+        let account = self.client.provider.get_account(self.owner).await?;
+
+        let permission = account
             .permission_by_id(permission_id)
             .context("no permission found")?;
-        if !permission.contains(signing_addr) {
+
+        if !permission.contains(signing_addr)
+            && !(permission_id == 0
+                && account.owner_permission.keys.is_empty()
+                && account.address == signing_addr)
+        {
             return Err(Error::InvalidInput(format!(
-                "{signing_addr} is not in permission"
+                "{signing_addr} is not in permission {permission_id}"
             )));
         }
 
