@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.6.1] - 2026-07-20
+
+
+### Miscellaneous
+
+
+- Update changelog (240f127)
+
+
 ## [v0.6.0] - 2026-07-03
 
 
