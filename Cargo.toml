@@ -11,7 +11,7 @@ homepage = "https://github.com/39george/tronic"
 documentation = "https://docs.rs/tronic"
 keywords = ["tron", "blockchain", "smart-contracts", "grpc", "rust"]
 categories = ["cryptography", "network-programming", "api-bindings", "asynchronous", "finance"]
-exclude = ["/.github", "/.gitignore", "/examples", "/target", "Makefile", "*.sh"]
+exclude = ["/.github", "/.gitignore", "/examples", "/target", "Makefile", "*.sh", "release.bash"]
 
 [features]
 tonic-tls = ["tonic/tls-native-roots", "tonic/_tls-any", "dep:rustls"]
