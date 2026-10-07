@@ -11,6 +11,7 @@ use crate::{
     utility::TronOffsetDateTime,
 };
 
+#[rustfmt::skip]
 mod protocol;
 
 pub mod contracts_conversions;
