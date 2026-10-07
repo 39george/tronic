@@ -310,37 +310,36 @@ impl From<RecoverableSignature> for Vec<u8> {
 
 impl TryFrom<&[u8]> for RecoverableSignature {
     type Error = eyre::Error;
+
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        // if value.len() != 65 {
-        //     return Err(anyhow!(
-        //         "bad signature length: {}, should be 65",
-        //         value.len()
-        //     ));
-        // }
-        let value = if value.len() == 68 {
-            &value[..65]
-        } else if value.len() == 65 {
-            value
-        } else {
+        if value.len() < 65 {
             return Err(eyre!(
-                "Bad signature length: {}, should be 65 or 68",
+                "Bad signature length: {}, should be >= 65",
                 value.len()
             ));
-        };
-        let recovery_byte = *value.last().unwrap();
+        }
 
-        let recovery_byte_normalized = match recovery_byte {
-            0..=3 => recovery_byte,        // some direct recovery IDs
-            27..=30 => recovery_byte - 27, // Per [TIP 120](https://github.com/tronprotocol/tips/issues/120)
-            31..=34 => recovery_byte - 31, // older/broken clients that added 4
+        let recovery_byte = value[64];
+        let mut rec = match recovery_byte {
+            0..=3 => recovery_byte,
+            27..=30 => recovery_byte - 27,
+            31..=34 => recovery_byte - 31,
             _ => return Err(eyre!("Invalid recovery byte: {recovery_byte}")),
         };
-        let recovery_id = RecoveryId::from_byte(recovery_byte_normalized)
+
+        let mut signature = Signature::from_slice(&value[..64])
+            .map_err(|e| eyre!("invalid r/s in signature: {e}"))?;
+
+        if let Some(normalized) = signature.normalize_s() {
+            signature = normalized;
+            rec ^= 1;
+        }
+
+        let recovery_id = RecoveryId::from_byte(rec)
             .wrap_err(format!("can't parse recovery byte: {recovery_byte}"))?;
 
         Ok(RecoverableSignature {
-            signature: Signature::from_slice(&value[..64])
-                .expect("bad signature"),
+            signature,
             recovery_id,
         })
     }
