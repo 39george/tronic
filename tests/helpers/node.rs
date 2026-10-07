@@ -1,12 +1,12 @@
 use k256::ecdsa::SigningKey;
-use tronic::domain::address::TronAddress;
-use tronic::domain::trx::Trx;
 use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::Command;
 use tokio::runtime::Runtime;
-use tronic::client::pending::AutoSigning;
 use tronic::client::Client;
+use tronic::client::pending::AutoSigning;
+use tronic::domain::address::TronAddress;
+use tronic::domain::trx::Trx;
 use tronic::provider::grpc::GrpcProvider;
 use tronic::signer::LocalSigner;
 
@@ -16,7 +16,10 @@ pub static mut NODE: Node = Node::start("test_tron_container");
 pub struct Node {
     container_name: String,
     grpc_port: u16,
-    tx: tokio::sync::mpsc::Sender<(tokio::sync::oneshot::Sender<LocalSigner>, Trx)>,
+    tx: tokio::sync::mpsc::Sender<(
+        tokio::sync::oneshot::Sender<LocalSigner>,
+        Trx,
+    )>,
     zion_addr: TronAddress,
 }
 
@@ -27,8 +30,11 @@ impl Node {
         // Create the runtime first
         let rt = Runtime::new().unwrap();
 
-        let (tx, mut rx) = tokio::sync::mpsc::channel::<(tokio::sync::oneshot::Sender<LocalSigner>, Trx)>(1000);
-        
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<(
+            tokio::sync::oneshot::Sender<LocalSigner>,
+            Trx,
+        )>(1000);
+
         // Use the runtime to block on async operations
         std::thread::spawn(move || {
             rt.block_on(async {
@@ -67,7 +73,7 @@ impl Node {
 
                 let provider = GrpcProvider::builder().connect(
                     format!("http://localhost:{}", grpc_port)).await.unwrap();
-                
+
                 let zion = Client::builder()
                     .provider(provider)
                     .signer(LocalSigner::from(signing_key))
@@ -96,7 +102,7 @@ impl Node {
         Self {
             container_name: container_name.into(),
             grpc_port,
-            tx, 
+            tx,
             zion_addr: LocalSigner::from(SigningKey::from_slice(&hex::decode("da146374a75310b9666e834ee4ad0866d6f4035967bfc76217c5a495fff9f0d0").unwrap()).unwrap()).address()
         }
     }
@@ -132,6 +138,8 @@ impl Drop for Node {
                     .await
                     .unwrap();
             });
-        }).join().unwrap();
+        })
+        .join()
+        .unwrap();
     }
 }
