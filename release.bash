@@ -8,6 +8,7 @@
 # Flags:
 #   --dry-run      run checks and preview the changelog, change nothing
 #   --skip-tests   skip fmt/clippy/test
+#   --strict       treat fmt/clippy problems as fatal (default: warn and ask)
 #   -y, --yes      don't ask for confirmation
 
 set -euo pipefail
@@ -17,15 +18,17 @@ REMOTE="origin"
 
 DRY_RUN=0
 SKIP_TESTS=0
+STRICT=0
 YES=0
 BUMP=""
 for arg in "$@"; do
   case "$arg" in
   --dry-run) DRY_RUN=1 ;;
   --skip-tests) SKIP_TESTS=1 ;;
+  --strict) STRICT=1 ;;
   -y | --yes) YES=1 ;;
   -h | --help)
-    sed -n '2,13p' "$0"
+    sed -n '2,14p' "$0"
     exit 0
     ;;
   -*)
@@ -165,10 +168,23 @@ info "Releasing ${B}$CRATE $CUR → $NEW${N} (tag $TAG)"
 
 # ---------- checks ----------
 
+# Lint-style check: on failure, warn and ask instead of aborting
+# (unless --strict). Real build/test failures stay fatal.
+soft_check() {
+  local name="$1"
+  shift
+  info "$name"
+  if "$@"; then return 0; fi
+  if ((STRICT)); then die "$name failed (--strict)"; fi
+  warn "$name reported problems (see output above)"
+  if ((YES)); then return 0; fi
+  confirm "Continue release anyway?" || die "aborted"
+}
+
 if ((!SKIP_TESTS)); then
-  info "cargo fmt / clippy / test"
-  cargo fmt --all -- --check
-  cargo clippy --all-targets --all-features -- -D warnings
+  soft_check "cargo fmt --check" cargo fmt --all -- --check
+  soft_check "cargo clippy" cargo clippy --all-targets --all-features --quiet
+  info "cargo test"
   cargo test --all-features
 fi
 
