@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.6.2] - 2026-10-07
+
+
+### Bug Fixes
+
+
+- Update try from for RecoverableSignature from &[u8] (2c1aa85)
+
+
+
+### Miscellaneous
+
+
+- Update CHANGELOG (54cadbf)
+
+
+- Update lockfile (c6fd57c)
+
+
 ## [v0.6.1] - 2026-07-20
 
 
