@@ -1,5 +1,29 @@
 # Changelog
 
+## [v0.6.4] - 2026-10-07
+
+
+### Miscellaneous
+
+
+- Release script (0a9fad1)
+
+
+- Bump version (a7d761f)
+
+
+- Skip proto generated code formatting (d49227e)
+
+
+- Bump version (45781f4)
+
+
+- Remove trailing whitespace (5356de5)
+
+
+- Update release script (2019838)
+
+
 ## [v0.6.2] - 2026-10-07
 
 
@@ -17,6 +41,9 @@
 
 
 - Update lockfile (c6fd57c)
+
+
+- Prepare for 0.6.2 release (2c3e91f)
 
 
 ## [v0.6.1] - 2026-07-20
