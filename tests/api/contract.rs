@@ -115,14 +115,16 @@ async fn listener_catches_trc20_transfer() {
 }
 
 #[tokio::test]
-async fn activation_fee_rechecked_if_tx_broadcast_later() {
+async fn trc20_transfer_to_inactive_address_needs_no_activation() {
     let tronic = Tronic::new().await;
     let deploy_info = tronic.deploy_mycoin(100, 10_000_000).await;
     assert_eq!(deploy_info.result, TxCode::Sucess);
+    assert!(deploy_info.block_number > 0, "deploy tx must be in a block");
 
     let token_contract =
         Trc20Contract::<Usdt>::new(deploy_info.contract_address);
 
+    // Energy for the TRC20 call, so only TRX/bandwidth matter below
     tronic
         .freeze_balance()
         .amount(trx!(100.0 TRX))
@@ -134,112 +136,57 @@ async fn activation_fee_rechecked_if_tx_broadcast_later() {
         .await
         .unwrap();
 
-    tokio::time::sleep(Duration::from_secs(7)).await;
-
     let recipient = LocalSigner::rand();
     let to = recipient.address();
+    assert!(matches!(
+        tronic.check_account(to).await.unwrap(),
+        AccountStatus::NotExists
+    ));
 
-    let st = tronic.check_account(to).await.unwrap();
-    assert!(matches!(st, AccountStatus::NotExists));
-
+    // Drain TRX below the old (wrong) 0.1 TRX "activation fee"
     let owner = tronic.signer_address().unwrap();
     let zion_addr = NODE.read().zion_addr();
-
     let bal = tronic.trx_balance().address(owner).get().await.unwrap();
     let keep = trx!(0.09 TRX);
-
     if bal > keep {
-        let drain = bal - keep;
         tronic
             .send_trx()
             .to(zion_addr)
-            .amount(drain)
+            .amount(bal - keep)
             .build::<AutoSigning>()
             .await
             .unwrap()
             .broadcast_get_receipt(&(), 1)
             .await
             .unwrap();
-        tokio::time::sleep(Duration::from_secs(7)).await;
     }
-
-    let bal2 = tronic.trx_balance().address(owner).get().await.unwrap();
-    assert!(bal2 < trx!(0.1 TRX));
+    assert!(
+        tronic.trx_balance().address(owner).get().await.unwrap()
+            < trx!(0.1 TRX)
+    );
 
     let ptx = tronic
         .trc20_transfer()
         .contract(token_contract.clone())
         .to(to)
         .amount(Usdt::from_decimal(1.0).unwrap())
-        .build::<ManualSigning>()
-        .await
-        .unwrap()
-        .set_expiration(time::Duration::seconds(300))
-        .await
-        .unwrap();
-
-    let before = ptx.estimate_transaction().await.unwrap();
-
-    assert_eq!(before.will_consume.trx, trx!(0.1 TRX));
-
-    let missing = before.insufficient.as_ref().unwrap().missing.clone();
-    assert!(
-        missing
-            .iter()
-            .any(|m| matches!(m, MissingResource::Trx { .. })),
-        "should be MissingResource::Trx because of activation fee"
-    );
-
-    let bytes = ptx.serialize();
-
-    let grpc_addr = NODE.read().grpc_addr();
-    let gas_signer = NODE.read().new_account(trx!(10.0 TRX)).await;
-
-    let gas_client = Client::builder()
-        .provider(GrpcProvider::builder().connect(grpc_addr).await.unwrap())
-        .signer(gas_signer)
-        .build();
-
-    gas_client
-        .send_trx()
-        .to(to)
-        .amount(trx!(1.0 TRX))
         .build::<AutoSigning>()
         .await
-        .unwrap()
-        .broadcast_get_receipt(&(), 1)
-        .await
         .unwrap();
 
-    tokio::time::sleep(Duration::from_secs(7)).await;
-
-    let st2 = tronic.check_account(to).await.unwrap();
-    assert!(
-        !matches!(st2, AccountStatus::NotExists),
-        "after activation address should exist"
-    );
-
-    let mut ptx = PendingTransaction::try_deserialize(&tronic, &bytes).unwrap();
-
-    let after = ptx.estimate_transaction().await.unwrap();
-    assert_eq!(after.will_consume.trx, trx!(0.0 TRX));
-
-    if let Some(ins) = after.insufficient.as_ref() {
+    let estimate = ptx.estimate_transaction().await.unwrap();
+    assert_eq!(estimate.will_consume.trx, trx!(0.0 TRX));
+    if let Some(ins) = estimate.insufficient.as_ref() {
         assert!(
             !ins.missing
                 .iter()
                 .any(|m| matches!(m, MissingResource::Trx { .. })),
-            "after activation MissingResource::Trx should not be the case"
+            "TRC20 transfer must not require TRX for recipient activation"
         );
     }
 
-    tokio::time::sleep(Duration::from_secs(2)).await;
-
-    ptx.reset_estimates().await.unwrap();
-
-    ptx.sign(tronic.signer(), &()).await.unwrap();
-    let txinfo = ptx.broadcast_get_receipt(1).await.unwrap();
-
+    // The real check: the chain accepts it without activation
+    let txinfo = ptx.broadcast_get_receipt(&(), 1).await.unwrap();
     assert_eq!(txinfo.result, TxCode::Sucess);
 
     let got = tronic
@@ -249,8 +196,13 @@ async fn activation_fee_rechecked_if_tx_broadcast_later() {
         .get()
         .await
         .unwrap();
-
     assert_eq!(got, Usdt::from_decimal(1.0).unwrap());
+
+    // TRC20 transfer does not create a TRON account for the recipient
+    assert!(matches!(
+        tronic.check_account(to).await.unwrap(),
+        AccountStatus::NotExists
+    ));
 }
 
 pub fn decode_usdt_transfer(

@@ -177,3 +177,79 @@ pub(crate) fn calculate_topup(
         })
         .collect()
 }
+
+pub fn split_contract_energy(
+    total: i64,
+    consume_user_resource_percent: i64,
+    origin_energy_limit: i64,
+    origin_available_energy: i64,
+) -> (i64, i64) {
+    let total = total.max(0);
+    let percent = consume_user_resource_percent.clamp(0, 100);
+    if percent == 100 || total == 0 {
+        return (total, 0);
+    }
+
+    let origin_left = origin_energy_limit
+        .max(0)
+        .min(origin_available_energy.max(0));
+    let origin_part = (total as i128 * (100 - percent) as i128 / 100) as i64;
+    let origin = origin_part.min(origin_left);
+
+    (total - origin, origin)
+}
+
+#[cfg(test)]
+mod split_tests {
+    use super::split_contract_energy;
+
+    #[test]
+    fn user_pays_all_when_percent_100() {
+        assert_eq!(
+            split_contract_energy(30_000, 100, 10_000_000, 1_000_000),
+            (30_000, 0)
+        );
+    }
+
+    #[test]
+    fn origin_pays_all_when_percent_0_and_enough_energy() {
+        // nile test usdt case: origin_energy_usage == energy_usage_total
+        assert_eq!(
+            split_contract_energy(29_650, 0, 10_000_000, 1_000_000),
+            (0, 29_650)
+        );
+    }
+
+    #[test]
+    fn origin_capped_by_origin_energy_limit() {
+        assert_eq!(
+            split_contract_energy(30_000, 0, 10_000, 1_000_000),
+            (20_000, 10_000)
+        );
+    }
+
+    #[test]
+    fn origin_capped_by_available_energy() {
+        assert_eq!(
+            split_contract_energy(30_000, 0, 10_000_000, 5_000),
+            (25_000, 5_000)
+        );
+    }
+
+    #[test]
+    fn origin_without_energy_user_pays_all() {
+        assert_eq!(
+            split_contract_energy(30_000, 0, 10_000_000, 0),
+            (30_000, 0)
+        );
+    }
+
+    #[test]
+    fn partial_percent() {
+        // 30% user, 70% origin
+        assert_eq!(
+            split_contract_energy(10_000, 30, 10_000_000, 1_000_000),
+            (3_000, 7_000)
+        );
+    }
+}

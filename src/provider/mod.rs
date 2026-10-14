@@ -87,6 +87,10 @@ pub trait TronProvider {
         &self,
         address: TronAddress,
     ) -> Result<domain::account::DelegatedResourceAccountIndex>;
+    async fn get_contract(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::contract::SmartContract>;
 
     // async fn calculate_fee(&self, transaction: &Transaction) -> Result<Fee>;
 

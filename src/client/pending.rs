@@ -13,6 +13,7 @@ use crate::domain::account::AccountResourceUsage;
 use crate::domain::account::{Account, AccountStatus};
 use crate::domain::address::TronAddress;
 use crate::domain::contract::TriggerSmartContract;
+use crate::domain::estimate::split_contract_energy;
 use crate::domain::estimate::{MissingResource, Resource, ResourceState};
 use crate::domain::permission::Permission;
 use crate::domain::transaction::{Transaction, TransactionInfo, TxCode};
@@ -255,20 +256,27 @@ where
 
         let bandwidth = self.estimate_bandwidth_with_permission(&permission)?;
 
-        let (resources, energy, required_trx, energy_price) = tokio::try_join!(
+        let (resources, energy, required_trx) = tokio::try_join!(
             self.client.provider.get_account_resources(self.owner),
             self.estimate_energy_cached(),
             self.required_trx(),
-            self.client.energy_price()
         )?;
+
+        let required_energy = if !self.is_vm_call() {
+            // Transfer / freeze / delegate / permission update: no energy at all
+            0
+        } else {
+            let total = energy.ok_or_else(|| {
+                Error::PreconditionFailed(
+                    "energy estimation failed for contract call".into(),
+                )
+            })?;
+            self.caller_energy_share(total).await
+        };
 
         let required = Resource {
             bandwidth,
-            energy: energy.unwrap_or_else(|| {
-                let fee_limit_sun = self.transaction.raw.fee_limit.to_sun();
-                let price_sun = energy_price.to_sun().max(1);
-                (fee_limit_sun + price_sun - 1) / price_sun
-            }),
+            energy: required_energy,
             trx: required_trx,
         };
 
@@ -409,6 +417,84 @@ where
         self.transaction.raw.expiration = new_expiration;
         self.refresh_txid().await?;
         Ok(self)
+    }
+    async fn caller_energy_share(&self, total: i64) -> i64 {
+        let Some(domain::contract::ContractType::TriggerSmartContract(call)) =
+            self.transaction
+                .raw
+                .contract
+                .first()
+                .map(|c| &c.contract_type)
+        else {
+            // CreateSmartContract: deployer pays itself
+            return total;
+        };
+
+        let contract = match self
+            .client
+            .provider
+            .get_contract(call.contract_address)
+            .await
+        {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::warn!(?e, contract = %call.contract_address,
+                    "failed to load contract settings, assume caller pays all energy");
+                return total;
+            }
+        };
+
+        // Caller is the origin itself: both shares come from the same account.
+        if contract.consume_user_resource_percent >= 100
+            || contract.origin_address == call.owner_address
+        {
+            return total;
+        }
+
+        let origin_available = match self
+            .client
+            .provider
+            .get_account_resources(contract.origin_address)
+            .await
+        {
+            Ok(r) => r.energy_limit - r.energy_used,
+            Err(e) => {
+                tracing::warn!(?e, origin = %contract.origin_address,
+                    "failed to load origin resources, assume caller pays all energy");
+                return total;
+            }
+        };
+
+        let (user, origin) = split_contract_energy(
+            total,
+            contract.consume_user_resource_percent,
+            contract.origin_energy_limit,
+            origin_available,
+        );
+
+        tracing::debug!(
+            total,
+            user,
+            origin,
+            percent = contract.consume_user_resource_percent,
+            origin_energy_limit = contract.origin_energy_limit,
+            origin_available,
+            "contract energy split"
+        );
+
+        user
+    }
+    /// Only VM contracts consume energy
+    fn is_vm_call(&self) -> bool {
+        matches!(
+            self.transaction
+                .raw
+                .contract
+                .first()
+                .map(|c| &c.contract_type),
+            Some(domain::contract::ContractType::TriggerSmartContract(_))
+                | Some(domain::contract::ContractType::CreateSmartContract(_))
+        )
     }
 }
 

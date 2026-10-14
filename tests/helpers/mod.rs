@@ -56,7 +56,7 @@ impl Tronic {
         origin_energy_limit: i64,
     ) -> TransactionInfo {
         let initial_supply = Usdt::from_decimal(10_000_000.0).unwrap();
-        let txid = self
+        let receipt = self
             .create_contract(MYCOIN_CONTRACT.into())
             .params(vec![
                 &Into::<U256>::into(initial_supply),
@@ -71,10 +71,9 @@ impl Tronic {
             .set_expiration(time::Duration::seconds(100))
             .await
             .unwrap()
-            .broadcast(&())
+            .broadcast_get_receipt(&(), 1)
             .await
             .unwrap();
-        tokio::time::sleep(std::time::Duration::from_secs(7)).await;
-        self.provider().get_transaction_info(txid).await.unwrap()
+        receipt
     }
 }

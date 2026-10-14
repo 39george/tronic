@@ -124,4 +124,10 @@ impl crate::provider::TronProvider for MockProvider {
     ) -> Result<domain::block::BlockExtention> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
+    async fn get_contract(
+        &self,
+        _: TronAddress,
+    ) -> Result<domain::contract::SmartContract> {
+        Err(Error::Unexpected(eyre!("mock provider")))
+    }
 }

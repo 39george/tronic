@@ -566,6 +566,31 @@ impl crate::provider::TronProvider for GrpcProvider {
 
         Ok(index.try_into()?)
     }
+    async fn get_contract(
+        &self,
+        address: TronAddress,
+    ) -> Result<domain::contract::SmartContract> {
+        let message = protocol::BytesMessage {
+            value: address.as_bytes().to_vec(),
+        };
+
+        let contract = self
+            .retry_grpc("get_contract", || {
+                let mut node = self.wallet_client();
+                let message = message.clone();
+                async move { node.get_contract(message).await }
+            })
+            .await?
+            .into_inner();
+
+        if contract.origin_address.is_empty() {
+            return Err(Error::NotFound(format!(
+                "contract {address} not found"
+            )));
+        }
+
+        Ok(contract.into())
+    }
 }
 
 pub mod middleware {

@@ -407,16 +407,12 @@ where
             &latest_block,
             transfer.memo.unwrap_or_default(),
         );
-        let activation_checks = vec![ActivationFeeCheck {
-            address: transfer.to,
-            fee: trx!(0.1 TRX),
-        }];
         PendingTransaction::new(
             transfer.client,
             transaction,
             owner,
             transfer.call_value.unwrap_or_default(),
-            activation_checks,
+            Vec::new(),
             transfer.can_spend_trx_for_fee,
         )
         .await
