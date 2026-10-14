@@ -959,7 +959,7 @@ pub mod transaction {
         )]
         #[repr(i32)]
         pub enum Code {
-            Sucess = 0,
+            Success = 0,
             Failed = 1,
         }
         impl Code {
@@ -969,14 +969,14 @@ pub mod transaction {
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             pub fn as_str_name(&self) -> &'static str {
                 match self {
-                    Self::Sucess => "SUCESS",
+                    Self::Success => "SUCCESS",
                     Self::Failed => "FAILED",
                 }
             }
             /// Creates an enum from field names used in the ProtoBuf definition.
             pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
                 match value {
-                    "SUCESS" => Some(Self::Sucess),
+                    "SUCESS" => Some(Self::Success),
                     "FAILED" => Some(Self::Failed),
                     _ => None,
                 }
@@ -1168,7 +1168,7 @@ pub mod transaction_info {
     )]
     #[repr(i32)]
     pub enum Code {
-        Sucess = 0,
+        Success = 0,
         Failed = 1,
     }
     impl Code {
@@ -1178,14 +1178,14 @@ pub mod transaction_info {
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         pub fn as_str_name(&self) -> &'static str {
             match self {
-                Self::Sucess => "SUCESS",
+                Self::Success => "SUCCESS",
                 Self::Failed => "FAILED",
             }
         }
         /// Creates an enum from field names used in the ProtoBuf definition.
         pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
             match value {
-                "SUCESS" => Some(Self::Sucess),
+                "SUCCESS" => Some(Self::Success),
                 "FAILED" => Some(Self::Failed),
                 _ => None,
             }

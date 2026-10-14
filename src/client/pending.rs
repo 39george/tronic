@@ -24,7 +24,7 @@ use crate::error::Error;
 use crate::listener::ListenerError;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
-use crate::utility::generate_txid;
+use crate::domain::transaction::generate_txid;
 use crate::{Result, protocol, utility};
 use crate::{domain, trx};
 
@@ -109,10 +109,7 @@ where
         }
         let latest_block = self.client.provider.get_now_block().await?;
         latest_block.fill_header_info_in_transaction(&mut self.transaction);
-        let txid = generate_txid(
-            &protocol::transaction::Raw::from(self.transaction.raw.clone())
-                .encode_to_vec(),
-        );
+        let txid = generate_txid(self.transaction.raw.clone());
         self.txid = txid;
         Ok(())
     }
@@ -871,7 +868,7 @@ where
 
                         // Then check if the transaction was successful
                         match tx_info.result {
-                            TxCode::Sucess => {
+                            TxCode::Success => {
                                 confirmation_count += 1;
 
                                 // Return when we reach the required confirmations
