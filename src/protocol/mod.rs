@@ -536,14 +536,14 @@ impl From<InternalTransaction> for domain::transaction::InternalTransaction {
 
 impl_enum_conversions! {
     transaction_info::Code => domain::transaction::TxCode {
-        Sucess,
+        Success,
         Failed
     }
 }
 
 impl_enum_conversions! {
     transaction::result::Code => domain::transaction::TxCode {
-        Sucess,
+        Success,
         Failed
     }
 }
