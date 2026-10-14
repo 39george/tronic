@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.7.0] - 2026-10-14
+
+
+### Bug Fixes
+
+
+- Account for contract origin energy in tx estimation (4560ea2)
+
+
+
+### Miscellaneous
+
+
+- Bump version v0.7.0 (f37f1d0)
+
+
+- Update lockfile (ed22438)
+
+
 ## [v0.6.4] - 2026-10-07
 
 
@@ -22,6 +41,9 @@
 
 
 - Update release script (2019838)
+
+
+- V0.6.4 (ca4d20e)
 
 
 ## [v0.6.2] - 2026-10-07
