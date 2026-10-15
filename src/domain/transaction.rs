@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 use derivative::Derivative;
+use prost::Message as _;
+use sha2::Digest as _;
+use sha2::Sha256;
 use time::OffsetDateTime;
 use time::ext::NumericalDuration;
 
@@ -225,4 +228,13 @@ impl ContractResult {
             err => Some(err.clone()),
         }
     }
+}
+
+pub fn generate_txid(raw_tx: RawTransaction) -> Hash32 {
+    let raw_data = 
+            &crate::protocol::transaction::Raw::from(raw_tx)
+                .encode_to_vec();
+    let digest = Sha256::digest(raw_data);
+    let hash: [u8; 32] = digest.into();
+    hash.into()
 }

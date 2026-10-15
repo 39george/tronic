@@ -406,6 +406,8 @@ message Transaction {
 
   message Result {
     enum code {
+      // this typo originates from tron protocol and should be kept
+      // https://github.com/tronprotocol/java-tron/blob/b33eed89a6a424c498d4fb1b03ca2c86eddf4840/protocol/src/main/protos/core/Tron.proto#L455
       SUCESS = 0;
       FAILED = 1;
     }
@@ -478,6 +480,8 @@ message Transaction {
 
 message TransactionInfo {
   enum code {
+    // this typo originates from tron protocol and should be kept
+    // https://github.com/tronprotocol/java-tron/blob/b33eed89a6a424c498d4fb1b03ca2c86eddf4840/protocol/src/main/protos/core/Tron.proto#L455
     SUCESS = 0;
     FAILED = 1;
   }
