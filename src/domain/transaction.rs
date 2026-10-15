@@ -156,6 +156,8 @@ pub struct InternalTransaction {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TxCode {
+    /// Spelling matches upstream Tron.proto (`SUCESS`). Intentional, do not "fix":
+    /// renaming is a breaking change with no behavioral effect.
     Sucess = 0,
     Failed = 1,
 }
