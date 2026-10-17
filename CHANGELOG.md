@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.8.0] - 2026-10-17
+
+
+### Features
+
+
+- Block-level receipts, typed node errors, solid block, panic-free conversions (9c39394)
+
+
+
+### Miscellaneous
+
+
+- Do not fix (46cf375)
+
+
+- Release v0.8.0 (b93f6cd)
+
+
 ## [v0.7.0] - 2026-10-14
 
 
@@ -17,6 +36,9 @@
 
 
 - Update lockfile (ed22438)
+
+
+- V0.7.0 (84965ce)
 
 
 ## [v0.6.4] - 2026-10-07
