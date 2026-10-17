@@ -1,6 +1,7 @@
 use alloy_primitives::U256;
 use time::OffsetDateTime;
 
+use crate::domain::ResponseCode;
 use crate::domain::address::TronAddress;
 use crate::domain::estimate::ResourceState;
 use crate::domain::transaction::TxCode;
@@ -68,6 +69,18 @@ pub enum Error {
     TransactionTimeout,
     #[error("failed to convert protocol to rust datatype: {0}")]
     ProtoConv(#[from] ProtoConvError),
+
+    /// The node refused the request before executing it
+    #[error("failed: {message}, code: {code:?}")]
+    NodeRejected { code: ResponseCode, message: String },
+    /// A constant call was executed by the node, but the
+    /// contract reverted.
+    #[error("contract reverted: {message}")]
+    ContractReverted { message: String, data: Vec<u8> },
+    /// The node answered successfully, but the payload is unusable:
+    /// e.g. `constant_result` of unexpected shape.
+    #[error("invalid response from node: {0}")]
+    InvalidResponse(String),
 }
 
 crate::impl_debug!(Error);

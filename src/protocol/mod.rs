@@ -1,4 +1,3 @@
-use k256::ecdsa::{RecoveryId, Signature};
 pub use protocol::*;
 use time::OffsetDateTime;
 
@@ -11,14 +10,14 @@ use crate::{
     utility::TronOffsetDateTime,
 };
 
+#[allow(warnings)]
+#[allow(clippy::unwrap_used, clippy::expect_used, clippy::all)]
 #[rustfmt::skip]
 mod protocol;
 
 pub mod contracts_conversions;
 
-// ────────────────────────────── Transaction ─────────────────────────────── //
-
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum ProtoConvError {
     #[error("missing field {0}")]
     Missing(&'static str),
@@ -30,6 +29,50 @@ pub enum ProtoConvError {
     IncorrectTimestamp(#[from] time::error::ComponentRange),
     #[error("invalid signature: {0}")]
     InvalidSignature(String),
+    #[error("bad address in {field}: got {got} bytes")]
+    BadAddress { field: &'static str, got: usize },
+    #[error("failed to decode contract parameter: {0}")]
+    BadParameter(String),
+}
+
+/// Strict 21-byte 0x41-prefixed address.
+pub(crate) fn addr(
+    bytes: &[u8],
+    field: &'static str,
+) -> Result<TronAddress, ProtoConvError> {
+    TronAddress::try_from(bytes).map_err(|_| ProtoConvError::BadAddress {
+        field,
+        got: bytes.len(),
+    })
+}
+
+/// Address that is legitimately absent in some messages
+/// TransactionInfo.contract_address for a plain transfer,
+/// shielded transfer transparent addresses
+pub(crate) fn addr_or_zero(
+    bytes: &[u8],
+    field: &'static str,
+) -> Result<TronAddress, ProtoConvError> {
+    if bytes.is_empty() {
+        Ok(TronAddress::ZERO)
+    } else {
+        addr(bytes, field)
+    }
+}
+
+/// Addresses in InternalTransaction accept both 21 bytes
+/// 0x41-prefixed and 20 bytes prefix added, anything else is an error.
+pub(crate) fn addr_lenient(
+    bytes: &[u8],
+    field: &'static str,
+) -> Result<TronAddress, ProtoConvError> {
+    if bytes.len() == 20 {
+        let mut full = [0x41u8; 21];
+        full[1..].copy_from_slice(bytes);
+        return TronAddress::new(full)
+            .map_err(|_| ProtoConvError::BadAddress { field, got: 20 });
+    }
+    addr(bytes, field)
 }
 
 impl From<Hash32> for BytesMessage {
@@ -178,7 +221,7 @@ impl From<domain::transaction::TransactionResult> for transaction::Result {
 
 impl TryFrom<transaction::Raw> for domain::transaction::RawTransaction {
     type Error = ProtoConvError;
-    fn try_from(mut r: transaction::Raw) -> Result<Self, Self::Error> {
+    fn try_from(r: transaction::Raw) -> Result<Self, Self::Error> {
         let ref_block_bytes: RefBlockBytes =
             r.ref_block_bytes.as_slice().try_into().map_err(|_| {
                 ProtoConvError::BadRefBlockBytes {
@@ -198,7 +241,11 @@ impl TryFrom<transaction::Raw> for domain::transaction::RawTransaction {
             ref_block_hash,
             expiration: OffsetDateTime::try_from_tron(r.expiration)?,
             data: r.data.into(),
-            contract: r.contract.into_iter().map(Into::into).collect(),
+            contract: r
+                .contract
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
             scripts: r.scripts,
             timestamp: OffsetDateTime::try_from_tron(r.timestamp)?,
             fee_limit: r.fee_limit.into(),
@@ -388,8 +435,8 @@ impl TryFrom<TransactionExtention>
             internal_transactions: txext
                 .internal_transactions
                 .into_iter()
-                .map(Into::into)
-                .collect(),
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
         })
     }
 }
@@ -403,8 +450,12 @@ impl From<domain::transaction::TransactionExtention> for TransactionExtention {
             energy_used: txext.energy_used,
             energy_penalty: txext.energy_penalty,
             result: txext.result.map(Into::into),
-            logs: todo!(),
-            internal_transactions: todo!(),
+            logs: txext.logs.into_iter().map(Into::into).collect(),
+            internal_transactions: txext
+                .internal_transactions
+                .into_iter()
+                .map(Into::into)
+                .collect(),
         }
     }
 }
@@ -486,16 +537,8 @@ impl From<domain::transaction::InternalTransaction> for InternalTransaction {
     fn from(value: domain::transaction::InternalTransaction) -> Self {
         InternalTransaction {
             hash: value.hash.into(),
-            caller_address: value
-                .caller_address
-                .as_bytes()
-                .try_into()
-                .unwrap_or_default(),
-            transfer_to_address: value
-                .transfer_to_address
-                .as_bytes()
-                .try_into()
-                .unwrap_or_default(),
+            caller_address: value.caller_address.as_bytes().to_vec(),
+            transfer_to_address: value.transfer_to_address.as_bytes().to_vec(),
             call_value_info: value
                 .call_value_info
                 .into_iter()
@@ -508,20 +551,19 @@ impl From<domain::transaction::InternalTransaction> for InternalTransaction {
     }
 }
 
-impl From<InternalTransaction> for domain::transaction::InternalTransaction {
-    fn from(value: InternalTransaction) -> Self {
-        domain::transaction::InternalTransaction {
+impl TryFrom<InternalTransaction> for domain::transaction::InternalTransaction {
+    type Error = ProtoConvError;
+    fn try_from(value: InternalTransaction) -> Result<Self, Self::Error> {
+        Ok(domain::transaction::InternalTransaction {
             hash: value.hash.try_into().unwrap_or_default(),
-            caller_address: value
-                .caller_address
-                .as_slice()
-                .try_into()
-                .unwrap_or_default(),
-            transfer_to_address: value
-                .transfer_to_address
-                .as_slice()
-                .try_into()
-                .unwrap_or_default(),
+            caller_address: addr_lenient(
+                &value.caller_address,
+                "InternalTransaction.caller_address",
+            )?,
+            transfer_to_address: addr_lenient(
+                &value.transfer_to_address,
+                "InternalTransaction.transfer_to_address",
+            )?,
             call_value_info: value
                 .call_value_info
                 .into_iter()
@@ -530,7 +572,7 @@ impl From<InternalTransaction> for domain::transaction::InternalTransaction {
             note: value.note.into(),
             rejected: value.rejected,
             extra: value.extra,
-        }
+        })
     }
 }
 
@@ -551,7 +593,7 @@ impl_enum_conversions! {
 impl From<domain::transaction::TransactionInfo> for TransactionInfo {
     fn from(value: domain::transaction::TransactionInfo) -> Self {
         TransactionInfo {
-            id: value.id.try_into().unwrap_or_default(),
+            id: value.id.into(),
             fee: value.fee.into(),
             block_number: value.block_number,
             block_time_stamp: value.block_time_stamp.to_tron(),
@@ -560,7 +602,6 @@ impl From<domain::transaction::TransactionInfo> for TransactionInfo {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            // TODO: abc
             contract_address: value.contract_address.as_bytes().into(),
             receipt: value.receipt.map(Into::into),
             log: value.log.into_iter().map(Into::into).collect(),
@@ -614,11 +655,10 @@ impl TryFrom<TransactionInfo> for domain::transaction::TransactionInfo {
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            contract_address: value
-                .contract_address
-                .as_slice()
-                .try_into()
-                .unwrap_or_default(),
+            contract_address: addr_or_zero(
+                &value.contract_address,
+                "TransactionInfo.contract_address",
+            )?,
             receipt: value.receipt.map(Into::into),
             log: value.log.into_iter().map(Into::into).collect(),
             res_message: value.res_message.into(),
@@ -628,8 +668,8 @@ impl TryFrom<TransactionInfo> for domain::transaction::TransactionInfo {
             internal_transactions: value
                 .internal_transactions
                 .into_iter()
-                .map(Into::into)
-                .collect(),
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             exchange_received_amount: value.exchange_received_amount,
             exchange_inject_another_amount: value
                 .exchange_inject_another_amount,
@@ -654,15 +694,13 @@ impl TryFrom<TransactionInfo> for domain::transaction::TransactionInfo {
     }
 }
 
-// ──────────────────────────────── Account ───────────────────────────────── //
-
-impl From<Key> for crate::domain::permission::Key {
-    fn from(k: Key) -> Self {
-        Self {
-            address: TronAddress::try_from(&k.address)
-                .expect("invalid address"),
+impl TryFrom<Key> for crate::domain::permission::Key {
+    type Error = ProtoConvError;
+    fn try_from(k: Key) -> Result<Self, Self::Error> {
+        Ok(Self {
+            address: addr(&k.address, "Key.address")?,
             weight: k.weight,
-        }
+        })
     }
 }
 
@@ -691,17 +729,22 @@ impl_enum_conversions! {
     }
 }
 
-impl From<Permission> for crate::domain::permission::Permission {
-    fn from(p: Permission) -> Self {
-        Self {
+impl TryFrom<Permission> for crate::domain::permission::Permission {
+    type Error = ProtoConvError;
+    fn try_from(p: Permission) -> Result<Self, Self::Error> {
+        Ok(Self {
             permission_type: p.r#type().into(),
             id: p.id,
             permission_name: p.permission_name.try_into().unwrap_or_default(),
             threshold: p.threshold,
             parent_id: p.parent_id,
             operations: Ops::decode_ops(&p.operations),
-            keys: p.keys.into_iter().map(Into::into).collect(),
-        }
+            keys: p
+                .keys
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
+        })
     }
 }
 
@@ -779,13 +822,13 @@ impl From<crate::domain::account::UnFreezeV2> for account::UnFreezeV2 {
     }
 }
 
-impl From<Vote> for crate::domain::account::Vote {
-    fn from(v: Vote) -> Self {
-        Self {
-            vote_address: TronAddress::try_from(&v.vote_address)
-                .expect("invalid vote address"),
+impl TryFrom<Vote> for crate::domain::account::Vote {
+    type Error = ProtoConvError;
+    fn try_from(v: Vote) -> Result<Self, Self::Error> {
+        Ok(Self {
+            vote_address: addr(&v.vote_address, "Vote.vote_address")?,
             vote_count: v.vote_count,
-        }
+        })
     }
 }
 
@@ -890,9 +933,13 @@ impl TryFrom<Account> for domain::account::Account {
         Ok(Self {
             account_type: a.r#type().into(),
             account_name: a.account_name.into(),
-            address: a.address.as_slice().try_into().unwrap_or_default(),
+            address: addr_or_zero(&a.address, "Account.address")?,
             balance: a.balance.into(),
-            votes: a.votes.into_iter().map(Into::into).collect(),
+            votes: a
+                .votes
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             asset: a.asset,
             asset_v2: a.asset_v2,
             frozen: a
@@ -950,14 +997,18 @@ impl TryFrom<Account> for domain::account::Account {
             code_hash: a.code_hash,
             owner_permission: a
                 .owner_permission
-                .map(Into::into)
+                .map(TryInto::try_into)
+                .transpose()?
                 .unwrap_or_default(),
-            witness_permission: a.witness_permission.map(Into::into),
+            witness_permission: a
+                .witness_permission
+                .map(TryInto::try_into)
+                .transpose()?,
             active_permission: a
                 .active_permission
                 .into_iter()
-                .map(Into::into)
-                .collect(),
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             frozen_v2: a.frozen_v2.into_iter().map(Into::into).collect(),
             unfrozen_v2: a
                 .unfrozen_v2
@@ -1122,8 +1173,6 @@ impl From<domain::account::DelegatedResource> for DelegatedResource {
     }
 }
 
-// ───────────────────────────────── Block ────────────────────────────────── //
-
 impl TryFrom<block_header::Raw> for domain::block::RawBlockHeader {
     type Error = ProtoConvError;
     fn try_from(p: block_header::Raw) -> Result<Self, Self::Error> {
@@ -1133,8 +1182,10 @@ impl TryFrom<block_header::Raw> for domain::block::RawBlockHeader {
             parent_hash: p.parent_hash.try_into().unwrap_or_default(),
             number: p.number,
             witness_id: p.witness_id,
-            witness_address: TronAddress::try_from(&p.witness_address)
-                .expect("invalid witness address"),
+            witness_address: addr(
+                &p.witness_address,
+                "BlockHeader.witness_address",
+            )?,
             version: p.version,
             account_state_root: p
                 .account_state_root
@@ -1225,12 +1276,21 @@ impl From<domain::block::Block> for Block {
 impl TryFrom<BlockExtention> for domain::block::BlockExtention {
     type Error = ProtoConvError;
     fn try_from(p: BlockExtention) -> Result<Self, Self::Error> {
+        let mut transactions = Vec::with_capacity(p.transactions.len());
+        let mut conversion_errors = Vec::new();
+
+        for txext in p.transactions {
+            let txid: Hash32 =
+                txext.txid.clone().try_into().unwrap_or_default();
+            match domain::transaction::TransactionExtention::try_from(txext) {
+                Ok(tx) => transactions.push(tx),
+                Err(e) => conversion_errors.push((txid, e)),
+            }
+        }
+
         Ok(Self {
-            transactions: p
-                .transactions
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<Vec<_>, _>>()?,
+            transactions,
+            conversion_errors,
             block_header: p
                 .block_header
                 .ok_or(ProtoConvError::Missing("block header"))?

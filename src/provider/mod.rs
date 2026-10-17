@@ -6,6 +6,7 @@ use crate::contracts::AbiEncode;
 use crate::domain::address::TronAddress;
 use crate::domain::trx::Trx;
 use crate::domain::{self, Hash32};
+use crate::protocol::ProtoConvError;
 
 pub mod grpc;
 #[cfg(feature = "mock-provider")]
@@ -15,6 +16,15 @@ pub mod mock;
 pub struct RateLimit {
     pub limit: u64,
     pub duration: Duration,
+}
+
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[error("failed to convert TransactionInfo {txid:?}: {source}")]
+pub struct TxInfoConvError {
+    /// txid of the element that failed to convert
+    pub txid: Hash32,
+    #[source]
+    pub source: ProtoConvError,
 }
 
 #[async_trait::async_trait]
@@ -68,6 +78,34 @@ pub trait TronProvider {
         &self,
         txid: Hash32,
     ) -> Result<domain::transaction::TransactionInfo>;
+
+    /// Receipts of *all* transactions of a block in a single request
+    /// (`Wallet.GetTransactionInfoByBlockNum`).
+    ///
+    /// * The outer `Result` is a transport failure of the whole call.
+    /// * Each element is `Ok(TransactionInfo)` or `Err(TxInfoConvError)` with
+    ///   the txid of the broken element: one bad receipt does not lose the
+    ///   block, and skip-or-fail stays with the caller.
+    /// * An empty block yields an empty vector, not an error.
+    async fn get_transaction_info_by_block_num(
+        &self,
+        block_num: i64,
+    ) -> Result<
+        Vec<
+            std::result::Result<
+                domain::transaction::TransactionInfo,
+                TxInfoConvError,
+            >,
+        >,
+    >;
+
+    /// Number of the latest *solidified* block.
+    ///
+    /// Implementations must guarantee the returned number never exceeds
+    /// `get_now_block()` on the same endpoint; on nile/mainnet the lag is
+    /// ~19 blocks (2/3 of 27 SRs).
+    async fn get_solid_block_number(&self) -> Result<i64>;
+
     async fn chain_parameters(&self) -> Result<HashMap<String, i64>>;
     async fn freeze_balance(
         &self,

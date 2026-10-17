@@ -35,6 +35,7 @@ pub struct BlockExtention {
     pub transactions: Vec<TransactionExtention>,
     pub block_header: BlockHeader,
     pub blockid: Hash32,
+    pub conversion_errors: Vec<(Hash32, crate::protocol::ProtoConvError)>,
 }
 
 impl BlockExtention {

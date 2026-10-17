@@ -1,19 +1,22 @@
 use super::*;
 
-impl From<TriggerSmartContract> for domain::contract::TriggerSmartContract {
-    fn from(value: TriggerSmartContract) -> Self {
-        domain::contract::TriggerSmartContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            contract_address: value
-                .contract_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
+impl TryFrom<TriggerSmartContract> for domain::contract::TriggerSmartContract {
+    type Error = ProtoConvError;
+    fn try_from(value: TriggerSmartContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::TriggerSmartContract {
+            owner_address: addr(
+                &value.owner_address,
+                "TriggerSmartContract.owner_address",
+            )?,
+            contract_address: addr(
+                &value.contract_address,
+                "TriggerSmartContract.contract_address",
+            )?,
             call_value: value.call_value.into(),
             data: value.data.into(),
             call_token_value: value.call_token_value.into(),
             token_id: value.token_id,
-        }
+        })
     }
 }
 
@@ -56,10 +59,14 @@ impl From<domain::contract::FrozenSupply>
     }
 }
 
-impl From<AssetIssueContract> for domain::contract::AssetIssueContract {
-    fn from(value: AssetIssueContract) -> Self {
-        domain::contract::AssetIssueContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<AssetIssueContract> for domain::contract::AssetIssueContract {
+    type Error = ProtoConvError;
+    fn try_from(value: AssetIssueContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::AssetIssueContract {
+            owner_address: addr(
+                &value.owner_address,
+                "AssetIssueContract.owner_address",
+            )?,
             id: value.id,
             name: value.name.into(),
             abbr: value.abbr.into(),
@@ -72,9 +79,8 @@ impl From<AssetIssueContract> for domain::contract::AssetIssueContract {
             trx_num: (value.trx_num as i64).into(),
             precision: value.precision,
             num: value.num,
-            start_time: OffsetDateTime::try_from_tron(value.start_time)
-                .unwrap(),
-            end_time: OffsetDateTime::try_from_tron(value.end_time).unwrap(),
+            start_time: OffsetDateTime::try_from_tron(value.start_time)?,
+            end_time: OffsetDateTime::try_from_tron(value.end_time)?,
             order: value.order,
             vote_score: value.vote_score,
             description: value.description.into(),
@@ -84,9 +90,8 @@ impl From<AssetIssueContract> for domain::contract::AssetIssueContract {
             public_free_asset_net_usage: value.public_free_asset_net_usage,
             public_latest_free_net_time: OffsetDateTime::try_from_tron(
                 value.public_latest_free_net_time,
-            )
-            .unwrap(),
-        }
+            )?,
+        })
     }
 }
 
@@ -122,14 +127,23 @@ impl From<domain::contract::AssetIssueContract> for AssetIssueContract {
     }
 }
 
-impl From<TransferAssetContract> for domain::contract::TransferAssetContract {
-    fn from(value: TransferAssetContract) -> Self {
-        domain::contract::TransferAssetContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            to_address: value.to_address.as_slice().try_into().unwrap(),
+impl TryFrom<TransferAssetContract>
+    for domain::contract::TransferAssetContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: TransferAssetContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::TransferAssetContract {
+            owner_address: addr(
+                &value.owner_address,
+                "TransferAssetContract.owner_address",
+            )?,
+            to_address: addr(
+                &value.to_address,
+                "TransferAssetContract.to_address",
+            )?,
             amount: value.amount.into(),
             asset_name: value.asset_name.into(),
-        }
+        })
     }
 }
 
@@ -144,11 +158,17 @@ impl From<domain::contract::TransferAssetContract> for TransferAssetContract {
     }
 }
 
-impl From<UnfreezeAssetContract> for domain::contract::UnfreezeAssetContract {
-    fn from(value: UnfreezeAssetContract) -> Self {
-        domain::contract::UnfreezeAssetContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-        }
+impl TryFrom<UnfreezeAssetContract>
+    for domain::contract::UnfreezeAssetContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: UnfreezeAssetContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UnfreezeAssetContract {
+            owner_address: addr(
+                &value.owner_address,
+                "UnfreezeAssetContract.owner_address",
+            )?,
+        })
     }
 }
 
@@ -160,15 +180,19 @@ impl From<domain::contract::UnfreezeAssetContract> for UnfreezeAssetContract {
     }
 }
 
-impl From<UpdateAssetContract> for domain::contract::UpdateAssetContract {
-    fn from(value: UpdateAssetContract) -> Self {
-        domain::contract::UpdateAssetContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<UpdateAssetContract> for domain::contract::UpdateAssetContract {
+    type Error = ProtoConvError;
+    fn try_from(value: UpdateAssetContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UpdateAssetContract {
+            owner_address: addr(
+                &value.owner_address,
+                "UpdateAssetContract.owner_address",
+            )?,
             description: value.description.into(),
             url: value.url.into(),
             new_limit: value.new_limit,
             new_public_limit: value.new_public_limit,
-        }
+        })
     }
 }
 
@@ -184,16 +208,25 @@ impl From<domain::contract::UpdateAssetContract> for UpdateAssetContract {
     }
 }
 
-impl From<ParticipateAssetIssueContract>
+impl TryFrom<ParticipateAssetIssueContract>
     for domain::contract::ParticipateAssetIssueContract
 {
-    fn from(value: ParticipateAssetIssueContract) -> Self {
-        domain::contract::ParticipateAssetIssueContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            to_address: value.to_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(
+        value: ParticipateAssetIssueContract,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ParticipateAssetIssueContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ParticipateAssetIssueContract.owner_address",
+            )?,
+            to_address: addr(
+                &value.to_address,
+                "ParticipateAssetIssueContract.to_address",
+            )?,
             asset_name: value.asset_name.into(),
             amount: value.amount.into(),
-        }
+        })
     }
 }
 
@@ -210,17 +243,22 @@ impl From<domain::contract::ParticipateAssetIssueContract>
     }
 }
 
-impl From<AccountCreateContract> for domain::contract::AccountCreateContract {
-    fn from(value: AccountCreateContract) -> Self {
-        domain::contract::AccountCreateContract {
+impl TryFrom<AccountCreateContract>
+    for domain::contract::AccountCreateContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: AccountCreateContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::AccountCreateContract {
             account_type: value.r#type().into(),
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            account_address: value
-                .account_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
-        }
+            owner_address: addr(
+                &value.owner_address,
+                "AccountCreateContract.owner_address",
+            )?,
+            account_address: addr(
+                &value.account_address,
+                "AccountCreateContract.account_address",
+            )?,
+        })
     }
 }
 
@@ -229,21 +267,23 @@ impl From<domain::contract::AccountCreateContract> for AccountCreateContract {
         AccountCreateContract {
             r#type: AccountType::from(value.account_type).into(),
             owner_address: value.owner_address.as_bytes().to_vec(),
-            account_address: value
-                .account_address
-                .as_bytes()
-                .try_into()
-                .unwrap(),
+            account_address: value.account_address.as_bytes().to_vec(),
         }
     }
 }
 
-impl From<AccountUpdateContract> for domain::contract::AccountUpdateContract {
-    fn from(value: AccountUpdateContract) -> Self {
-        domain::contract::AccountUpdateContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<AccountUpdateContract>
+    for domain::contract::AccountUpdateContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: AccountUpdateContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::AccountUpdateContract {
+            owner_address: addr(
+                &value.owner_address,
+                "AccountUpdateContract.owner_address",
+            )?,
             account_name: value.account_name.into(),
-        }
+        })
     }
 }
 
@@ -256,12 +296,16 @@ impl From<domain::contract::AccountUpdateContract> for AccountUpdateContract {
     }
 }
 
-impl From<SetAccountIdContract> for domain::contract::SetAccountIdContract {
-    fn from(value: SetAccountIdContract) -> Self {
-        domain::contract::SetAccountIdContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<SetAccountIdContract> for domain::contract::SetAccountIdContract {
+    type Error = ProtoConvError;
+    fn try_from(value: SetAccountIdContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::SetAccountIdContract {
+            owner_address: addr(
+                &value.owner_address,
+                "SetAccountIdContract.owner_address",
+            )?,
             account_id: value.account_id.into(),
-        }
+        })
     }
 }
 
@@ -274,16 +318,26 @@ impl From<domain::contract::SetAccountIdContract> for SetAccountIdContract {
     }
 }
 
-impl From<AccountPermissionUpdateContract>
+impl TryFrom<AccountPermissionUpdateContract>
     for domain::contract::AccountPermissionUpdateContract
 {
-    fn from(value: AccountPermissionUpdateContract) -> Self {
-        domain::contract::AccountPermissionUpdateContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            owner: value.owner.map(Into::into),
-            witness: value.witness.map(Into::into),
-            actives: value.actives.into_iter().map(Into::into).collect(),
-        }
+    type Error = ProtoConvError;
+    fn try_from(
+        value: AccountPermissionUpdateContract,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::AccountPermissionUpdateContract {
+            owner_address: addr(
+                &value.owner_address,
+                "AccountPermissionUpdateContract.owner_address",
+            )?,
+            owner: value.owner.map(TryInto::try_into).transpose()?,
+            witness: value.witness.map(TryInto::try_into).transpose()?,
+            actives: value
+                .actives
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
+        })
     }
 }
 
@@ -300,12 +354,18 @@ impl From<domain::contract::AccountPermissionUpdateContract>
     }
 }
 
-impl From<WitnessCreateContract> for domain::contract::WitnessCreateContract {
-    fn from(value: WitnessCreateContract) -> Self {
-        domain::contract::WitnessCreateContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<WitnessCreateContract>
+    for domain::contract::WitnessCreateContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: WitnessCreateContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::WitnessCreateContract {
+            owner_address: addr(
+                &value.owner_address,
+                "WitnessCreateContract.owner_address",
+            )?,
             url: value.url.into(),
-        }
+        })
     }
 }
 
@@ -318,12 +378,18 @@ impl From<domain::contract::WitnessCreateContract> for WitnessCreateContract {
     }
 }
 
-impl From<WitnessUpdateContract> for domain::contract::WitnessUpdateContract {
-    fn from(value: WitnessUpdateContract) -> Self {
-        domain::contract::WitnessUpdateContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<WitnessUpdateContract>
+    for domain::contract::WitnessUpdateContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: WitnessUpdateContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::WitnessUpdateContract {
+            owner_address: addr(
+                &value.owner_address,
+                "WitnessUpdateContract.owner_address",
+            )?,
             update_url: value.update_url.into(),
-        }
+        })
     }
 }
 
@@ -336,12 +402,18 @@ impl From<domain::contract::WitnessUpdateContract> for WitnessUpdateContract {
     }
 }
 
-impl From<vote_witness_contract::Vote> for domain::contract::Vote {
-    fn from(value: vote_witness_contract::Vote) -> Self {
-        domain::contract::Vote {
-            vote_address: value.vote_address.as_slice().try_into().unwrap(),
+impl TryFrom<vote_witness_contract::Vote> for domain::contract::Vote {
+    type Error = ProtoConvError;
+    fn try_from(
+        value: vote_witness_contract::Vote,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::Vote {
+            vote_address: addr(
+                &value.vote_address,
+                "VoteWitnessContract.Vote.vote_address",
+            )?,
             vote_count: value.vote_count,
-        }
+        })
     }
 }
 
@@ -354,13 +426,21 @@ impl From<domain::contract::Vote> for vote_witness_contract::Vote {
     }
 }
 
-impl From<VoteWitnessContract> for domain::contract::VoteWitnessContract {
-    fn from(value: VoteWitnessContract) -> Self {
-        domain::contract::VoteWitnessContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            votes: value.votes.into_iter().map(Into::into).collect(),
+impl TryFrom<VoteWitnessContract> for domain::contract::VoteWitnessContract {
+    type Error = ProtoConvError;
+    fn try_from(value: VoteWitnessContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::VoteWitnessContract {
+            owner_address: addr(
+                &value.owner_address,
+                "VoteWitnessContract.owner_address",
+            )?,
+            votes: value
+                .votes
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             support: value.support,
-        }
+        })
     }
 }
 
@@ -374,19 +454,24 @@ impl From<domain::contract::VoteWitnessContract> for VoteWitnessContract {
     }
 }
 
-impl From<FreezeBalanceContract> for domain::contract::FreezeBalanceContract {
-    fn from(value: FreezeBalanceContract) -> Self {
-        domain::contract::FreezeBalanceContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<FreezeBalanceContract>
+    for domain::contract::FreezeBalanceContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: FreezeBalanceContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::FreezeBalanceContract {
+            owner_address: addr(
+                &value.owner_address,
+                "FreezeBalanceContract.owner_address",
+            )?,
             frozen_balance: value.frozen_balance.into(),
             frozen_duration: time::Duration::days(value.frozen_duration),
             resource: value.resource().into(),
-            receiver_address: value
-                .receiver_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
-        }
+            receiver_address: addr_or_zero(
+                &value.receiver_address,
+                "FreezeBalanceContract.receiver_address",
+            )?,
+        })
     }
 }
 
@@ -397,28 +482,27 @@ impl From<domain::contract::FreezeBalanceContract> for FreezeBalanceContract {
             frozen_balance: value.frozen_balance.into(),
             frozen_duration: value.frozen_duration.whole_days(),
             resource: ResourceCode::from(value.resource).into(),
-            receiver_address: value
-                .receiver_address
-                .as_bytes()
-                .try_into()
-                .unwrap(),
+            receiver_address: value.receiver_address.as_bytes().to_vec(),
         }
     }
 }
 
-impl From<UnfreezeBalanceContract>
+impl TryFrom<UnfreezeBalanceContract>
     for domain::contract::UnfreezeBalanceContract
 {
-    fn from(value: UnfreezeBalanceContract) -> Self {
-        domain::contract::UnfreezeBalanceContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: UnfreezeBalanceContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UnfreezeBalanceContract {
+            owner_address: addr(
+                &value.owner_address,
+                "UnfreezeBalanceContract.owner_address",
+            )?,
             resource: value.resource().into(),
-            receiver_address: value
-                .receiver_address
-                .as_slice()
-                .try_into()
-                .unwrap_or_default(),
-        }
+            receiver_address: addr_or_zero(
+                &value.receiver_address,
+                "UnfreezeBalanceContract.receiver_address",
+            )?,
+        })
     }
 }
 
@@ -429,22 +513,22 @@ impl From<domain::contract::UnfreezeBalanceContract>
         UnfreezeBalanceContract {
             owner_address: value.owner_address.as_bytes().to_vec(),
             resource: ResourceCode::from(value.resource).into(),
-            receiver_address: value
-                .receiver_address
-                .as_bytes()
-                .try_into()
-                .unwrap_or_default(),
+            receiver_address: value.receiver_address.as_bytes().to_vec(),
         }
     }
 }
 
-impl From<WithdrawBalanceContract>
+impl TryFrom<WithdrawBalanceContract>
     for domain::contract::WithdrawBalanceContract
 {
-    fn from(value: WithdrawBalanceContract) -> Self {
-        domain::contract::WithdrawBalanceContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-        }
+    type Error = ProtoConvError;
+    fn try_from(value: WithdrawBalanceContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::WithdrawBalanceContract {
+            owner_address: addr(
+                &value.owner_address,
+                "WithdrawBalanceContract.owner_address",
+            )?,
+        })
     }
 }
 
@@ -458,13 +542,17 @@ impl From<domain::contract::WithdrawBalanceContract>
     }
 }
 
-impl From<TransferContract> for domain::contract::TransferContract {
-    fn from(value: TransferContract) -> Self {
-        domain::contract::TransferContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            to_address: value.to_address.as_slice().try_into().unwrap(),
+impl TryFrom<TransferContract> for domain::contract::TransferContract {
+    type Error = ProtoConvError;
+    fn try_from(value: TransferContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::TransferContract {
+            owner_address: addr(
+                &value.owner_address,
+                "TransferContract.owner_address",
+            )?,
+            to_address: addr(&value.to_address, "TransferContract.to_address")?,
             amount: value.amount.into(),
-        }
+        })
     }
 }
 
@@ -478,15 +566,18 @@ impl From<domain::contract::TransferContract> for TransferContract {
     }
 }
 
-impl From<transaction_balance_trace::Operation>
+impl TryFrom<transaction_balance_trace::Operation>
     for domain::contract::Operation
 {
-    fn from(value: transaction_balance_trace::Operation) -> Self {
-        domain::contract::Operation {
+    type Error = ProtoConvError;
+    fn try_from(
+        value: transaction_balance_trace::Operation,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::Operation {
             operation_identifier: value.operation_identifier,
-            address: value.address.as_slice().try_into().unwrap_or_default(),
+            address: addr_or_zero(&value.address, "Operation.address")?,
             amount: value.amount.into(),
-        }
+        })
     }
 }
 
@@ -496,22 +587,27 @@ impl From<domain::contract::Operation>
     fn from(value: domain::contract::Operation) -> Self {
         transaction_balance_trace::Operation {
             operation_identifier: value.operation_identifier,
-            address: value.address.as_bytes().try_into().unwrap_or_default(),
+            address: value.address.as_bytes().to_vec(),
             amount: value.amount.into(),
         }
     }
 }
 
-impl From<TransactionBalanceTrace>
+impl TryFrom<TransactionBalanceTrace>
     for domain::contract::TransactionBalanceTrace
 {
-    fn from(value: TransactionBalanceTrace) -> Self {
-        domain::contract::TransactionBalanceTrace {
+    type Error = ProtoConvError;
+    fn try_from(value: TransactionBalanceTrace) -> Result<Self, Self::Error> {
+        Ok(domain::contract::TransactionBalanceTrace {
             transaction_identifier: value.transaction_identifier.into(),
-            operation: value.operation.into_iter().map(Into::into).collect(),
+            operation: value
+                .operation
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
             r#type: value.r#type,
             status: value.status,
-        }
+        })
     }
 }
 
@@ -528,17 +624,18 @@ impl From<domain::contract::TransactionBalanceTrace>
     }
 }
 
-impl From<BlockBalanceTrace> for domain::contract::BlockBalanceTrace {
-    fn from(value: BlockBalanceTrace) -> Self {
-        domain::contract::BlockBalanceTrace {
+impl TryFrom<BlockBalanceTrace> for domain::contract::BlockBalanceTrace {
+    type Error = ProtoConvError;
+    fn try_from(value: BlockBalanceTrace) -> Result<Self, Self::Error> {
+        Ok(domain::contract::BlockBalanceTrace {
             block_identifier: value.block_identifier.unwrap_or_default().into(),
-            timestamp: OffsetDateTime::try_from_tron(value.timestamp).unwrap(),
+            timestamp: OffsetDateTime::try_from_tron(value.timestamp)?,
             transaction_balance_trace: value
                 .transaction_balance_trace
                 .into_iter()
-                .map(Into::into)
-                .collect(),
-        }
+                .map(TryInto::try_into)
+                .collect::<Result<_, _>>()?,
+        })
     }
 }
 
@@ -596,11 +693,12 @@ impl From<domain::contract::AccountTrace> for AccountTrace {
     }
 }
 
-impl From<AccountIdentifier> for domain::contract::AccountIdentifier {
-    fn from(value: AccountIdentifier) -> Self {
-        domain::contract::AccountIdentifier {
-            address: value.address.as_slice().try_into().unwrap(),
-        }
+impl TryFrom<AccountIdentifier> for domain::contract::AccountIdentifier {
+    type Error = ProtoConvError;
+    fn try_from(value: AccountIdentifier) -> Result<Self, Self::Error> {
+        Ok(domain::contract::AccountIdentifier {
+            address: addr(&value.address, "AccountIdentifier.address")?,
+        })
     }
 }
 
@@ -612,15 +710,18 @@ impl From<domain::contract::AccountIdentifier> for AccountIdentifier {
     }
 }
 
-impl From<AccountBalanceRequest> for domain::contract::AccountBalanceRequest {
-    fn from(value: AccountBalanceRequest) -> Self {
-        domain::contract::AccountBalanceRequest {
+impl TryFrom<AccountBalanceRequest>
+    for domain::contract::AccountBalanceRequest
+{
+    type Error = ProtoConvError;
+    fn try_from(value: AccountBalanceRequest) -> Result<Self, Self::Error> {
+        Ok(domain::contract::AccountBalanceRequest {
             account_identifier: value
                 .account_identifier
                 .unwrap_or_default()
-                .into(),
+                .try_into()?,
             block_identifier: value.block_identifier.unwrap_or_default().into(),
-        }
+        })
     }
 }
 
@@ -651,15 +752,19 @@ impl From<domain::contract::AccountBalanceResponse> for AccountBalanceResponse {
     }
 }
 
-impl From<FreezeBalanceV2Contract>
+impl TryFrom<FreezeBalanceV2Contract>
     for domain::contract::FreezeBalanceV2Contract
 {
-    fn from(value: FreezeBalanceV2Contract) -> Self {
-        domain::contract::FreezeBalanceV2Contract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: FreezeBalanceV2Contract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::FreezeBalanceV2Contract {
+            owner_address: addr(
+                &value.owner_address,
+                "FreezeBalanceV2Contract.owner_address",
+            )?,
             frozen_balance: value.frozen_balance.into(),
             resource: value.resource().into(),
-        }
+        })
     }
 }
 
@@ -675,15 +780,19 @@ impl From<domain::contract::FreezeBalanceV2Contract>
     }
 }
 
-impl From<UnfreezeBalanceV2Contract>
+impl TryFrom<UnfreezeBalanceV2Contract>
     for domain::contract::UnfreezeBalanceV2Contract
 {
-    fn from(value: UnfreezeBalanceV2Contract) -> Self {
-        domain::contract::UnfreezeBalanceV2Contract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: UnfreezeBalanceV2Contract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UnfreezeBalanceV2Contract {
+            owner_address: addr(
+                &value.owner_address,
+                "UnfreezeBalanceV2Contract.owner_address",
+            )?,
             resource: value.resource().into(),
             unfreeze_balance: value.unfreeze_balance.into(),
-        }
+        })
     }
 }
 
@@ -699,13 +808,19 @@ impl From<domain::contract::UnfreezeBalanceV2Contract>
     }
 }
 
-impl From<WithdrawExpireUnfreezeContract>
+impl TryFrom<WithdrawExpireUnfreezeContract>
     for domain::contract::WithdrawExpireUnfreezeContract
 {
-    fn from(value: WithdrawExpireUnfreezeContract) -> Self {
-        domain::contract::WithdrawExpireUnfreezeContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-        }
+    type Error = ProtoConvError;
+    fn try_from(
+        value: WithdrawExpireUnfreezeContract,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::WithdrawExpireUnfreezeContract {
+            owner_address: addr(
+                &value.owner_address,
+                "WithdrawExpireUnfreezeContract.owner_address",
+            )?,
+        })
     }
 }
 
@@ -719,23 +834,26 @@ impl From<domain::contract::WithdrawExpireUnfreezeContract>
     }
 }
 
-impl From<DelegateResourceContract>
+impl TryFrom<DelegateResourceContract>
     for domain::contract::DelegateResourceContract
 {
-    fn from(value: DelegateResourceContract) -> Self {
-        domain::contract::DelegateResourceContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: DelegateResourceContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::DelegateResourceContract {
+            owner_address: addr(
+                &value.owner_address,
+                "DelegateResourceContract.owner_address",
+            )?,
             resource: value.resource().into(),
             balance: value.balance.into(),
-            receiver_address: value
-                .receiver_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
+            receiver_address: addr(
+                &value.receiver_address,
+                "DelegateResourceContract.receiver_address",
+            )?,
             lock_period: value
                 .lock
                 .then_some(time::Duration::seconds(value.lock_period)),
-        }
+        })
     }
 }
 
@@ -747,31 +865,32 @@ impl From<domain::contract::DelegateResourceContract>
             owner_address: value.owner_address.as_bytes().to_vec(),
             resource: ResourceCode::from(value.resource).into(),
             balance: value.balance.into(),
-            receiver_address: value
-                .receiver_address
-                .as_bytes()
-                .try_into()
-                .unwrap(),
+            receiver_address: value.receiver_address.as_bytes().to_vec(),
             lock: value.lock_period.is_some(),
             lock_period: value.lock_period.unwrap_or_default().whole_seconds(),
         }
     }
 }
 
-impl From<UnDelegateResourceContract>
+impl TryFrom<UnDelegateResourceContract>
     for domain::contract::UnDelegateResourceContract
 {
-    fn from(value: UnDelegateResourceContract) -> Self {
-        domain::contract::UnDelegateResourceContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(
+        value: UnDelegateResourceContract,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UnDelegateResourceContract {
+            owner_address: addr(
+                &value.owner_address,
+                "UnDelegateResourceContract.owner_address",
+            )?,
             resource: value.resource().into(),
             balance: value.balance.into(),
-            receiver_address: value
-                .receiver_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
-        }
+            receiver_address: addr(
+                &value.receiver_address,
+                "UnDelegateResourceContract.receiver_address",
+            )?,
+        })
     }
 }
 
@@ -783,22 +902,24 @@ impl From<domain::contract::UnDelegateResourceContract>
             owner_address: value.owner_address.as_bytes().to_vec(),
             resource: ResourceCode::from(value.resource).into(),
             balance: value.balance.into(),
-            receiver_address: value
-                .receiver_address
-                .as_bytes()
-                .try_into()
-                .unwrap(),
+            receiver_address: value.receiver_address.as_bytes().to_vec(),
         }
     }
 }
 
-impl From<CancelAllUnfreezeV2Contract>
+impl TryFrom<CancelAllUnfreezeV2Contract>
     for domain::contract::CancelAllUnfreezeV2Contract
 {
-    fn from(value: CancelAllUnfreezeV2Contract) -> Self {
-        domain::contract::CancelAllUnfreezeV2Contract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-        }
+    type Error = ProtoConvError;
+    fn try_from(
+        value: CancelAllUnfreezeV2Contract,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::CancelAllUnfreezeV2Contract {
+            owner_address: addr(
+                &value.owner_address,
+                "CancelAllUnfreezeV2Contract.owner_address",
+            )?,
+        })
     }
 }
 
@@ -812,15 +933,19 @@ impl From<domain::contract::CancelAllUnfreezeV2Contract>
     }
 }
 
-impl From<ProposalApproveContract>
+impl TryFrom<ProposalApproveContract>
     for domain::contract::ProposalApproveContract
 {
-    fn from(value: ProposalApproveContract) -> Self {
-        domain::contract::ProposalApproveContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: ProposalApproveContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ProposalApproveContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ProposalApproveContract.owner_address",
+            )?,
             proposal_id: value.proposal_id,
             is_add_approval: value.is_add_approval,
-        }
+        })
     }
 }
 
@@ -836,12 +961,18 @@ impl From<domain::contract::ProposalApproveContract>
     }
 }
 
-impl From<ProposalCreateContract> for domain::contract::ProposalCreateContract {
-    fn from(value: ProposalCreateContract) -> Self {
-        domain::contract::ProposalCreateContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<ProposalCreateContract>
+    for domain::contract::ProposalCreateContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: ProposalCreateContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ProposalCreateContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ProposalCreateContract.owner_address",
+            )?,
             parameters: value.parameters,
-        }
+        })
     }
 }
 
@@ -854,12 +985,18 @@ impl From<domain::contract::ProposalCreateContract> for ProposalCreateContract {
     }
 }
 
-impl From<ProposalDeleteContract> for domain::contract::ProposalDeleteContract {
-    fn from(value: ProposalDeleteContract) -> Self {
-        domain::contract::ProposalDeleteContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<ProposalDeleteContract>
+    for domain::contract::ProposalDeleteContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: ProposalDeleteContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ProposalDeleteContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ProposalDeleteContract.owner_address",
+            )?,
             proposal_id: value.proposal_id,
-        }
+        })
     }
 }
 
@@ -872,12 +1009,16 @@ impl From<domain::contract::ProposalDeleteContract> for ProposalDeleteContract {
     }
 }
 
-impl From<BuyStorageContract> for domain::contract::BuyStorageContract {
-    fn from(value: BuyStorageContract) -> Self {
-        domain::contract::BuyStorageContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<BuyStorageContract> for domain::contract::BuyStorageContract {
+    type Error = ProtoConvError;
+    fn try_from(value: BuyStorageContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::BuyStorageContract {
+            owner_address: addr(
+                &value.owner_address,
+                "BuyStorageContract.owner_address",
+            )?,
             quant: value.quant.into(),
-        }
+        })
     }
 }
 
@@ -890,12 +1031,16 @@ impl From<domain::contract::BuyStorageContract> for BuyStorageContract {
     }
 }
 
-impl From<SellStorageContract> for domain::contract::SellStorageContract {
-    fn from(value: SellStorageContract) -> Self {
-        domain::contract::SellStorageContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<SellStorageContract> for domain::contract::SellStorageContract {
+    type Error = ProtoConvError;
+    fn try_from(value: SellStorageContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::SellStorageContract {
+            owner_address: addr(
+                &value.owner_address,
+                "SellStorageContract.owner_address",
+            )?,
             storage_bytes: value.storage_bytes,
-        }
+        })
     }
 }
 
@@ -908,14 +1053,18 @@ impl From<domain::contract::SellStorageContract> for SellStorageContract {
     }
 }
 
-impl From<UpdateBrokerageContract>
+impl TryFrom<UpdateBrokerageContract>
     for domain::contract::UpdateBrokerageContract
 {
-    fn from(value: UpdateBrokerageContract) -> Self {
-        domain::contract::UpdateBrokerageContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: UpdateBrokerageContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UpdateBrokerageContract {
+            owner_address: addr(
+                &value.owner_address,
+                "UpdateBrokerageContract.owner_address",
+            )?,
             brokerage: value.brokerage,
-        }
+        })
     }
 }
 
@@ -930,15 +1079,21 @@ impl From<domain::contract::UpdateBrokerageContract>
     }
 }
 
-impl From<ExchangeCreateContract> for domain::contract::ExchangeCreateContract {
-    fn from(value: ExchangeCreateContract) -> Self {
-        domain::contract::ExchangeCreateContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<ExchangeCreateContract>
+    for domain::contract::ExchangeCreateContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: ExchangeCreateContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ExchangeCreateContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ExchangeCreateContract.owner_address",
+            )?,
             first_token_id: value.first_token_id.into(),
             first_token_balance: value.first_token_balance,
             second_token_id: value.second_token_id.into(),
             second_token_balance: value.second_token_balance,
-        }
+        })
     }
 }
 
@@ -954,14 +1109,20 @@ impl From<domain::contract::ExchangeCreateContract> for ExchangeCreateContract {
     }
 }
 
-impl From<ExchangeInjectContract> for domain::contract::ExchangeInjectContract {
-    fn from(value: ExchangeInjectContract) -> Self {
-        domain::contract::ExchangeInjectContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+impl TryFrom<ExchangeInjectContract>
+    for domain::contract::ExchangeInjectContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: ExchangeInjectContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ExchangeInjectContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ExchangeInjectContract.owner_address",
+            )?,
             exchange_id: value.exchange_id,
             token_id: value.token_id.into(),
             quant: value.quant,
-        }
+        })
     }
 }
 
@@ -976,16 +1137,20 @@ impl From<domain::contract::ExchangeInjectContract> for ExchangeInjectContract {
     }
 }
 
-impl From<ExchangeWithdrawContract>
+impl TryFrom<ExchangeWithdrawContract>
     for domain::contract::ExchangeWithdrawContract
 {
-    fn from(value: ExchangeWithdrawContract) -> Self {
-        domain::contract::ExchangeWithdrawContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: ExchangeWithdrawContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ExchangeWithdrawContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ExchangeWithdrawContract.owner_address",
+            )?,
             exchange_id: value.exchange_id,
             token_id: value.token_id.into(),
             quant: value.quant,
-        }
+        })
     }
 }
 
@@ -1002,17 +1167,23 @@ impl From<domain::contract::ExchangeWithdrawContract>
     }
 }
 
-impl From<ExchangeTransactionContract>
+impl TryFrom<ExchangeTransactionContract>
     for domain::contract::ExchangeTransactionContract
 {
-    fn from(value: ExchangeTransactionContract) -> Self {
-        domain::contract::ExchangeTransactionContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(
+        value: ExchangeTransactionContract,
+    ) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ExchangeTransactionContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ExchangeTransactionContract.owner_address",
+            )?,
             exchange_id: value.exchange_id,
             token_id: value.token_id.into(),
             quant: value.quant,
             expected: value.expected,
-        }
+        })
     }
 }
 
@@ -1030,17 +1201,21 @@ impl From<domain::contract::ExchangeTransactionContract>
     }
 }
 
-impl From<MarketSellAssetContract>
+impl TryFrom<MarketSellAssetContract>
     for domain::contract::MarketSellAssetContract
 {
-    fn from(value: MarketSellAssetContract) -> Self {
-        domain::contract::MarketSellAssetContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: MarketSellAssetContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::MarketSellAssetContract {
+            owner_address: addr(
+                &value.owner_address,
+                "MarketSellAssetContract.owner_address",
+            )?,
             sell_token_id: value.sell_token_id.into(),
             sell_token_quantity: value.sell_token_quantity,
             buy_token_id: value.buy_token_id.into(),
             buy_token_quantity: value.buy_token_quantity,
-        }
+        })
     }
 }
 
@@ -1058,14 +1233,18 @@ impl From<domain::contract::MarketSellAssetContract>
     }
 }
 
-impl From<MarketCancelOrderContract>
+impl TryFrom<MarketCancelOrderContract>
     for domain::contract::MarketCancelOrderContract
 {
-    fn from(value: MarketCancelOrderContract) -> Self {
-        domain::contract::MarketCancelOrderContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: MarketCancelOrderContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::MarketCancelOrderContract {
+            owner_address: addr(
+                &value.owner_address,
+                "MarketCancelOrderContract.owner_address",
+            )?,
             order_id: value.order_id.into(),
-        }
+        })
     }
 }
 
@@ -1080,15 +1259,18 @@ impl From<domain::contract::MarketCancelOrderContract>
     }
 }
 
-impl From<SmartContract> for domain::contract::SmartContract {
-    fn from(value: SmartContract) -> Self {
-        domain::contract::SmartContract {
-            origin_address: value.origin_address.as_slice().try_into().unwrap(),
-            contract_address: value
-                .contract_address
-                .as_slice()
-                .try_into()
-                .unwrap_or_default(),
+impl TryFrom<SmartContract> for domain::contract::SmartContract {
+    type Error = ProtoConvError;
+    fn try_from(value: SmartContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::SmartContract {
+            origin_address: addr(
+                &value.origin_address,
+                "SmartContract.origin_address",
+            )?,
+            contract_address: addr_or_zero(
+                &value.contract_address,
+                "SmartContract.contract_address",
+            )?,
             abi: value.abi.unwrap_or_default().into(),
             bytecode: value.bytecode,
             call_value: value.call_value.into(),
@@ -1098,7 +1280,7 @@ impl From<SmartContract> for domain::contract::SmartContract {
             code_hash: value.code_hash.into(),
             trx_hash: value.trx_hash.into(),
             version: value.version,
-        }
+        })
     }
 }
 
@@ -1106,11 +1288,11 @@ impl From<domain::contract::SmartContract> for SmartContract {
     fn from(value: domain::contract::SmartContract) -> Self {
         SmartContract {
             origin_address: value.origin_address.as_bytes().to_vec(),
-            contract_address: value
-                .contract_address
-                .as_bytes()
-                .try_into()
-                .unwrap_or_default(),
+            contract_address: if value.contract_address.eq(&TronAddress::ZERO) {
+                Vec::new()
+            } else {
+                value.contract_address.as_bytes().to_vec()
+            },
             abi: Some(value.abi.into()),
             bytecode: value.bytecode,
             call_value: value.call_value.into(),
@@ -1229,14 +1411,18 @@ impl From<ContractState> for domain::contract::ContractState {
     }
 }
 
-impl From<CreateSmartContract> for domain::contract::CreateSmartContract {
-    fn from(value: CreateSmartContract) -> Self {
-        domain::contract::CreateSmartContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            new_contract: value.new_contract.unwrap_or_default().into(),
+impl TryFrom<CreateSmartContract> for domain::contract::CreateSmartContract {
+    type Error = ProtoConvError;
+    fn try_from(value: CreateSmartContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::CreateSmartContract {
+            owner_address: addr(
+                &value.owner_address,
+                "CreateSmartContract.owner_address",
+            )?,
+            new_contract: value.new_contract.unwrap_or_default().try_into()?,
             call_token_value: value.call_token_value.into(),
             token_id: value.token_id,
-        }
+        })
     }
 }
 
@@ -1251,16 +1437,19 @@ impl From<domain::contract::CreateSmartContract> for CreateSmartContract {
     }
 }
 
-impl From<ClearAbiContract> for domain::contract::ClearAbiContract {
-    fn from(value: ClearAbiContract) -> Self {
-        domain::contract::ClearAbiContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            contract_address: value
-                .contract_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
-        }
+impl TryFrom<ClearAbiContract> for domain::contract::ClearAbiContract {
+    type Error = ProtoConvError;
+    fn try_from(value: ClearAbiContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ClearAbiContract {
+            owner_address: addr(
+                &value.owner_address,
+                "ClearAbiContract.owner_address",
+            )?,
+            contract_address: addr(
+                &value.contract_address,
+                "ClearAbiContract.contract_address",
+            )?,
+        })
     }
 }
 
@@ -1268,26 +1457,27 @@ impl From<domain::contract::ClearAbiContract> for ClearAbiContract {
     fn from(value: domain::contract::ClearAbiContract) -> Self {
         ClearAbiContract {
             owner_address: value.owner_address.as_bytes().to_vec(),
-            contract_address: value
-                .contract_address
-                .as_bytes()
-                .try_into()
-                .unwrap(),
+            contract_address: value.contract_address.as_bytes().to_vec(),
         }
     }
 }
 
-impl From<UpdateSettingContract> for domain::contract::UpdateSettingContract {
-    fn from(value: UpdateSettingContract) -> Self {
-        domain::contract::UpdateSettingContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            contract_address: value
-                .contract_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
+impl TryFrom<UpdateSettingContract>
+    for domain::contract::UpdateSettingContract
+{
+    type Error = ProtoConvError;
+    fn try_from(value: UpdateSettingContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UpdateSettingContract {
+            owner_address: addr(
+                &value.owner_address,
+                "UpdateSettingContract.owner_address",
+            )?,
+            contract_address: addr(
+                &value.contract_address,
+                "UpdateSettingContract.contract_address",
+            )?,
             consume_user_resource_percent: value.consume_user_resource_percent,
-        }
+        })
     }
 }
 
@@ -1295,29 +1485,28 @@ impl From<domain::contract::UpdateSettingContract> for UpdateSettingContract {
     fn from(value: domain::contract::UpdateSettingContract) -> Self {
         UpdateSettingContract {
             owner_address: value.owner_address.as_bytes().to_vec(),
-            contract_address: value
-                .contract_address
-                .as_bytes()
-                .try_into()
-                .unwrap(),
+            contract_address: value.contract_address.as_bytes().to_vec(),
             consume_user_resource_percent: value.consume_user_resource_percent,
         }
     }
 }
 
-impl From<UpdateEnergyLimitContract>
+impl TryFrom<UpdateEnergyLimitContract>
     for domain::contract::UpdateEnergyLimitContract
 {
-    fn from(value: UpdateEnergyLimitContract) -> Self {
-        domain::contract::UpdateEnergyLimitContract {
-            owner_address: value.owner_address.as_slice().try_into().unwrap(),
-            contract_address: value
-                .contract_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: UpdateEnergyLimitContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::UpdateEnergyLimitContract {
+            owner_address: addr(
+                &value.owner_address,
+                "UpdateEnergyLimitContract.owner_address",
+            )?,
+            contract_address: addr(
+                &value.contract_address,
+                "UpdateEnergyLimitContract.contract_address",
+            )?,
             origin_energy_limit: value.origin_energy_limit,
-        }
+        })
     }
 }
 
@@ -1327,11 +1516,7 @@ impl From<domain::contract::UpdateEnergyLimitContract>
     fn from(value: domain::contract::UpdateEnergyLimitContract) -> Self {
         UpdateEnergyLimitContract {
             owner_address: value.owner_address.as_bytes().to_vec(),
-            contract_address: value
-                .contract_address
-                .as_bytes()
-                .try_into()
-                .unwrap(),
+            contract_address: value.contract_address.as_bytes().to_vec(),
             origin_energy_limit: value.origin_energy_limit,
         }
     }
@@ -1389,16 +1574,16 @@ impl From<domain::contract::ReceiveDescription> for ReceiveDescription {
     }
 }
 
-impl From<ShieldedTransferContract>
+impl TryFrom<ShieldedTransferContract>
     for domain::contract::ShieldedTransferContract
 {
-    fn from(value: ShieldedTransferContract) -> Self {
-        domain::contract::ShieldedTransferContract {
-            transparent_from_address: value
-                .transparent_from_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
+    type Error = ProtoConvError;
+    fn try_from(value: ShieldedTransferContract) -> Result<Self, Self::Error> {
+        Ok(domain::contract::ShieldedTransferContract {
+            transparent_from_address: addr_or_zero(
+                &value.transparent_from_address,
+                "ShieldedTransferContract.transparent_from_address",
+            )?,
             from_amount: value.from_amount,
             spend_description: value
                 .spend_description
@@ -1411,13 +1596,12 @@ impl From<ShieldedTransferContract>
                 .map(Into::into)
                 .collect(),
             binding_signature: value.binding_signature,
-            transparent_to_address: value
-                .transparent_to_address
-                .as_slice()
-                .try_into()
-                .unwrap(),
+            transparent_to_address: addr_or_zero(
+                &value.transparent_to_address,
+                "ShieldedTransferContract.transparent_to_address",
+            )?,
             to_amount: value.to_amount,
-        }
+        })
     }
 }
 
@@ -1429,8 +1613,7 @@ impl From<domain::contract::ShieldedTransferContract>
             transparent_from_address: value
                 .transparent_from_address
                 .as_bytes()
-                .try_into()
-                .unwrap(),
+                .to_vec(),
             from_amount: value.from_amount,
             spend_description: value
                 .spend_description
@@ -1446,8 +1629,7 @@ impl From<domain::contract::ShieldedTransferContract>
             transparent_to_address: value
                 .transparent_to_address
                 .as_bytes()
-                .try_into()
-                .unwrap(),
+                .to_vec(),
             to_amount: value.to_amount,
         }
     }
@@ -1455,28 +1637,41 @@ impl From<domain::contract::ShieldedTransferContract>
 
 macro_rules! impl_contract_conversion {
     ($($variant:ident),+ $(,)?) => {
-        impl From<transaction::Contract> for domain::contract::Contract {
-            fn from(c: transaction::Contract) -> Self {
-                use transaction::contract::ContractType;
+        impl TryFrom<transaction::Contract> for domain::contract::Contract {
+            type Error = ProtoConvError;
+            fn try_from(c: transaction::Contract) -> Result<Self, Self::Error> {
+                use transaction::contract::ContractType as ProtoContractType;
 
-                let contract_type = match c.r#type() {
+                let type_id = c.r#type;
+                let param = c.parameter.map(|p| p.value).unwrap_or_default();
+
+                let contract_type = match ProtoContractType::try_from(type_id) {
                     $(
-                        ContractType::$variant => {
-                            let decoded: $variant = prost::Message::decode(
-                                &c.parameter.unwrap_or_default().value[..]
-                            ).unwrap_or_default();
-                            domain::contract::ContractType::$variant(decoded.into())
+                        Ok(ProtoContractType::$variant) => {
+                            let decoded: $variant =
+                                prost::Message::decode(param.as_slice())
+                                    .map_err(|e| {
+                                        ProtoConvError::BadParameter(
+                                            e.to_string(),
+                                        )
+                                    })?;
+                            domain::contract::ContractType::$variant(
+                                decoded.try_into()?,
+                            )
                         }
                     )+
-                    _ => panic!("Unsupported contract type: {:?}", c.r#type()),
+                    _ => domain::contract::ContractType::Unknown {
+                        type_id,
+                        raw: param,
+                    },
                 };
 
-                domain::contract::Contract {
+                Ok(domain::contract::Contract {
                     contract_type,
                     provider: c.provider,
                     contract_name: c.contract_name.into(),
                     permission_id: c.permission_id,
-                }
+                })
             }
         }
     };
@@ -1530,27 +1725,65 @@ macro_rules! impl_contract_reverse_conversion {
                 use domain::contract::ContractType;
                 use prost::Message;
 
-                let (contract_type, parameter) = match c.contract_type {
+                let (type_id, parameter) = match c.contract_type {
                     $(
                         ContractType::$variant(inner) => {
                             let tx_contract: $variant = inner.into();
-                            let mut buf = Vec::new();
-                            tx_contract.encode(&mut buf).unwrap();
-                            (transaction::contract::ContractType::$variant, Some(buf))
+                            let proto_type =
+                                transaction::contract::ContractType::$variant;
+                            (
+                                proto_type as i32,
+                                Some(prost_types::Any {
+                                    type_url: format!(
+                                        "type.googleapis.com/protocol.{}",
+                                        proto_type.as_str_name()
+                                    ),
+                                    value: tx_contract.encode_to_vec(),
+                                }),
+                            )
                         }
                     )+
+                    ContractType::Unknown { type_id, raw } => {
+                        let type_url =
+                            transaction::contract::ContractType::try_from(
+                                type_id,
+                            )
+                            .map(|t| {
+                                format!(
+                                    "type.googleapis.com/protocol.{}",
+                                    t.as_str_name()
+                                )
+                            })
+                            .unwrap_or_else(|_| {
+                                "type.googleapis.com/protocol.UnknownContract"
+                                    .to_string()
+                            });
+                        (
+                            type_id,
+                            (!raw.is_empty()).then(|| prost_types::Any {
+                                type_url,
+                                value: raw,
+                            }),
+                        )
+                    }
                     other => {
-                        tracing::warn!("Unsupported contract type conversion: {:?}", other);
-                        (transaction::contract::ContractType::from_i32(other.id()).unwrap(), None)
+                        let id = other.id();
+                        let proto_type =
+                            transaction::contract::ContractType::try_from(id)
+                                .unwrap_or_else(|_| {
+                                    tracing::warn!(
+                                        type_id = id,
+                                        "unknown contract type id, encoding as CustomContract"
+                                    );
+                                    transaction::contract::ContractType::CustomContract
+                                });
+                        (proto_type as i32, None)
                     }
                 };
 
                 transaction::Contract {
-                    parameter: parameter.map(|value| prost_types::Any {
-                        type_url: format!("type.googleapis.com/protocol.{}", contract_type.as_str_name()),
-                        value,
-                    }),
-                    r#type: contract_type.into(),
+                    parameter,
+                    r#type: type_id,
                     provider: c.provider,
                     contract_name: c.contract_name.into(),
                     permission_id: c.permission_id,
@@ -1600,3 +1833,184 @@ impl_contract_reverse_conversion!(
     UnDelegateResourceContract,
     CancelAllUnfreezeV2Contract
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use prost::Message;
+
+    fn addr21() -> Vec<u8> {
+        let mut v = vec![0x41u8];
+        v.extend_from_slice(&[7u8; 20]);
+        v
+    }
+
+    fn tx_with_contract(
+        c: transaction::Contract,
+        tag: u8,
+    ) -> TransactionExtention {
+        TransactionExtention {
+            transaction: Some(Transaction {
+                raw_data: Some(transaction::Raw {
+                    ref_block_bytes: vec![0, 1],
+                    ref_block_hash: vec![0u8; 8],
+                    contract: vec![c],
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            txid: {
+                let mut t = vec![0u8; 32];
+                t[0] = tag;
+                t
+            },
+            ..Default::default()
+        }
+    }
+
+    fn block_with(txs: Vec<TransactionExtention>) -> BlockExtention {
+        BlockExtention {
+            transactions: txs,
+            block_header: Some(BlockHeader {
+                raw_data: Some(block_header::Raw {
+                    witness_address: addr21(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            blockid: vec![9u8; 32],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn custom_contract_converts_to_unknown_without_panic() {
+        let c = transaction::Contract {
+            r#type: 20,
+            parameter: Some(prost_types::Any {
+                type_url: "type.googleapis.com/protocol.CustomContract".into(),
+                value: vec![1, 2, 3],
+            }),
+            ..Default::default()
+        };
+
+        let block: domain::block::BlockExtention =
+            block_with(vec![tx_with_contract(c, 1)]).try_into().unwrap();
+
+        assert_eq!(block.transactions.len(), 1);
+        assert!(block.conversion_errors.is_empty());
+
+        let contract = &block.transactions[0]
+            .transaction
+            .as_ref()
+            .unwrap()
+            .raw
+            .contract[0];
+        match &contract.contract_type {
+            domain::contract::ContractType::Unknown { type_id, raw } => {
+                assert_eq!(*type_id, 20);
+                assert_eq!(raw, &vec![1, 2, 3]);
+            }
+            other => panic!("expected Unknown, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn empty_contract_address_lands_in_conversion_errors() {
+        let bad_trigger = TriggerSmartContract {
+            owner_address: addr21(),
+            contract_address: Vec::new(),
+            ..Default::default()
+        };
+        let bad = transaction::Contract {
+            r#type: transaction::contract::ContractType::TriggerSmartContract
+                as i32,
+            parameter: Some(prost_types::Any {
+                type_url: "type.googleapis.com/protocol.TriggerSmartContract"
+                    .into(),
+                value: bad_trigger.encode_to_vec(),
+            }),
+            ..Default::default()
+        };
+        let good = transaction::Contract {
+            r#type: transaction::contract::ContractType::TransferContract
+                as i32,
+            parameter: Some(prost_types::Any {
+                type_url: "type.googleapis.com/protocol.TransferContract"
+                    .into(),
+                value: TransferContract {
+                    owner_address: addr21(),
+                    to_address: addr21(),
+                    amount: 1,
+                }
+                .encode_to_vec(),
+            }),
+            ..Default::default()
+        };
+
+        let block: domain::block::BlockExtention = block_with(vec![
+            tx_with_contract(bad, 1),
+            tx_with_contract(good, 2),
+        ])
+        .try_into()
+        .unwrap();
+
+        assert_eq!(block.transactions.len(), 1, "good tx must survive");
+        assert_eq!(block.conversion_errors.len(), 1);
+        let (txid, err) = &block.conversion_errors[0];
+        assert_eq!(txid.as_ref()[0], 1, "txid of the broken tx is reported");
+        assert!(
+            matches!(err, ProtoConvError::BadAddress { .. }),
+            "got: {err:?}"
+        );
+    }
+
+    #[test]
+    fn unknown_roundtrip_preserves_type_and_bytes() {
+        let dc = domain::contract::Contract {
+            contract_type: domain::contract::ContractType::Unknown {
+                type_id: 32,
+                raw: vec![5, 6, 7],
+            },
+            ..Default::default()
+        };
+        let pc: transaction::Contract = dc.into();
+        assert_eq!(pc.r#type, 32);
+        assert_eq!(pc.parameter.unwrap().value, vec![5, 6, 7]);
+
+        let dc = domain::contract::Contract {
+            contract_type: domain::contract::ContractType::Unknown {
+                type_id: 777,
+                raw: vec![9],
+            },
+            ..Default::default()
+        };
+        let pc: transaction::Contract = dc.into();
+        assert_eq!(pc.r#type, 777);
+        assert_eq!(pc.parameter.unwrap().value, vec![9]);
+    }
+
+    #[test]
+    fn internal_transaction_accepts_20_and_21_byte_addresses() {
+        let it = InternalTransaction {
+            caller_address: addr21(),
+            transfer_to_address: vec![7u8; 20], // no 0x41 prefix
+            ..Default::default()
+        };
+        let d: domain::transaction::InternalTransaction =
+            it.try_into().unwrap();
+        assert_eq!(
+            d.caller_address, d.transfer_to_address,
+            "20-byte address must be normalized to the same 21-byte address"
+        );
+
+        let bad = InternalTransaction {
+            caller_address: vec![7u8; 19],
+            transfer_to_address: addr21(),
+            ..Default::default()
+        };
+        let res: Result<domain::transaction::InternalTransaction, _> =
+            bad.try_into();
+        assert!(matches!(res, Err(ProtoConvError::BadAddress { .. })));
+    }
+}

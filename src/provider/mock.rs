@@ -8,6 +8,7 @@ use crate::domain::address::TronAddress;
 use crate::domain::trx::{self, Trx};
 use crate::domain::{self, Hash32};
 use crate::error::Error;
+use crate::provider::TxInfoConvError;
 
 #[derive(Clone, Copy, Debug)]
 pub struct MockProvider;
@@ -85,6 +86,22 @@ impl crate::provider::TronProvider for MockProvider {
         &self,
         _: Hash32,
     ) -> Result<domain::transaction::TransactionInfo> {
+        Err(Error::Unexpected(eyre!("mock provider")))
+    }
+    async fn get_transaction_info_by_block_num(
+        &self,
+        _block_num: i64,
+    ) -> Result<
+        Vec<
+            std::result::Result<
+                domain::transaction::TransactionInfo,
+                TxInfoConvError,
+            >,
+        >,
+    > {
+        Err(Error::Unexpected(eyre!("mock provider")))
+    }
+    async fn get_solid_block_number(&self) -> Result<i64> {
         Err(Error::Unexpected(eyre!("mock provider")))
     }
     async fn chain_parameters(&self) -> Result<HashMap<String, i64>> {

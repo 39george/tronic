@@ -459,18 +459,18 @@ where
             .provider()
             .trigger_constant_contract(trigger)
             .await?;
-        let balance = if let Some(result) = extention.constant_result.pop() {
-            if result.len() == 32 {
-                let balance_bytes: [u8; 32] = result.try_into().unwrap(); // We sure in length
-                alloy_primitives::U256::from_be_bytes(balance_bytes)
-            } else {
-                return Err(eyre!("unexpected constant result length").into());
-            }
-        } else {
-            return Err(eyre!("no constant result returned",).into());
-        };
-
-        Ok(T::from(balance))
+        let result = extention.constant_result.pop().ok_or_else(|| {
+            Error::InvalidResponse("no constant result returned".into())
+        })?;
+        if result.len() != 32 {
+            return Err(Error::InvalidResponse(format!(
+                "unexpected constant result length: {}",
+                result.len()
+            )));
+        }
+        let mut bytes = [0u8; 32];
+        bytes.copy_from_slice(&result);
+        Ok(T::from(alloy_primitives::U256::from_be_bytes(bytes)))
     }
 }
 

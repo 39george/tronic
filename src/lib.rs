@@ -3,9 +3,9 @@
 #![deny(clippy::expect_used)]
 // #![feature(error_generic_member_access)]
 
+pub use protocol::ProtoConvError;
 pub use provider::RateLimit;
 
-#[allow(warnings)]
 pub(crate) mod protocol;
 
 pub mod client;

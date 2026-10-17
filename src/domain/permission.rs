@@ -75,8 +75,13 @@ impl Ops {
 
         for (pos, bit) in bits.iter().enumerate() {
             if *bit {
-                let contract = Ops::from_repr(pos).unwrap();
-                result.push(contract);
+                match Ops::from_repr(pos) {
+                    Some(contract) => result.push(contract),
+                    None => tracing::warn!(
+                        bit = pos,
+                        "unknown operation bit in permission, skipping"
+                    ),
+                }
             }
         }
 

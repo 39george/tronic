@@ -58,15 +58,19 @@ pub enum ContractType {
     DelegateResourceContract(DelegateResourceContract) = 57,
     UnDelegateResourceContract(UnDelegateResourceContract) = 58,
     CancelAllUnfreezeV2Contract(CancelAllUnfreezeV2Contract) = 59,
+    Unknown {
+        type_id: i32,
+        raw: Vec<u8>,
+    } = 100,
 }
 
 impl ContractType {
     #[must_use]
     pub const fn id(&self) -> i32 {
-        // SAFETY: This is safe because `Foo` is repr(i32).
-        #[allow(unsafe_code)]
-        unsafe {
-            *std::ptr::from_ref::<Self>(self).cast::<i32>()
+        match self {
+            ContractType::Unknown { type_id, .. } => *type_id,
+            #[allow(unsafe_code)]
+            _ => unsafe { *std::ptr::from_ref::<Self>(self).cast::<i32>() },
         }
     }
 }
