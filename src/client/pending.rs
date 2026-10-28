@@ -24,7 +24,6 @@ use crate::error::Error;
 use crate::listener::ListenerError;
 use crate::provider::TronProvider;
 use crate::signer::PrehashSigner;
-use crate::domain::transaction::generate_txid;
 use crate::{Result, protocol, utility};
 use crate::{domain, trx};
 
@@ -109,7 +108,7 @@ where
         }
         let latest_block = self.client.provider.get_now_block().await?;
         latest_block.fill_header_info_in_transaction(&mut self.transaction);
-        let txid = generate_txid(self.transaction.raw.clone());
+        let txid = self.transaction.raw.generate_txid();
         self.txid = txid;
         Ok(())
     }

@@ -95,6 +95,17 @@ pub struct RawTransaction {
     pub auths: Vec<Authority>,
 }
 
+impl RawTransaction {
+    /// Matches the on-chain id for transactions built by tronic, but not necessarily for ones fetched from a node.
+    /// The domain -> proto re-encoding isn't guaranteed to be byte-identical
+    pub fn generate_txid(&self) -> Hash32 {
+        let raw_data = &crate::protocol::transaction::Raw::from(self.clone()).encode_to_vec();
+        let digest = Sha256::digest(raw_data);
+        let hash: [u8; 32] = digest.into();
+        hash.into()
+    }
+}
+
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Transaction {
     pub raw: RawTransaction,
@@ -228,11 +239,4 @@ impl ContractResult {
             err => Some(err.clone()),
         }
     }
-}
-
-pub fn generate_txid(raw_tx: RawTransaction) -> Hash32 {
-    let raw_data = &crate::protocol::transaction::Raw::from(raw_tx).encode_to_vec();
-    let digest = Sha256::digest(raw_data);
-    let hash: [u8; 32] = digest.into();
-    hash.into()
 }
