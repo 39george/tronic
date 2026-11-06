@@ -130,13 +130,12 @@ where
         })
     }
     fn can_cover_missing_with_trx_fee(&self, state: &ResourceState) -> bool {
-        if state.insufficient.is_none() {
+        let Some(ins) = state.insufficient.as_ref() else {
             return true;
-        }
+        };
         if !self.can_spend_trx_for_fee {
             return false;
         }
-        let ins = state.insufficient.as_ref().unwrap();
         if !Self::only_fee_resources_missing(&ins.missing) {
             return false;
         }
