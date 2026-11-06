@@ -1,6 +1,3 @@
-use sha2::{Digest, Sha256};
-
-use crate::domain::Hash32;
 
 pub fn estimate_bandwidth(
     raw_data_len_bytes: i64,
@@ -45,10 +42,4 @@ impl TronOffsetDateTime for time::OffsetDateTime {
 
         time::OffsetDateTime::from_unix_timestamp_nanos(ns)
     }
-}
-
-pub fn generate_txid(raw_data: &[u8]) -> Hash32 {
-    let digest = Sha256::digest(raw_data);
-    let hash: [u8; 32] = digest.into();
-    hash.into()
 }
