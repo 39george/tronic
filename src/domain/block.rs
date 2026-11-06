@@ -43,9 +43,11 @@ impl BlockExtention {
         let last_2_bytes = (self.block_header.raw_data.number & 0xFFFF) as u16;
         last_2_bytes.to_be_bytes().into()
     }
-    /// Get bytes 8..24 of the blockid
+    /// Get bytes 8..16 of the blockid
     pub(crate) fn calculate_ref_block_hash(&self) -> RefBlockHash {
-        self.blockid.0[8..16].try_into().unwrap()
+        let mut out = [0u8; 8];
+        out.copy_from_slice(&self.blockid.0[8..16]);
+        out.into()
     }
     pub(crate) fn fill_header_info_in_transaction(
         &self,

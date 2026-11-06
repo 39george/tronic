@@ -33,17 +33,21 @@ impl TronAddress {
         }
     }
 
+    pub fn from_verifying_key(vk: &k256::ecdsa::VerifyingKey) -> Self {
+        let point = vk.to_encoded_point(false);
+        let hash = sha3::Keccak256::digest(&point.as_bytes()[1..]);
+        let mut addr = [0x41u8; 21];
+        addr[1..].copy_from_slice(&hash[12..]);
+        Self(addr)
+    }
+
     pub fn rand() -> Self {
         use k256::ecdsa::SigningKey;
         use k256::elliptic_curve::SecretKey;
 
-        // Generate random secret key
         let mut rng = k256::elliptic_curve::rand_core::OsRng;
-        let sk = SecretKey::random(&mut rng);
-        let sk = SigningKey::from(sk);
-        sk.verifying_key()
-            .try_into()
-            .expect("valid key must produce Tron address")
+        let sk = SigningKey::from(SecretKey::random(&mut rng));
+        Self::from_verifying_key(sk.verifying_key())
     }
 
     pub fn from_pk(pk_bytes: &[u8]) -> Result<Self, eyre::Error> {
@@ -91,24 +95,8 @@ impl FromStr for TronAddress {
 
 impl TryFrom<&k256::ecdsa::VerifyingKey> for TronAddress {
     type Error = Error;
-    fn try_from(
-        verifying_key: &k256::ecdsa::VerifyingKey,
-    ) -> Result<Self, Self::Error> {
-        let point = verifying_key.to_encoded_point(false);
-        let x = point.x().ok_or(Error::NoCoordinate)?;
-        let y = point.y().ok_or(Error::NoCoordinate)?;
-        let mut p_bytes = Vec::new();
-        p_bytes.extend_from_slice(&[0x04]);
-        p_bytes.extend_from_slice(x.as_slice());
-        p_bytes.extend_from_slice(y.as_slice());
-        if p_bytes.len() == 65 {
-            p_bytes.remove(0);
-        }
-        let hash = sha3::Keccak256::digest(&p_bytes);
-        let mut addr = [0x41; 21];
-        addr[1..].copy_from_slice(&hash.as_slice()[hash.len() - 20..]);
-
-        Ok(TronAddress(addr))
+    fn try_from(vk: &k256::ecdsa::VerifyingKey) -> Result<Self, Self::Error> {
+        Ok(Self::from_verifying_key(vk))
     }
 }
 
@@ -139,14 +127,9 @@ impl From<TronAddress> for alloy_primitives::Address {
 
 impl From<alloy_primitives::Address> for TronAddress {
     fn from(eth_address: alloy_primitives::Address) -> Self {
-        // Ethereum address (20 bytes) + 0x41 prefix for Tron address
-        let mut tron_address = Vec::with_capacity(21);
-        tron_address.push(0x41); // Prefix for Tron addresses
-        tron_address.extend_from_slice(eth_address.as_slice()); // Append the 20-byte Ethereum address
-        tron_address
-            .as_slice()
-            .try_into()
-            .expect("invalid tron address length")
+        let mut bytes = [0x41u8; 21];
+        bytes[1..].copy_from_slice(eth_address.as_slice());
+        Self(bytes)
     }
 }
 

@@ -31,36 +31,83 @@ pub struct Usdt(U256);
 impl Usdt {
     pub const ZERO: Usdt = Usdt(U256::ZERO);
 
-    /// Creates USDT from human-readable decimal amount
+    /// Creates USDT from human-readable decimal amount.
+    ///
+    /// # Errors
+    /// Returns [`TokenError::InvalidAmount`] if `value` is NaN, infinite,
+    /// negative, or too large to represent.
     pub fn from_decimal(value: f64) -> Result<Self, TokenError> {
         let micro_usdt = (value * 1_000_000.0).round(); // 6 decimals
-        if micro_usdt.is_nan() || micro_usdt.is_infinite() {
+        if !micro_usdt.is_finite()
+            || micro_usdt < 0.0
+            || micro_usdt > u128::MAX as f64
+        {
             return Err(TokenError::InvalidAmount);
         }
 
-        // Convert to U256 safely
-        let amount = U256::from(micro_usdt.abs() as u128);
-        Ok(Self(amount))
+        Ok(Self(U256::from(micro_usdt as u128)))
     }
 
     pub fn is_whole(&self) -> bool {
         self.0 % U256::from(1_000_000) == U256::ZERO
     }
 
-    pub fn to<T>(&self) -> T
+    /// Converts the raw amount (micro-USDT) into `T`.
+    ///
+    /// # Errors
+    /// Returns an error if the value doesn't fit into `T`.
+    pub fn try_to<T>(&self) -> Result<T, T::Error>
     where
-        T: TryFrom<U256> + std::fmt::Debug,
-        <T as TryFrom<alloy_primitives::Uint<256, 4>>>::Error: std::fmt::Debug,
+        T: TryFrom<U256>,
     {
-        T::try_from(self.0).expect("failed to build decimal from Usdt")
+        T::try_from(self.0)
     }
 
+    /// Converts the raw amount (micro-USDT) into `T`.
+    ///
+    /// # Panics
+    /// Panics if the value doesn't fit into `T`. See [`Self::try_to`].
+    #[expect(
+        clippy::expect_used,
+        reason = "documented panicking shorthand for try_to"
+    )]
+    pub fn to<T>(&self) -> T
+    where
+        T: TryFrom<U256>,
+        T::Error: std::fmt::Debug,
+    {
+        self.try_to().expect("value doesn't fit into target type")
+    }
+
+    /// Creates USDT from a raw amount (micro-USDT).
+    ///
+    /// # Errors
+    /// Returns an error if `val` can't be represented as `U256`
+    /// (e.g. it is negative).
+    pub fn try_from_value<T>(
+        val: T,
+    ) -> Result<Self, <U256 as TryFrom<T>>::Error>
+    where
+        U256: TryFrom<T>,
+    {
+        U256::try_from(val).map(Self)
+    }
+
+    /// Creates USDT from a raw amount (micro-USDT).
+    ///
+    /// # Panics
+    /// Panics if `val` is negative or doesn't fit into `U256`.
+    /// See [`Self::try_from_value`].
+    #[expect(
+        clippy::expect_used,
+        reason = "documented panicking shorthand for try_from_value"
+    )]
     pub fn from<T>(val: T) -> Self
     where
         U256: TryFrom<T>,
-        <T as TryInto<U256>>::Error: std::fmt::Debug,
+        <U256 as TryFrom<T>>::Error: std::fmt::Debug,
     {
-        Self(U256::try_from(val).expect("failed to build Usdt from value"))
+        Self::try_from_value(val).expect("invalid raw USDT amount")
     }
 
     pub fn checked_add(self, other: Self) -> Option<Self> {
@@ -71,9 +118,9 @@ impl Usdt {
         self.0.checked_sub(other.0).map(Self)
     }
 
-    /// Returns the amount as a decimal string without trailing zeros
+    /// Returns the amount as `f64` (lossy for very large values).
     pub fn to_decimal(&self) -> f64 {
-        todo!()
+        self.to_decimal_string().parse().unwrap_or(f64::NAN)
     }
 
     /// Returns the amount as a decimal string without trailing zeros
