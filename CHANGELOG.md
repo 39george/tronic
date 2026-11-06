@@ -1,5 +1,31 @@
 # Changelog
 
+## [v0.8.1] - 2026-11-06
+
+
+### Features
+
+
+- Make cllipy happpyy (20cf846)
+
+
+
+### Miscellaneous
+
+
+- Update readme (f6b45cb)
+
+
+- Add rustfmt config (fa2c13c)
+
+
+
+### Refactor
+
+
+- Make clippy happy (528d4ae)
+
+
 ## [v0.8.0] - 2026-10-17
 
 
@@ -17,6 +43,9 @@
 
 
 - Release v0.8.0 (b93f6cd)
+
+
+- V0.8.0 (52903ce)
 
 
 ## [v0.7.0] - 2026-10-14
