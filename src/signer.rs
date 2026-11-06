@@ -35,6 +35,10 @@ impl LocalSigner {
             signing_key: Arc::new(SigningKey::from_slice(buf)?),
         })
     }
+    #[allow(
+        clippy::expect_used,
+        reason = "valid secp256k1 key always maps to a Tron address"
+    )]
     pub fn address(&self) -> TronAddress {
         self.signing_key
             .verifying_key()
@@ -42,7 +46,7 @@ impl LocalSigner {
             .expect("valid key must produce Tron address")
     }
     pub fn secret_key(&self) -> [u8; 32] {
-        self.signing_key.to_bytes().to_vec().try_into().unwrap()
+        self.signing_key.to_bytes().into()
     }
 }
 
