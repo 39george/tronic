@@ -177,14 +177,63 @@ where
             pending_blocks: VecDeque::new(),
         }
     }
+
+    fn fetch_blocks(&self) -> BlocksFuture {
+        let client = self.client.clone();
+        let block_cache = self.block_cache.clone();
+        Box::pin(async move {
+            let last_block = match block_cache.load_latest_seen_block().await {
+                Ok(Some(block_number)) => block_number,
+                Ok(None) => -1,
+                Err(e) => return Err(e.into()),
+            };
+
+            let latest_block = client.provider.get_now_block().await?;
+            let latest_number = latest_block.block_header.raw_data.number;
+
+            let blocks_to_send = if last_block == -1 {
+                vec![latest_block]
+            } else if latest_number <= last_block {
+                Vec::new()
+            } else {
+                let first_needed = last_block + 1;
+                let batch_end_number = (first_needed + MAX_BLOCKS_PER_FETCH
+                    - 1)
+                .min(latest_number);
+
+                let futures: FuturesOrdered<_> = (first_needed
+                    ..=batch_end_number)
+                    .map(|num| {
+                        let provider = client.provider();
+                        async move { provider.get_block_by_number(num).await }
+                    })
+                    .collect();
+
+                futures.try_collect().await?
+            };
+
+            if let Some(last_block) = blocks_to_send.last() {
+                let block_number = last_block.block_header.raw_data.number;
+
+                if let Err(e) =
+                    block_cache.store_latest_seen_block(block_number).await
+                {
+                    return Err(e.into());
+                }
+            }
+
+            Ok(blocks_to_send)
+        })
+    }
 }
+
+type BlocksFuture =
+    Pin<Box<dyn Future<Output = Result<Vec<BlockExtention>>> + Send>>;
 
 struct BlockStream<P, S, BC> {
     listener: Listener<P, S, BC>,
     delay: Pin<Box<tokio::time::Sleep>>,
-    fut: Option<
-        Pin<Box<dyn Future<Output = Result<Vec<BlockExtention>>> + Send>>,
-    >,
+    fut: Option<BlocksFuture>,
     pending_blocks: VecDeque<BlockExtention>,
 }
 
@@ -211,88 +260,31 @@ where
             return Poll::Pending;
         }
 
-        if self.fut.is_none() {
-            let client = self.listener.client.clone();
-            let block_cache = self.listener.block_cache.clone();
-
-            self.fut = Some(Box::pin(async move {
-                let last_block =
-                    match block_cache.load_latest_seen_block().await {
-                        Ok(Some(block_number)) => block_number,
-                        Ok(None) => -1,
-                        Err(e) => return Err(e.into()),
-                    };
-
-                let latest_block = client.provider.get_now_block().await?;
-                let latest_number = latest_block.block_header.raw_data.number;
-
-                let blocks_to_send = if last_block == -1 {
-                    vec![latest_block]
-                } else if latest_number <= last_block {
-                    Vec::new()
-                } else {
-                    let first_needed = last_block + 1;
-                    let batch_end_number =
-                        (first_needed + MAX_BLOCKS_PER_FETCH - 1)
-                            .min(latest_number);
-
-                    let futures: FuturesOrdered<_> =
-                        (first_needed..=batch_end_number)
-                            .map(|num| {
-                                let provider = client.provider();
-                                async move {
-                                    provider.get_block_by_number(num).await
-                                }
-                            })
-                            .collect();
-
-                    futures.try_collect().await?
-                };
-
-                if let Some(last_block) = blocks_to_send.last() {
-                    let block_number = last_block.block_header.raw_data.number;
-
-                    if let Err(e) =
-                        block_cache.store_latest_seen_block(block_number).await
-                    {
-                        return Err(e.into());
-                    }
-                }
-
-                Ok(blocks_to_send)
-            }));
-        }
-
         let interval = self.listener.interval;
+        let this = &mut *self;
 
-        let poll_result = {
-            let fut = self.fut.as_mut().expect("future must exist");
-            fut.as_mut().poll(cx)
-        };
+        let fut = this.fut.get_or_insert_with(|| this.listener.fetch_blocks());
+        let poll_result = fut.as_mut().poll(cx);
 
         match poll_result {
             Poll::Ready(Ok(blocks)) => {
-                self.fut = None;
-                self.delay
+                this.fut = None;
+                this.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
 
-                if blocks.is_empty() {
+                let mut blocks = blocks.into_iter();
+                let Some(first) = blocks.next() else {
+                    cx.waker().wake_by_ref();
                     return Poll::Pending;
-                }
+                };
+                this.pending_blocks.extend(blocks);
 
-                self.pending_blocks.extend(blocks);
-
-                let block = self
-                    .pending_blocks
-                    .pop_front()
-                    .expect("pending blocks must not be empty");
-
-                Poll::Ready(Some(Ok(block)))
+                Poll::Ready(Some(Ok(first)))
             }
             Poll::Ready(Err(e)) => {
-                self.fut = None;
-                self.delay
+                this.fut = None;
+                this.delay
                     .as_mut()
                     .reset(tokio::time::Instant::now() + interval);
 
