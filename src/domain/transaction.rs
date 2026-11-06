@@ -99,7 +99,8 @@ impl RawTransaction {
     /// Matches the on-chain id for transactions built by tronic, but not necessarily for ones fetched from a node.
     /// The domain -> proto re-encoding isn't guaranteed to be byte-identical
     pub fn generate_txid(&self) -> Hash32 {
-        let raw_data = &crate::protocol::transaction::Raw::from(self.clone()).encode_to_vec();
+        let raw_data = &crate::protocol::transaction::Raw::from(self.clone())
+            .encode_to_vec();
         let digest = Sha256::digest(raw_data);
         let hash: [u8; 32] = digest.into();
         hash.into()
@@ -209,18 +210,23 @@ impl Transaction {
         self.raw.contract.last().cloned()
     }
 
-    pub fn new(contract: Contract, latest_block: &BlockExtention, memo: Message) -> Self {
+    pub fn new(
+        contract: Contract,
+        latest_block: &BlockExtention,
+        memo: Message,
+    ) -> Self {
         let mut transaction = Transaction::default();
         transaction.raw.timestamp = OffsetDateTime::now_utc();
         transaction.raw.data = memo;
         transaction.raw.contract.push(contract);
         latest_block.fill_header_info_in_transaction(&mut transaction);
         // Setup default expiration
-        transaction.raw.expiration = transaction.raw.timestamp.saturating_add(60.seconds());
+        transaction.raw.expiration =
+            transaction.raw.timestamp.saturating_add(60.seconds());
         transaction
     }
 
-    pub fn to_protobuf_bytes(&self) -> impl prost::Message {
+    pub fn to_proto(&self) -> crate::protocol::Transaction {
         crate::protocol::Transaction::from(self.clone())
     }
 }
